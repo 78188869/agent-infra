@@ -16,16 +16,5 @@ func Setup() *gin.Engine {
 	r.GET("/health", handler.HealthCheck)
 	r.GET("/ready", handler.ReadyCheck)
 
-	// API v1 routes
-	v1 := r.Group("/api/v1")
-	{
-		// TODO: Add actual API routes
-		v1.GET("/hello", func(c *gin.Context) {
-			c.JSON(200, gin.H{
-				"message": "Hello, Agentic Coding Platform!",
-			})
-		})
-	}
-
 	return r
 }
