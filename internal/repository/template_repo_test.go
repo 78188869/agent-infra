@@ -417,6 +417,14 @@ func TestTemplateRepository_Interface(t *testing.T) {
 	var _ TemplateRepository = (*mockTemplateRepository)(nil)
 }
 
+func TestNewTemplateRepository(t *testing.T) {
+	// Test that NewTemplateRepository returns a non-nil implementation
+	repo := NewTemplateRepository(nil)
+	if repo == nil {
+		t.Error("NewTemplateRepository should return non-nil interface value")
+	}
+}
+
 // Verify error type checking works
 func TestTemplateRepository_ErrorTypes(t *testing.T) {
 	err := errors.NewNotFoundError("template not found")

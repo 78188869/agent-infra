@@ -387,6 +387,16 @@ func TestTenantRepository_Interface(t *testing.T) {
 	var _ TenantRepository = (*mockTenantRepository)(nil)
 }
 
+func TestNewTenantRepository(t *testing.T) {
+	// Test that NewTenantRepository returns a non-nil implementation
+	// Note: This doesn't test with a real DB, just verifies the constructor works
+	// The actual repository operations are tested via integration tests
+	repo := NewTenantRepository(nil)
+	if repo == nil {
+		t.Error("NewTenantRepository should return non-nil interface value")
+	}
+}
+
 // Verify error type checking works
 func TestTenantRepository_ErrorTypes(t *testing.T) {
 	err := errors.NewNotFoundError("tenant not found")

@@ -603,6 +603,14 @@ func TestTaskRepository_Interface(t *testing.T) {
 	var _ TaskRepository = (*mockTaskRepository)(nil)
 }
 
+func TestNewTaskRepository(t *testing.T) {
+	// Test that NewTaskRepository returns a non-nil implementation
+	repo := NewTaskRepository(nil)
+	if repo == nil {
+		t.Error("NewTaskRepository should return non-nil interface value")
+	}
+}
+
 // Test Task with JSON fields
 func TestTask_JSONFieldsInMock(t *testing.T) {
 	ctx := context.Background()
