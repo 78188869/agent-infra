@@ -81,6 +81,13 @@ func (m *mockTaskService) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
+// mockDBChecker implements DBChecker for testing
+type mockDBChecker struct{}
+
+func (m *mockDBChecker) Ping() error {
+	return nil
+}
+
 func init() {
 	gin.SetMode(gin.TestMode)
 }
@@ -89,7 +96,8 @@ func TestSetup_Routes(t *testing.T) {
 	mockTenantSvc := &mockTenantService{}
 	mockTemplateSvc := &mockTemplateService{}
 	mockTaskSvc := &mockTaskService{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc)
+	mockDB := &mockDBChecker{}
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockDB)
 
 	tests := []struct {
 		name   string
@@ -124,7 +132,8 @@ func TestSetup_TenantRoutes(t *testing.T) {
 	mockTenantSvc := &mockTenantService{}
 	mockTemplateSvc := &mockTemplateService{}
 	mockTaskSvc := &mockTaskService{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc)
+	mockDB := &mockDBChecker{}
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockDB)
 
 	// Verify all tenant routes are registered
 	routes := router.Routes()
@@ -153,7 +162,8 @@ func TestSetup_TaskRoutes(t *testing.T) {
 	mockTenantSvc := &mockTenantService{}
 	mockTemplateSvc := &mockTemplateService{}
 	mockTaskSvc := &mockTaskService{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc)
+	mockDB := &mockDBChecker{}
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockDB)
 
 	// Verify all task routes are registered
 	routes := router.Routes()
@@ -182,7 +192,8 @@ func TestSetup_TaskListWithParams(t *testing.T) {
 	mockTenantSvc := &mockTenantService{}
 	mockTemplateSvc := &mockTemplateService{}
 	mockTaskSvc := &mockTaskService{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc)
+	mockDB := &mockDBChecker{}
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockDB)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/tasks?page=1&page_size=10&status=pending", nil)
 	w := httptest.NewRecorder()

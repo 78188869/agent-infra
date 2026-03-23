@@ -61,7 +61,8 @@ func main() {
 	var tenantSvc service.TenantService
 	var templateSvc service.TemplateService
 	var taskSvc service.TaskService
-	db, err := config.NewDatabase(cfg.ToDatabaseConfig())
+	var db *config.Database
+	db, err = config.NewDatabase(cfg.ToDatabaseConfig())
 	if err != nil {
 		log.Printf("Warning: failed to connect to database, using mock service: %v", err)
 		tenantSvc = &mockTenantService{}
@@ -83,8 +84,8 @@ func main() {
 		taskSvc = service.NewTaskService(taskRepo)
 	}
 
-	// Setup router
-	r := router.Setup(tenantSvc, templateSvc, taskSvc)
+	// Setup router (pass db for health checks - can be nil if not available)
+	r := router.Setup(tenantSvc, templateSvc, taskSvc, db)
 
 	// Start server
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)

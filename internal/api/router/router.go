@@ -7,15 +7,21 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// DBChecker defines the interface for database health checking.
+type DBChecker interface {
+	Ping() error
+}
+
 // Setup initializes the gin router with all routes.
-func Setup(tenantSvc service.TenantService, templateSvc service.TemplateService, taskSvc service.TaskService) *gin.Engine {
+func Setup(tenantSvc service.TenantService, templateSvc service.TemplateService, taskSvc service.TaskService, db DBChecker) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(middleware.Logger())
 
 	// Health check endpoints
 	r.GET("/health", handler.HealthCheck)
-	r.GET("/ready", handler.ReadyCheck)
+	readyHandler := handler.NewReadyCheckHandler(db)
+	r.GET("/ready", readyHandler.ReadyCheck)
 
 	// API v1 routes
 	v1 := r.Group("/api/v1")
