@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: control-plane-config
+  namespace: control-plane
+  labels:
+    app.kubernetes.io/name: agent-infra
+    app.kubernetes.io/component: control-plane
+data:
+  # Server configuration
+  SERVER_PORT: "8080"
+  GIN_MODE: "release"
+  LOG_LEVEL: "info"
+
+  # Database configuration (non-sensitive)
+  DB_HOST: "oceanbase-service"
+  DB_PORT: "2881"
+  DB_NAME: "agent_infra"
+  DB_MAX_CONN: "100"
+
+  # Redis configuration (non-sensitive)
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+
+  # K8s configuration
+  CONTROL_PLANE_NS: "control-plane"
+  SANDBOX_NS: "sandbox"

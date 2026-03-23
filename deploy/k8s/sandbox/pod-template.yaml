@@ -1,0 +1,176 @@
+# Pod template for sandbox jobs
+# This is used as a base template by the control-plane to create Job resources
+apiVersion: v1
+kind: PodTemplate
+metadata:
+  name: sandbox-job-template
+  namespace: sandbox
+  labels:
+    app.kubernetes.io/name: agent-infra
+    app.kubernetes.io/component: sandbox
+template:
+  metadata:
+    labels:
+      app.kubernetes.io/name: agent-infra
+      app.kubernetes.io/component: sandbox-job
+  spec:
+    shareProcessNamespace: true
+    restartPolicy: Never
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 1000
+      seccompProfile:
+        type: RuntimeDefault
+    containers:
+      # Main container: CLI Runner
+      # TODO: Replace with actual container registry URL before deployment
+      - name: cli-runner
+        image: registry.example.com/agent-infra/cli-runner:latest
+        imagePullPolicy: Always
+        env:
+          - name: TASK_ID
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.labels['task-id']
+          - name: GIT_REPO_URL
+            value: ""  # Injected at runtime
+          - name: GIT_BRANCH
+            value: "main"
+          - name: GIT_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: sandbox-credentials
+                key: git-token
+          - name: CLAUDE_MD_CONTENT
+            value: ""  # Injected at runtime
+          - name: TASK_PROMPT
+            value: ""  # Injected at runtime
+          - name: MAX_TOKENS
+            value: "128000"
+          - name: ALLOWED_TOOLS
+            value: ""  # Injected at runtime
+        volumeMounts:
+          - name: workspace
+            mountPath: /workspace
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+        securityContext:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+
+      # Sidecar: Agent Wrapper
+      - name: wrapper
+        # TODO: Replace with actual container registry URL before deployment
+        image: registry.example.com/agent-infra/agent-wrapper:latest
+        imagePullPolicy: Always
+        env:
+          - name: TASK_ID
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.labels['task-id']
+          - name: CONTROL_PLANE_URL
+            value: "http://control-plane.control-plane.svc.cluster.local:8080"
+          - name: HTTP_PORT
+            value: "9090"
+        volumeMounts:
+          - name: workspace
+            mountPath: /workspace
+        ports:
+          - name: http
+            containerPort: 9090
+            protocol: TCP
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "100m"
+            memory: "128Mi"
+        securityContext:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+
+      # Sidecar: Log Agent (optional, for SLS integration)
+      # - name: log-agent
+      #   image: registry.example.com/agent-infra/log-agent:latest
+      #   ...
+
+    volumes:
+      - name: workspace
+        emptyDir:
+          sizeLimit: 10Gi
+
+    # Network policy: only allow access to control-plane
+    # Actual enforcement done via NetworkPolicy resource
+---
+# Network Policy for sandbox namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sandbox-network-policy
+  namespace: sandbox
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Only allow ingress from control-plane
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              app.kubernetes.io/name: agent-infra
+              app.kubernetes.io/component: control-plane
+      ports:
+        - port: 9090
+          protocol: TCP
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - port: 53
+          protocol: UDP
+    # Allow access to control-plane
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              app.kubernetes.io/name: agent-infra
+              app.kubernetes.io/component: control-plane
+      ports:
+        - port: 8080
+          protocol: TCP
+    # Allow access to external Git repositories (for cloning)
+    # In production, this should be restricted to specific IPs
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - port: 443
+          protocol: TCP
+        - port: 22
+          protocol: TCP
