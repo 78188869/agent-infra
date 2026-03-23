@@ -34,6 +34,61 @@ func (f *TenantFilter) Offset() int {
 	return (f.Page - 1) * f.PageSize
 }
 
+// TaskFilter represents filtering options for listing tasks.
+type TaskFilter struct {
+	Page     int    `form:"page"`
+	PageSize int    `form:"page_size"`
+	Status   string `form:"status"`
+	TenantID string `form:"tenant_id"`
+	Search   string `form:"search"`
+}
+
+// SetDefaults sets default values for the filter.
+func (f *TaskFilter) SetDefaults() {
+	if f.Page <= 0 {
+		f.Page = 1
+	}
+	if f.PageSize <= 0 {
+		f.PageSize = 10
+	}
+	if f.PageSize > 100 {
+		f.PageSize = 100
+	}
+}
+
+// Offset returns the calculated offset for pagination.
+func (f *TaskFilter) Offset() int {
+	return (f.Page - 1) * f.PageSize
+}
+
+// TemplateFilter represents filtering options for listing templates.
+type TemplateFilter struct {
+	Page      int    `form:"page"`
+	PageSize  int    `form:"page_size"`
+	TenantID  string `form:"tenant_id"`
+	Status    string `form:"status"`
+	SceneType string `form:"scene_type"`
+	Search    string `form:"search"`
+}
+
+// SetDefaults sets default values for the filter.
+func (f *TemplateFilter) SetDefaults() {
+	if f.Page <= 0 {
+		f.Page = 1
+	}
+	if f.PageSize <= 0 {
+		f.PageSize = 10
+	}
+	if f.PageSize > 100 {
+		f.PageSize = 100
+	}
+}
+
+// Offset returns the calculated offset for pagination.
+func (f *TemplateFilter) Offset() int {
+	return (f.Page - 1) * f.PageSize
+}
+
 // BaseRepository defines common repository operations.
 type BaseRepository[T any] interface {
 	Create(ctx context.Context, entity *T) error
