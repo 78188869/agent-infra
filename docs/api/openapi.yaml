@@ -1,0 +1,1223 @@
+openapi: 3.0.3
+info:
+  title: Agent Infra Control Plane API
+  description: |
+    The Control Plane API provides the core backend services for the Agent Infra platform.
+    It manages tenants, templates, and tasks for AI agent orchestration.
+  version: 1.0.0
+  contact:
+    name: Agent Infra Team
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: https://api.agent-infra.example.com
+    description: Production server
+
+tags:
+  - name: Health
+    description: Health check endpoints for service monitoring
+  - name: Tenants
+    description: Tenant management operations
+  - name: Templates
+    description: Agent template management operations
+  - name: Tasks
+    description: Task execution management operations
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Service health check
+      description: Returns the basic health status of the service
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: healthy
+                service: control-plane
+                version: 0.1.0
+
+  /ready:
+    get:
+      tags:
+        - Health
+      summary: Service readiness check
+      description: Returns the readiness status with detailed component checks including database and Redis
+      operationId: readyCheck
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadyResponse'
+              example:
+                ready: true
+                checks:
+                  database: healthy
+                  redis: not_configured
+        '503':
+          description: Service is not ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadyResponse'
+              example:
+                ready: false
+                checks:
+                  database: unhealthy
+                  redis: not_configured
+
+  /api/v1/tenants:
+    post:
+      tags:
+        - Tenants
+      summary: Create a new tenant
+      description: Creates a new tenant with the specified resource quotas
+      operationId: createTenant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTenantRequest'
+            example:
+              name: "Acme Corporation"
+              quota_cpu: 8
+              quota_memory: 32
+              quota_concurrency: 20
+              quota_daily_tasks: 500
+      responses:
+        '201':
+          description: Tenant created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantResponse'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags:
+        - Tenants
+      summary: List all tenants
+      description: Retrieves a paginated list of tenants with optional filtering
+      operationId: listTenants
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - name: status
+          in: query
+          description: Filter by tenant status
+          schema:
+            type: string
+            enum: [active, suspended]
+        - name: search
+          in: query
+          description: Search by tenant name
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of tenants retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantListResponse'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tenants/{id}:
+    get:
+      tags:
+        - Tenants
+      summary: Get a tenant by ID
+      description: Retrieves a single tenant by its unique identifier
+      operationId: getTenant
+      parameters:
+        - $ref: '#/components/parameters/TenantIdParam'
+      responses:
+        '200':
+          description: Tenant retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantResponse'
+        '400':
+          description: Invalid tenant ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Tenant not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - Tenants
+      summary: Update a tenant
+      description: Updates an existing tenant with partial update support
+      operationId: updateTenant
+      parameters:
+        - $ref: '#/components/parameters/TenantIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTenantRequest'
+            example:
+              name: "Acme Corp Updated"
+              quota_cpu: 16
+              status: "active"
+      responses:
+        '200':
+          description: Tenant updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid request body or tenant ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Tenant not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Tenants
+      summary: Delete a tenant
+      description: Performs a soft delete on a tenant
+      operationId: deleteTenant
+      parameters:
+        - $ref: '#/components/parameters/TenantIdParam'
+      responses:
+        '200':
+          description: Tenant deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid tenant ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Tenant not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/templates:
+    post:
+      tags:
+        - Templates
+      summary: Create a new template
+      description: Creates a new agent template with the specified configuration
+      operationId: createTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTemplateRequest'
+            example:
+              tenant_id: "550e8400-e29b-41d4-a716-446655440000"
+              name: "Code Review Agent"
+              version: "1.0.0"
+              spec: |
+                agent:
+                  name: code-reviewer
+                  model: claude-3
+                  tools:
+                    - code_analysis
+                    - git
+              scene_type: "coding"
+      responses:
+        '201':
+          description: Template created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateResponse'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags:
+        - Templates
+      summary: List all templates
+      description: Retrieves a paginated list of templates with optional filtering
+      operationId: listTemplates
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - name: tenant_id
+          in: query
+          description: Filter by tenant ID
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          description: Filter by template status
+          schema:
+            type: string
+            enum: [draft, published, deprecated]
+        - name: scene_type
+          in: query
+          description: Filter by scene type
+          schema:
+            type: string
+            enum: [coding, ops, analysis, content, custom]
+        - name: search
+          in: query
+          description: Search by template name
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of templates retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateListResponse'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/templates/{id}:
+    get:
+      tags:
+        - Templates
+      summary: Get a template by ID
+      description: Retrieves a single template by its unique identifier
+      operationId: getTemplate
+      parameters:
+        - $ref: '#/components/parameters/TemplateIdParam'
+      responses:
+        '200':
+          description: Template retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateResponse'
+        '400':
+          description: Invalid template ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Template not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - Templates
+      summary: Update a template
+      description: Updates an existing template with partial update support
+      operationId: updateTemplate
+      parameters:
+        - $ref: '#/components/parameters/TemplateIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTemplateRequest'
+            example:
+              name: "Code Review Agent v2"
+              status: "published"
+      responses:
+        '200':
+          description: Template updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid request body or template ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Template not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Templates
+      summary: Delete a template
+      description: |
+        Performs a soft delete on a template.
+        Note: Only draft templates can be deleted.
+      operationId: deleteTemplate
+      parameters:
+        - $ref: '#/components/parameters/TemplateIdParam'
+      responses:
+        '200':
+          description: Template deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid template ID format or template is not in draft status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Template not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tasks:
+    post:
+      tags:
+        - Tasks
+      summary: Create a new task
+      description: Creates a new task for agent execution
+      operationId: createTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskRequest'
+            example:
+              tenant_id: "550e8400-e29b-41d4-a716-446655440000"
+              template_id: "660e8400-e29b-41d4-a716-446655440001"
+              creator_id: "770e8400-e29b-41d4-a716-446655440002"
+              provider_id: "880e8400-e29b-41d4-a716-446655440003"
+              name: "Analyze Repository"
+              priority: "normal"
+              params:
+                repository: "https://github.com/example/repo"
+                branch: "main"
+      responses:
+        '201':
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags:
+        - Tasks
+      summary: List all tasks
+      description: Retrieves a paginated list of tasks with optional filtering
+      operationId: listTasks
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - name: tenant_id
+          in: query
+          description: Filter by tenant ID
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          description: Filter by task status
+          schema:
+            type: string
+            enum: [pending, scheduled, running, paused, waiting_approval, retrying, succeeded, failed, cancelled]
+        - name: search
+          in: query
+          description: Search by task name
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of tasks retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskListResponse'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tasks/{id}:
+    get:
+      tags:
+        - Tasks
+      summary: Get a task by ID
+      description: Retrieves a single task by its unique identifier
+      operationId: getTask
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+      responses:
+        '200':
+          description: Task retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '400':
+          description: Invalid task ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - Tasks
+      summary: Update a task
+      description: |
+        Updates an existing task with partial update support.
+        Status transitions follow a state machine:
+        - pending -> scheduled, cancelled
+        - scheduled -> running, cancelled
+        - running -> paused, succeeded, failed, cancelled
+        - paused -> running, cancelled
+        - waiting_approval -> running, cancelled
+        - retrying -> running, failed, cancelled
+        - succeeded, failed, cancelled are terminal states
+      operationId: updateTask
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskRequest'
+            example:
+              status: "running"
+      responses:
+        '200':
+          description: Task updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid request body, task ID format, or invalid status transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Tasks
+      summary: Delete a task
+      description: Performs a soft delete on a task
+      operationId: deleteTask
+      parameters:
+        - $ref: '#/components/parameters/TaskIdParam'
+      responses:
+        '200':
+          description: Task deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid task ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      description: Page number for pagination (default: 1)
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSizeParam:
+      name: page_size
+      in: query
+      description: Number of items per page (default: 10, max: 100)
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 10
+    TenantIdParam:
+      name: id
+      in: path
+      required: true
+      description: Unique tenant identifier (UUID format)
+      schema:
+        type: string
+        format: uuid
+    TemplateIdParam:
+      name: id
+      in: path
+      required: true
+      description: Unique template identifier (UUID format)
+      schema:
+        type: string
+        format: uuid
+    TaskIdParam:
+      name: id
+      in: path
+      required: true
+      description: Unique task identifier (UUID format)
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    # Base response schemas
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - service
+        - version
+      properties:
+        status:
+          type: string
+          enum: [healthy]
+          example: healthy
+        service:
+          type: string
+          example: control-plane
+        version:
+          type: string
+          example: 0.1.0
+
+    ReadyResponse:
+      type: object
+      required:
+        - ready
+        - checks
+      properties:
+        ready:
+          type: boolean
+          description: Whether the service is ready to accept requests
+        checks:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [healthy, unhealthy, not_configured]
+          description: Status of individual components
+
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          description: Error code (400 for bad request, 404 for not found, 500 for internal error)
+          example: 400
+        message:
+          type: string
+          description: Human-readable error message
+          example: "invalid request body"
+
+    SuccessResponse:
+      type: object
+      required:
+        - code
+        - message
+        - data
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "resource updated successfully"
+
+    # Pagination
+    PaginatedData:
+      type: object
+      required:
+        - items
+        - total
+        - page
+        - page_size
+      properties:
+        items:
+          type: array
+          items: {}
+        total:
+          type: integer
+          description: Total number of items
+        page:
+          type: integer
+          description: Current page number
+        page_size:
+          type: integer
+          description: Number of items per page
+
+    # Tenant schemas
+    CreateTenantRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          maxLength: 128
+          example: "Acme Corporation"
+        quota_cpu:
+          type: integer
+          minimum: 0
+          default: 4
+          description: CPU quota (cores)
+        quota_memory:
+          type: integer
+          format: int64
+          minimum: 0
+          default: 16
+          description: Memory quota (GB)
+        quota_concurrency:
+          type: integer
+          minimum: 0
+          default: 10
+          description: Maximum concurrent tasks
+        quota_daily_tasks:
+          type: integer
+          minimum: 0
+          default: 100
+          description: Daily task limit
+
+    UpdateTenantRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 128
+        quota_cpu:
+          type: integer
+          minimum: 0
+        quota_memory:
+          type: integer
+          format: int64
+          minimum: 0
+        quota_concurrency:
+          type: integer
+          minimum: 0
+        quota_daily_tasks:
+          type: integer
+          minimum: 0
+        status:
+          type: string
+          enum: [active, suspended]
+
+    Tenant:
+      type: object
+      required:
+        - id
+        - name
+        - quota_cpu
+        - quota_memory
+        - quota_concurrency
+        - quota_daily_tasks
+        - status
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        quota_cpu:
+          type: integer
+        quota_memory:
+          type: integer
+          format: int64
+        quota_concurrency:
+          type: integer
+        quota_daily_tasks:
+          type: integer
+        status:
+          type: string
+          enum: [active, suspended]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    TenantResponse:
+      type: object
+      required:
+        - code
+        - message
+        - data
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          $ref: '#/components/schemas/Tenant'
+
+    TenantListResponse:
+      type: object
+      required:
+        - code
+        - message
+        - data
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          allOf:
+            - $ref: '#/components/schemas/PaginatedData'
+            - type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Tenant'
+
+    # Template schemas
+    CreateTemplateRequest:
+      type: object
+      required:
+        - tenant_id
+        - name
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 128
+        version:
+          type: string
+          maxLength: 32
+          default: "1.0.0"
+        spec:
+          type: string
+          description: YAML specification for the agent template
+        scene_type:
+          type: string
+          enum: [coding, ops, analysis, content, custom]
+          default: custom
+        provider_id:
+          type: string
+          format: uuid
+          nullable: true
+
+    UpdateTemplateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 128
+        version:
+          type: string
+          maxLength: 32
+        spec:
+          type: string
+        scene_type:
+          type: string
+          enum: [coding, ops, analysis, content, custom]
+        status:
+          type: string
+          enum: [draft, published, deprecated]
+        provider_id:
+          type: string
+          format: uuid
+          nullable: true
+
+    Template:
+      type: object
+      required:
+        - id
+        - tenant_id
+        - name
+        - version
+        - scene_type
+        - status
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        version:
+          type: string
+        spec:
+          type: string
+        scene_type:
+          type: string
+          enum: [coding, ops, analysis, content, custom]
+        status:
+          type: string
+          enum: [draft, published, deprecated]
+        provider_id:
+          type: string
+          format: uuid
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    TemplateResponse:
+      type: object
+      required:
+        - code
+        - message
+        - data
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          $ref: '#/components/schemas/Template'
+
+    TemplateListResponse:
+      type: object
+      required:
+        - code
+        - message
+        - data
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          allOf:
+            - $ref: '#/components/schemas/PaginatedData'
+            - type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Template'
+
+    # Task schemas
+    CreateTaskRequest:
+      type: object
+      required:
+        - tenant_id
+        - creator_id
+        - provider_id
+        - name
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+        template_id:
+          type: string
+          format: uuid
+          nullable: true
+        creator_id:
+          type: string
+          format: uuid
+        provider_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 256
+        priority:
+          type: string
+          enum: [high, normal, low]
+          default: normal
+        params:
+          type: object
+          description: JSON object containing task parameters
+          additionalProperties: true
+        description:
+          type: string
+
+    UpdateTaskRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending, scheduled, running, paused, waiting_approval, retrying, succeeded, failed, cancelled]
+        error_message:
+          type: string
+          nullable: true
+        result:
+          type: object
+          description: JSON object containing task result
+          additionalProperties: true
+
+    Task:
+      type: object
+      required:
+        - id
+        - tenant_id
+        - creator_id
+        - provider_id
+        - name
+        - status
+        - priority
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        template_id:
+          type: string
+          format: uuid
+          nullable: true
+        creator_id:
+          type: string
+          format: uuid
+        provider_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        status:
+          type: string
+          enum: [pending, scheduled, running, paused, waiting_approval, retrying, succeeded, failed, cancelled]
+        priority:
+          type: string
+          enum: [high, normal, low]
+        params:
+          type: object
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        error_message:
+          type: string
+          nullable: true
+        result:
+          type: object
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    TaskResponse:
+      type: object
+      required:
+        - code
+        - message
+        - data
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          $ref: '#/components/schemas/Task'
+
+    TaskListResponse:
+      type: object
+      required:
+        - code
+        - message
+        - data
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          allOf:
+            - $ref: '#/components/schemas/PaginatedData'
+            - type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Task'

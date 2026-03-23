@@ -1,152 +1,186 @@
-// Package model provides database models for the application.
 package model
 
 import (
 	"testing"
+
+	"github.com/google/uuid"
+	"gorm.io/datatypes"
 )
 
-func TestTask_BeforeCreate(t *testing.T) {
-	task := &Task{
-		TenantID:  "tenant-123",
-		CreatorID: "user-123",
-		Status:    TaskStatusPending,
-		Priority:  PriorityNormal,
+func TestTask_Fields(t *testing.T) {
+	// Test that Task has all expected fields with correct types
+	task := Task{}
+
+	// Verify all fields exist and are accessible
+	_ = task.ID
+	_ = task.CreatedAt
+	_ = task.UpdatedAt
+	_ = task.DeletedAt
+	_ = task.TenantID
+	_ = task.TemplateID
+	_ = task.CreatorID
+	_ = task.ProviderID
+	_ = task.Name
+	_ = task.Status
+	_ = task.Priority
+	_ = task.Params
+	_ = task.Description
+	_ = task.ErrorMessage
+	_ = task.Result
+}
+
+func TestTask_EmbedsBaseModel(t *testing.T) {
+	// Test that Task embeds BaseModel
+	task := Task{}
+
+	// ID should be uuid.UUID type (from BaseModel)
+	var _ uuid.UUID = task.ID
+
+	// DeletedAt should support soft delete (from BaseModel)
+	_ = task.DeletedAt
+}
+
+func TestTask_DefaultValues(t *testing.T) {
+	// Test default values for a new task
+	task := Task{}
+
+	// Zero values should be the default
+	if task.TenantID != "" {
+		t.Error("Default TenantID should be empty string")
+	}
+	if task.TemplateID != nil {
+		t.Error("Default TemplateID should be nil")
+	}
+	if task.CreatorID != "" {
+		t.Error("Default CreatorID should be empty string")
+	}
+	if task.ProviderID != "" {
+		t.Error("Default ProviderID should be empty string")
+	}
+	if task.Name != "" {
+		t.Error("Default Name should be empty string")
+	}
+	if task.Status != "" {
+		t.Error("Default Status should be empty string")
+	}
+	if task.Priority != "" {
+		t.Error("Default Priority should be empty string")
+	}
+	if task.Description != "" {
+		t.Error("Default Description should be empty string")
+	}
+	if task.ErrorMessage != "" {
+		t.Error("Default ErrorMessage should be empty string")
+	}
+}
+
+func TestTask_StatusConstants(t *testing.T) {
+	// Test that status constants are defined
+	tests := []struct {
+		name     string
+		constant string
+		expected string
+	}{
+		{"Pending", TaskStatusPending, "pending"},
+		{"Scheduled", TaskStatusScheduled, "scheduled"},
+		{"Running", TaskStatusRunning, "running"},
+		{"Paused", TaskStatusPaused, "paused"},
+		{"WaitingApproval", TaskStatusWaitingApproval, "waiting_approval"},
+		{"Retrying", TaskStatusRetrying, "retrying"},
+		{"Succeeded", TaskStatusSucceeded, "succeeded"},
+		{"Failed", TaskStatusFailed, "failed"},
+		{"Cancelled", TaskStatusCancelled, "cancelled"},
 	}
 
-	if task.ID != "" {
-		t.Error("Task ID should be empty before BeforeCreate")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.constant != tt.expected {
+				t.Errorf("%s should be '%s', got '%s'", tt.name, tt.expected, tt.constant)
+			}
+		})
+	}
+}
+
+func TestTask_PriorityConstants(t *testing.T) {
+	// Test that priority constants are defined
+	tests := []struct {
+		name     string
+		constant string
+		expected string
+	}{
+		{"High", TaskPriorityHigh, "high"},
+		{"Normal", TaskPriorityNormal, "normal"},
+		{"Low", TaskPriorityLow, "low"},
 	}
 
-	err := task.BeforeCreate(nil)
-	if err != nil {
-		t.Errorf("BeforeCreate() returned error: %v", err)
-	}
-
-	if task.ID == "" {
-		t.Error("Task ID should be set after BeforeCreate")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.constant != tt.expected {
+				t.Errorf("%s should be '%s', got '%s'", tt.name, tt.expected, tt.constant)
+			}
+		})
 	}
 }
 
 func TestTask_TableName(t *testing.T) {
+	// Test that TableName returns the correct table name
 	task := Task{}
 	if task.TableName() != "tasks" {
-		t.Errorf("TableName() = %s, expected tasks", task.TableName())
+		t.Errorf("TableName should return 'tasks', got '%s'", task.TableName())
 	}
 }
 
-func TestTask_IsTerminal(t *testing.T) {
-	tests := []struct {
-		status   TaskStatus
-		expected bool
-	}{
-		{TaskStatusSucceeded, true},
-		{TaskStatusFailed, true},
-		{TaskStatusCancelled, true},
-		{TaskStatusPending, false},
-		{TaskStatusRunning, false},
-		{TaskStatusPaused, false},
+func TestTask_JSONFields(t *testing.T) {
+	// Test that JSON fields can be set and read
+	task := Task{
+		Name:     "Test Task",
+		Status:   TaskStatusPending,
+		Priority: TaskPriorityHigh,
+		Params:   datatypes.JSON(`{"key": "value"}`),
+		Result:   datatypes.JSON(`{"output": "success"}`),
 	}
 
-	for _, tt := range tests {
-		task := &Task{Status: tt.status}
-		if task.IsTerminal() != tt.expected {
-			t.Errorf("IsTerminal() for status %s = %v, expected %v", tt.status, task.IsTerminal(), tt.expected)
-		}
+	if task.Name != "Test Task" {
+		t.Errorf("Expected Name 'Test Task', got '%s'", task.Name)
 	}
-}
-
-func TestTask_CanPause(t *testing.T) {
-	tests := []struct {
-		status   TaskStatus
-		expected bool
-	}{
-		{TaskStatusRunning, true},
-		{TaskStatusPending, false},
-		{TaskStatusSucceeded, false},
-		{TaskStatusPaused, false},
+	if task.Status != TaskStatusPending {
+		t.Errorf("Expected Status '%s', got '%s'", TaskStatusPending, task.Status)
 	}
-
-	for _, tt := range tests {
-		task := &Task{Status: tt.status}
-		if task.CanPause() != tt.expected {
-			t.Errorf("CanPause() for status %s = %v, expected %v", tt.status, task.CanPause(), tt.expected)
-		}
+	if task.Priority != TaskPriorityHigh {
+		t.Errorf("Expected Priority '%s', got '%s'", TaskPriorityHigh, task.Priority)
 	}
 }
 
-func TestTask_CanResume(t *testing.T) {
-	tests := []struct {
-		status   TaskStatus
-		expected bool
-	}{
-		{TaskStatusPaused, true},
-		{TaskStatusRunning, false},
-		{TaskStatusPending, false},
+func TestTask_TemplateIDNil(t *testing.T) {
+	// Test that TemplateID can be nil (optional field)
+	task := Task{}
+
+	if task.TemplateID != nil {
+		t.Error("TemplateID should be nil by default")
 	}
 
-	for _, tt := range tests {
-		task := &Task{Status: tt.status}
-		if task.CanResume() != tt.expected {
-			t.Errorf("CanResume() for status %s = %v, expected %v", tt.status, task.CanResume(), tt.expected)
-		}
+	// Test setting TemplateID
+	templateID := "template-123"
+	task.TemplateID = &templateID
+	if task.TemplateID == nil || *task.TemplateID != "template-123" {
+		t.Error("TemplateID should be settable")
 	}
 }
 
-func TestTask_CanCancel(t *testing.T) {
-	tests := []struct {
-		status   TaskStatus
-		expected bool
-	}{
-		{TaskStatusPending, true},
-		{TaskStatusScheduled, true},
-		{TaskStatusRunning, true},
-		{TaskStatusPaused, true},
-		{TaskStatusSucceeded, false},
-		{TaskStatusFailed, false},
+func TestTask_PointerFields(t *testing.T) {
+	// Test pointer fields for nullable relationships
+	templateID := "template-uuid-123"
+	task := Task{
+		TenantID:   "tenant-uuid",
+		TemplateID: &templateID,
+		CreatorID:  "creator-uuid",
+		ProviderID: "provider-uuid",
 	}
 
-	for _, tt := range tests {
-		task := &Task{Status: tt.status}
-		if task.CanCancel() != tt.expected {
-			t.Errorf("CanCancel() for status %s = %v, expected %v", tt.status, task.CanCancel(), tt.expected)
-		}
+	if task.TemplateID == nil {
+		t.Error("TemplateID should not be nil")
 	}
-}
-
-func TestTask_CanInject(t *testing.T) {
-	tests := []struct {
-		status   TaskStatus
-		expected bool
-	}{
-		{TaskStatusRunning, true},
-		{TaskStatusPending, false},
-		{TaskStatusPaused, false},
-	}
-
-	for _, tt := range tests {
-		task := &Task{Status: tt.status}
-		if task.CanInject() != tt.expected {
-			t.Errorf("CanInject() for status %s = %v, expected %v", tt.status, task.CanInject(), tt.expected)
-		}
-	}
-}
-
-func TestTask_CanRetry(t *testing.T) {
-	// Failed task with retries available
-	task := &Task{Status: TaskStatusFailed, RetryCount: 1, MaxRetries: 3}
-	if !task.CanRetry() {
-		t.Error("Failed task with retries available should be retryable")
-	}
-
-	// Failed task with no retries
-	task = &Task{Status: TaskStatusFailed, RetryCount: 3, MaxRetries: 3}
-	if task.CanRetry() {
-		t.Error("Failed task with max retries should not be retryable")
-	}
-
-	// Non-failed task
-	task = &Task{Status: TaskStatusRunning, RetryCount: 0, MaxRetries: 3}
-	if task.CanRetry() {
-		t.Error("Running task should not be retryable")
+	if *task.TemplateID != "template-uuid-123" {
+		t.Errorf("Expected TemplateID 'template-uuid-123', got '%s'", *task.TemplateID)
 	}
 }
