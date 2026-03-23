@@ -23,3 +23,24 @@ func (b *BaseModel) BeforeCreate(tx *gorm.DB) error {
 	}
 	return nil
 }
+
+// generateUUID generates a new UUID string.
+func generateUUID() string {
+	return uuid.New().String()
+}
+
+// AllModels returns all models for auto migration.
+func AllModels() []interface{} {
+	return []interface{}{
+		&Tenant{},
+		&User{},
+		&APIKey{},
+		&Template{},
+		&Task{},
+		&ExecutionLog{},
+		&Intervention{},
+		&Capability{},
+		&Provider{},
+		&UserProviderDefault{},
+	}
+}
