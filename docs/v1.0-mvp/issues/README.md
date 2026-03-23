@@ -55,6 +55,7 @@ issue-{number}-summary.md
 
 | Issue | Title | Status | Knowledge |
 |-------|-------|--------|-----------|
-| - | - | - | - |
+| #5 | MVP Phase 1 - Backend Core API Development | in_progress | core-api, database |
+| #6 | MVP Phase 2 - Database Models and Migrations | completed | database |
 
 > 注：MVP 开发开始后，在此列出所有 Issue 摘要。
