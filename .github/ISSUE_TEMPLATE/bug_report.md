@@ -25,6 +25,19 @@ A clear and concise description of what you expected to happen.
 
 A clear and concise description of what actually happened.
 
+## Knowledge Module References
+
+Which knowledge modules does this bug relate to?
+
+- [ ] `knowledge/core-api.md` - Core API
+- [ ] `knowledge/database.md` - Database
+- [ ] `knowledge/scheduler.md` - Scheduler
+- [ ] `knowledge/executor.md` - Executor
+- [ ] `knowledge/provider.md` - Provider
+- [ ] `knowledge/capability.md` - Capability
+- [ ] `knowledge/intervention.md` - Intervention
+- [ ] `knowledge/monitoring.md` - Monitoring
+
 ## Environment
 
 - OS: [e.g. macOS, Linux, Windows]

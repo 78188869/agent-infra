@@ -1,7 +1,7 @@
 # Agent Guide: Agentic Coding Platform
 
-> **Version**: v1.2
-> **Last Updated**: 2026-03-22
+> **Version**: v1.3
+> **Last Updated**: 2026-03-23
 > **Target Audience**: Coding Agents (Claude Code, etc.)
 
 ---
@@ -22,14 +22,60 @@
 
 ## 2. Knowledge Index
 
+### 2.1 知识库结构
+
+```
+docs/
+├── knowledge/                 # 独立知识库（持续演进）
+│   ├── core-api.md           # 任务/模板管理 API
+│   ├── database.md           # 数据模型与存储
+│   ├── scheduler.md          # 任务调度引擎
+│   ├── executor.md           # 沙箱执行引擎
+│   ├── provider.md           # Agent 运行时配置
+│   ├── capability.md         # 能力注册管理
+│   ├── intervention.md       # 人工干预机制
+│   └── monitoring.md         # 监控告警设计
+│
+├── v1.0-mvp/                 # MVP 版本快照
+│   ├── PRD.md                # 产品需求文档
+│   ├── TRD.md                # 技术设计文档
+│   ├── issues/               # Issue 摘要
+│   └── plans/                # 执行计划
+│
+├── current -> v1.0-mvp/      # 软链接指向当前活跃版本
+│
+└── BRD.md                    # 业务需求文档
+```
+
+### 2.2 知识使用指南
+
+**开发流程**：
+1. 查看 `docs/current/` → 确定当前版本
+2. 加载 `docs/knowledge/{module}.md` → 获取最新知识
+3. 查看 `docs/current/issues/` → 确定任务范围
+4. 实现 → 更新 knowledge 的 Change History
+
+**模块选择**：
+
+| 工作类型 | 加载的知识模块 |
+|---------|---------------|
+| API 开发 | core-api, database |
+| 调度逻辑 | scheduler, database |
+| 执行管理 | executor, provider |
+| 能力管理 | capability, provider |
+| 干预功能 | intervention, executor |
+| 监控告警 | monitoring |
+
+### 2.3 版本化文档
+
 | Document | Path | Purpose |
 |----------|------|---------|
-| **BRD** | `docs/BRD.md` | Business requirements |
-| **PRD** | `docs/PRD.md` | User stories, features |
-| **TRD** | `docs/plans/2026-03-22-mvp-trd.md` | Architecture, data model, API |
-| **Tech Decisions** | `docs/plans/2026-03-21-mvp-technical-decisions.md` | Decision records |
+| **PRD** | `docs/v1.0-mvp/PRD.md` | 用户故事、功能需求 |
+| **TRD** | `docs/v1.0-mvp/TRD.md` | 架构设计、数据模型、API |
+| **Issues** | `docs/v1.0-mvp/issues/` | Issue 摘要和元数据 |
+| **Plans** | `docs/v1.0-mvp/plans/` | 执行计划（短期） |
 
-**Reading Order**: This file → TRD §1-3 → PRD §4 → TRD §6/7 (for DB/API work)
+**Reading Order**: This file → Knowledge (by module) → TRD (detailed design) → PRD (requirements)
 
 ---
 
@@ -189,6 +235,7 @@ make docker-build-all k8s-apply k8s-status
 
 | Version | Changes |
 |---------|---------|
+| v1.3 | Added knowledge module index, updated doc paths to v1.0-mvp/ |
 | v1.2 | Removed duplicate references, further simplified |
 | v1.1 | Simplified: reference external standards |
 | v1.0 | Initial version |

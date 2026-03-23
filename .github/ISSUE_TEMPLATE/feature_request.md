@@ -1,33 +1,38 @@
 ---
 name: Feature Request
 about: Suggest a new feature or enhancement
-title: '[FEAT] '
+title: '[FEATURE] '
 labels: 'enhancement'
 assignees: ''
 ---
 
-## Feature Description
+## What feature or enhancement would you like to see?
 
-A clear and concise description of the feature you'd like to add.
+A clear and concise description of what you want to happen.
 
-## Problem Statement
+## Knowledge Module References
 
-What problem does this feature solve? Why is it needed?
+Which knowledge modules does this feature relate to?
 
-## Proposed Solution
+- [ ] `knowledge/core-api.md` - Core API
+- [ ] `knowledge/database.md` - Database
+- [ ] `knowledge/scheduler.md` - Scheduler
+- [ ] `knowledge/executor.md` - Executor
+- [ ] `knowledge/provider.md` - Provider
+- [ ] `knowledge/capability.md` - Capability
+- [ ] `knowledge/intervention.md` - Intervention
+- [ ] `knowledge/monitoring.md` - Monitoring
 
-How would you like this feature to work?
+## Execution Plan
 
-## Alternatives Considered
-
-Any alternative solutions or features you've considered.
-
-## Additional Context
-
-Add any other context, screenshots, or references here.
+- Execution Plan: `docs/current/plans/issue-{N}-execution.md` (待创建)
 
 ## Acceptance Criteria
 
 - [ ] Criteria 1
 - [ ] Criteria 2
 - [ ] Criteria 3
+
+## Additional Context
+
+Add any other context, screenshots, or references here.
