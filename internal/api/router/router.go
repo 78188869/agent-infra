@@ -8,7 +8,7 @@ import (
 )
 
 // Setup initializes the gin router with all routes.
-func Setup(tenantSvc service.TenantService) *gin.Engine {
+func Setup(tenantSvc service.TenantService, templateSvc service.TemplateService, taskSvc service.TaskService) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(middleware.Logger())
@@ -29,6 +29,28 @@ func Setup(tenantSvc service.TenantService) *gin.Engine {
 			tenants.GET("/:id", tenantHandler.GetByID)
 			tenants.PUT("/:id", tenantHandler.Update)
 			tenants.DELETE("/:id", tenantHandler.Delete)
+		}
+
+		// Template routes
+		templateHandler := handler.NewTemplateHandler(templateSvc)
+		templates := v1.Group("/templates")
+		{
+			templates.POST("", templateHandler.Create)
+			templates.GET("", templateHandler.List)
+			templates.GET("/:id", templateHandler.GetByID)
+			templates.PUT("/:id", templateHandler.Update)
+			templates.DELETE("/:id", templateHandler.Delete)
+		}
+
+		// Task routes
+		taskHandler := handler.NewTaskHandler(taskSvc)
+		tasks := v1.Group("/tasks")
+		{
+			tasks.POST("", taskHandler.Create)
+			tasks.GET("", taskHandler.List)
+			tasks.GET("/:id", taskHandler.GetByID)
+			tasks.PUT("/:id", taskHandler.Update)
+			tasks.DELETE("/:id", taskHandler.Delete)
 		}
 	}
 
