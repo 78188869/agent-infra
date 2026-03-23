@@ -21,6 +21,7 @@ spec:
       serviceAccountName: control-plane
       containers:
         - name: control-plane
+          # TODO: Replace with actual container registry URL before deployment
           image: registry.example.com/agent-infra/control-plane:latest
           imagePullPolicy: Always
           ports:

@@ -22,6 +22,7 @@ GOPROXY=https://goproxy.cn,direct
 MAIN_PACKAGE=./cmd/control-plane
 
 # Docker settings
+# TODO: Replace with actual container registry URL before deployment
 REGISTRY?=registry.example.com/agent-infra
 VERSION?=latest
 

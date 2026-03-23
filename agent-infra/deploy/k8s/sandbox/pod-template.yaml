@@ -23,6 +23,7 @@ template:
         type: RuntimeDefault
     containers:
       # Main container: CLI Runner
+      # TODO: Replace with actual container registry URL before deployment
       - name: cli-runner
         image: registry.example.com/agent-infra/cli-runner:latest
         imagePullPolicy: Always
@@ -67,6 +68,7 @@ template:
 
       # Sidecar: Agent Wrapper
       - name: wrapper
+        # TODO: Replace with actual container registry URL before deployment
         image: registry.example.com/agent-infra/agent-wrapper:latest
         imagePullPolicy: Always
         env:
