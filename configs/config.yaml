@@ -1,0 +1,44 @@
+# Control Plane Configuration
+# All sensitive values should be set via environment variables or K8s Secrets
+
+server:
+  port: ${SERVER_PORT:8080}
+  mode: ${GIN_MODE:release}  # debug/release
+
+database:
+  host: ${DB_HOST:localhost}
+  port: ${DB_PORT:2881}
+  name: ${DB_NAME:agent_infra}
+  user: ${DB_USER:root}
+  max_connections: ${DB_MAX_CONN:100}
+  # Sensitive - use environment variable
+  password: ${DB_PASSWORD}
+
+redis:
+  host: ${REDIS_HOST:localhost}
+  port: ${REDIS_PORT:6379}
+  db: ${REDIS_DB:0}
+  # Sensitive - use environment variable
+  password: ${REDIS_PASSWORD}
+
+k8s:
+  kubeconfig: ${KUBECONFIG:}  # Empty for in-cluster
+  namespace:
+    control_plane: ${CONTROL_PLANE_NS:control-plane}
+    sandbox: ${SANDBOX_NS:sandbox}
+
+sls:
+  endpoint: ${SLS_ENDPOINT}
+  project: ${SLS_PROJECT}
+  logstore: ${SLS_LOGSTORE}
+  # Sensitive - use environment variables
+  access_key: ${SLS_ACCESS_KEY}
+  access_secret: ${SLS_ACCESS_SECRET}
+
+log:
+  level: ${LOG_LEVEL:info}
+  format: json
+
+# Sensitive - use environment variable
+secrets:
+  git_token: ${GIT_TOKEN}
