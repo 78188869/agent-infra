@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sandbox
+  labels:
+    app.kubernetes.io/name: agent-infra
+    app.kubernetes.io/component: sandbox
+    # Prevent network access to internal services
+    network-policy: restricted
