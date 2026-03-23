@@ -1,6 +1,6 @@
 # Agent Guide: Agentic Coding Platform
 
-> **Version**: v1.3
+> **Version**: v1.4
 > **Last Updated**: 2026-03-23
 > **Target Audience**: Coding Agents (Claude Code, etc.)
 
@@ -20,9 +20,7 @@
 
 ---
 
-## 2. Knowledge Index
-
-### 2.1 知识库结构
+## 2. Directory Structure
 
 ```
 docs/
@@ -36,50 +34,190 @@ docs/
 │   ├── intervention.md       # 人工干预机制
 │   └── monitoring.md         # 监控告警设计
 │
-├── v1.0-mvp/                 # MVP 版本快照
+├── v{version}/               # 版本目录（按版本隔离）
+│   ├── BRD.md                # 业务需求文档
 │   ├── PRD.md                # 产品需求文档
 │   ├── TRD.md                # 技术设计文档
+│   ├── decisions/            # 架构决策记录（ADR）
+│   │   ├── README.md         # ADR 索引和指南
+│   │   └── adr-template.md   # ADR 模板
 │   ├── issues/               # Issue 摘要
+│   │   └── README.md         # Issue 管理指南
 │   └── plans/                # 执行计划
+│       └── README.md         # 计划管理指南
 │
-├── current -> v1.0-mvp/      # 软链接指向当前活跃版本
+├── current -> v{version}/    # 软链接指向当前活跃版本
 │
-└── BRD.md                    # 业务需求文档
+└── BRD.md                    # 业务需求文档（根级别）
 ```
-
-### 2.2 知识使用指南
-
-**开发流程**：
-1. 查看 `docs/current/` → 确定当前版本
-2. 加载 `docs/knowledge/{module}.md` → 获取最新知识
-3. 查看 `docs/current/issues/` → 确定任务范围
-4. 实现 → 更新 knowledge 的 Change History
-
-**模块选择**：
-
-| 工作类型 | 加载的知识模块 |
-|---------|---------------|
-| API 开发 | core-api, database |
-| 调度逻辑 | scheduler, database |
-| 执行管理 | executor, provider |
-| 能力管理 | capability, provider |
-| 干预功能 | intervention, executor |
-| 监控告警 | monitoring |
-
-### 2.3 版本化文档
-
-| Document | Path | Purpose |
-|----------|------|---------|
-| **PRD** | `docs/v1.0-mvp/PRD.md` | 用户故事、功能需求 |
-| **TRD** | `docs/v1.0-mvp/TRD.md` | 架构设计、数据模型、API |
-| **Issues** | `docs/v1.0-mvp/issues/` | Issue 摘要和元数据 |
-| **Plans** | `docs/v1.0-mvp/plans/` | 执行计划（短期） |
-
-**Reading Order**: This file → Knowledge (by module) → TRD (detailed design) → PRD (requirements)
 
 ---
 
-## 3. Tech Stack
+## 3. Issue Development Workflow
+
+### 3.1 标准工作流程
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Issue Development Workflow                         │
+└─────────────────────────────────────────────────────────────────────┘
+
+Step 1: 创建 Issue Summary
+    │
+    ├── 在 docs/current/issues/ 创建 issue-{number}-{title}.md
+    ├── 使用 issues/README.md 中的模板
+    └── 填写 Summary、Impact、Related 等字段
+    │
+    ▼
+Step 2: 获取背景知识
+    │
+    ├── 读取 docs/current/TRD.md → 了解架构设计
+    ├── 读取 docs/current/decisions/ → 了解相关架构决策
+    ├── 读取 docs/knowledge/{modules}.md → 获取模块知识
+    └── 根据模块选择表确定需要读取的知识
+    │
+    ▼
+Step 3: 生成执行计划
+    │
+    ├── 在 docs/current/plans/ 创建 {YYYY-MM-DD}-{title}.md
+    ├── 使用 plans/README.md 中的模板
+    └── 包含 Context、Objectives、Tasks、Dependencies
+    │
+    ▼
+Step 4: 执行开发
+    │
+    ├── 按照 Plan 中的 Tasks 逐项执行
+    ├── 更新 knowledge 模块的 Change History
+    └── 如有架构决策，创建新的 ADR
+    │
+    ▼
+Step 5: 完成并更新
+    │
+    ├── 更新 Issue 状态为 Resolved
+    ├── 更新 Plan 状态为 Completed
+    └── 记录 Resolution 和关键变更
+```
+
+### 3.2 模块知识选择
+
+| 工作类型 | 加载的知识模块 | 相关 TRD 章节 |
+|---------|---------------|--------------|
+| API 开发 | core-api, database | TRD §5 API 设计 |
+| 调度逻辑 | scheduler, database | TRD §3.2 调度引擎 |
+| 执行管理 | executor, provider | TRD §3.2 执行引擎 |
+| 能力管理 | capability, provider | TRD §3.2 能力注册 |
+| 干预功能 | intervention, executor | TRD §3.2 人工干预 |
+| 监控告警 | monitoring | TRD §7 监控告警 |
+
+### 3.3 Issue Summary 模板
+
+创建 `docs/current/issues/issue-{number}-{title}.md`:
+
+```markdown
+# Issue #{number}: {Title}
+
+## Summary
+<!-- Issue 摘要：简述问题或需求 -->
+
+## Impact
+<!-- 影响范围：涉及的模块、用户、系统 -->
+
+## Status
+{Open | In Progress | Resolved | Closed}
+
+## Related
+- PRD: [链接到相关用户故事]
+- TRD: [链接到相关技术设计]
+- ADR: [链接到相关架构决策]
+- Knowledge: [需要加载的知识模块]
+
+## Resolution
+<!-- 解决方案（完成后填写） -->
+
+## Change History
+| 日期 | 变更内容 |
+|------|---------|
+| YYYY-MM-DD | 创建 Issue |
+```
+
+### 3.4 Plan 模板
+
+创建 `docs/current/plans/{YYYY-MM-DD}-{title}.md`:
+
+```markdown
+# Plan: {Title}
+
+## Context
+<!-- 计划背景：Issue 摘要、相关知识背景 -->
+
+## Objectives
+1. {目标1}
+2. {目标2}
+
+## Knowledge Required
+<!-- 需要预读的知识 -->
+- [ ] docs/knowledge/{module1}.md
+- [ ] docs/current/decisions/adr-{number}.md
+
+## Tasks
+
+### Phase 1: {Phase Name}
+- [ ] {Task 1}
+- [ ] {Task 2}
+
+### Phase 2: {Phase Name}
+- [ ] {Task 1}
+
+## Dependencies
+<!-- 依赖项：其他 Issue、外部资源 -->
+
+## Risks
+<!-- 风险项：技术风险、时间风险 -->
+
+## Status
+{Not Started | In Progress | Completed | Blocked}
+```
+
+---
+
+## 4. Knowledge Usage Guide
+
+### 4.1 知识库特点
+
+| 特点 | 说明 |
+|------|------|
+| **持续演进** | knowledge/ 不随版本快照，始终更新 |
+| **模块化** | 按功能域划分，按需加载 |
+| **Change History** | 每个模块记录变更历史 |
+| **双向链接** | 与 TRD、ADR 相互引用 |
+
+### 4.2 知识模块索引
+
+| Module | Purpose | Key Sections |
+|--------|---------|--------------|
+| `core-api` | 任务/模板管理 API | Endpoints, Data Models |
+| `database` | 数据模型与存储 | Schema, Migrations |
+| `scheduler` | 任务调度引擎 | Queue, Rate Limiting |
+| `executor` | 沙箱执行引擎 | Pod Lifecycle, Resource Limits |
+| `provider` | Agent 运行时配置 | Claude Code Config, MCP |
+| `capability` | 能力注册管理 | Tool Registration |
+| `intervention` | 人工干预机制 | Checkpoints, Approvals |
+| `monitoring` | 监控告警设计 | Metrics, Alerts |
+
+### 4.3 阅读顺序
+
+```
+1. agent.md (本文档) → 了解项目概况
+2. docs/current/BRD.md → 了解业务背景
+3. docs/current/PRD.md → 了解产品需求
+4. docs/current/TRD.md → 了解技术设计
+5. docs/current/decisions/ → 了解架构决策
+6. docs/knowledge/{modules}.md → 深入模块细节
+```
+
+---
+
+## 5. Tech Stack
 
 | Layer | Technology |
 |-------|------------|
@@ -92,7 +230,7 @@ docs/
 
 ---
 
-## 4. Project Structure
+## 6. Project Structure
 
 ```
 agent-infra/
@@ -111,9 +249,9 @@ agent-infra/
 
 ---
 
-## 5. Coding Standards
+## 7. Coding Standards
 
-> **Follow external standards. See §10 for all reference links.**
+> **Follow external standards. See §11 for all reference links.**
 
 | Language | Key Points |
 |----------|------------|
@@ -125,7 +263,7 @@ agent-infra/
 
 ---
 
-## 6. Architecture Constraints
+## 8. Architecture Constraints
 
 **Layer Rules**: Presentation → Gateway → Application → Data/Execution
 
@@ -142,7 +280,7 @@ agent-infra/
 
 ---
 
-## 7. Quick Lookup Tables
+## 9. Quick Lookup Tables
 
 ### API Response
 
@@ -173,28 +311,7 @@ Pending → Scheduled → Running → Succeeded
 
 ---
 
-## 8. Common Tasks
-
-### Add API Endpoint
-1. Define types in `internal/api/handler/`
-2. Create handler with validation
-3. Add service method
-4. Register route
-5. Write tests
-
-### Add Database Model
-1. Define struct in `internal/model/`
-2. Create migration
-3. Update service
-
-### Add Frontend Page
-1. Create component in `web/src/`
-2. Add API client
-3. Register route
-
----
-
-## 9. Commands
+## 10. Commands
 
 ```bash
 # Backend
@@ -209,7 +326,7 @@ make docker-build-all k8s-apply k8s-status
 
 ---
 
-## 10. External References
+## 11. External References
 
 | Category | Resource | URL |
 |----------|----------|-----|
@@ -231,10 +348,11 @@ make docker-build-all k8s-apply k8s-status
 
 ---
 
-## 11. Changelog
+## 12. Changelog
 
 | Version | Changes |
 |---------|---------|
+| v1.4 | 添加 Issue Development Workflow；更新目录结构说明；新增 Issue/Plan 模板 |
 | v1.3 | Added knowledge module index, updated doc paths to v1.0-mvp/ |
 | v1.2 | Removed duplicate references, further simplified |
 | v1.1 | Simplified: reference external standards |
