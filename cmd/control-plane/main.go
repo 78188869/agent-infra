@@ -59,22 +59,32 @@ func main() {
 
 	// Initialize database (optional - will use mock if not available)
 	var tenantSvc service.TenantService
+	var templateSvc service.TemplateService
+	var taskSvc service.TaskService
 	db, err := config.NewDatabase(cfg.ToDatabaseConfig())
 	if err != nil {
 		log.Printf("Warning: failed to connect to database, using mock service: %v", err)
 		tenantSvc = &mockTenantService{}
+		templateSvc = &mockTemplateService{}
+		taskSvc = &mockTaskService{}
 	} else {
 		// Auto-migrate models
-		if err := db.AutoMigrate(&model.Tenant{}); err != nil {
+		if err := db.AutoMigrate(&model.Tenant{}, &model.Template{}, &model.Task{}); err != nil {
 			log.Printf("Warning: failed to auto-migrate: %v", err)
 		}
-		// Create real service with repository
+		// Create real services with repositories
 		tenantRepo := repository.NewTenantRepository(db.DB)
 		tenantSvc = service.NewTenantService(tenantRepo)
+
+		templateRepo := repository.NewTemplateRepository(db.DB)
+		templateSvc = service.NewTemplateService(templateRepo)
+
+		taskRepo := repository.NewTaskRepository(db.DB)
+		taskSvc = service.NewTaskService(taskRepo)
 	}
 
 	// Setup router
-	r := router.Setup(tenantSvc)
+	r := router.Setup(tenantSvc, templateSvc, taskSvc)
 
 	// Start server
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
@@ -104,6 +114,52 @@ func (m *mockTenantService) Update(ctx context.Context, id string, req *service.
 }
 
 func (m *mockTenantService) Delete(ctx context.Context, id string) error {
+	return fmt.Errorf("database not available")
+}
+
+// mockTemplateService is a fallback service when database is not available.
+type mockTemplateService struct{}
+
+func (m *mockTemplateService) Create(ctx context.Context, req *service.CreateTemplateRequest) (*model.Template, error) {
+	return &model.Template{Name: req.Name, Status: model.TemplateStatusDraft}, nil
+}
+
+func (m *mockTemplateService) GetByID(ctx context.Context, id string) (*model.Template, error) {
+	return nil, fmt.Errorf("database not available")
+}
+
+func (m *mockTemplateService) List(ctx context.Context, filter *service.TemplateFilter) ([]*model.Template, int64, error) {
+	return []*model.Template{}, 0, nil
+}
+
+func (m *mockTemplateService) Update(ctx context.Context, id string, req *service.UpdateTemplateRequest) error {
+	return fmt.Errorf("database not available")
+}
+
+func (m *mockTemplateService) Delete(ctx context.Context, id string) error {
+	return fmt.Errorf("database not available")
+}
+
+// mockTaskService is a fallback service when database is not available.
+type mockTaskService struct{}
+
+func (m *mockTaskService) Create(ctx context.Context, req *service.CreateTaskRequest) (*model.Task, error) {
+	return &model.Task{Name: req.Name, Status: model.TaskStatusPending}, nil
+}
+
+func (m *mockTaskService) GetByID(ctx context.Context, id string) (*model.Task, error) {
+	return nil, fmt.Errorf("database not available")
+}
+
+func (m *mockTaskService) List(ctx context.Context, filter *service.TaskFilter) ([]*model.Task, int64, error) {
+	return []*model.Task{}, 0, nil
+}
+
+func (m *mockTaskService) Update(ctx context.Context, id string, req *service.UpdateTaskRequest) error {
+	return fmt.Errorf("database not available")
+}
+
+func (m *mockTaskService) Delete(ctx context.Context, id string) error {
 	return fmt.Errorf("database not available")
 }
 
