@@ -125,8 +125,39 @@ db-rollback:
 # Utility targets
 # =============================================================================
 
-# Verify Go version
 go-version:
 	@echo "Go version: $$(go version)"
 	@echo "GOROOT: $$(go env GOROOT)"
 	@echo "GOPATH: $$(go env GOPATH)"
+
+# =============================================================================
+# Worktree targets
+# =============================================================================
+
+WORKTREE_DIR?=./worktrees
+
+# Create worktree for an issue
+worktree-create:
+	@read -p "Issue number: " ISSUE; \
+	./scripts/create-worktree.sh $$ISSUE
+
+# List all worktrees
+worktree-list:
+	git worktree list
+
+# Clean up merged worktrees
+worktree-clean:
+	@echo "Cleaning up merged worktrees..."
+	@git worktree list --porcelain | grep "^worktree" | cut -d' ' -f2 | while read -r dir; do \
+		basename=$$(basename "$$dir"); \
+		branch=$${basename#issue-}; \
+		if git branch --merged main | grep -q "$$branch"; then \
+			echo "Removing worktree: $$dir"; \
+			git worktree remove "$$dir"; \
+			git branch -d "$$branch" 2>/dev/null || true; \
+		fi \
+	done
+
+# Prune deleted worktrees
+worktree-prune:
+	git worktree prune
