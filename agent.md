@@ -207,7 +207,8 @@ Step 5: 完成并更新
 ### 4.3 阅读顺序
 
 ```
-1. agent.md (本文档) → 了解项目概况
+0. readme.md → 项目入口，快速了解项目
+1. agent.md (本文档) → 了解项目概况与开发流程
 2. docs/current/BRD.md → 了解业务背景
 3. docs/current/PRD.md → 了解产品需求
 4. docs/current/TRD.md → 了解技术设计
