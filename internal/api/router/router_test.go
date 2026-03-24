@@ -121,6 +121,37 @@ func (m *mockProviderService) SetDefaultProvider(ctx context.Context, userID, pr
 	return nil
 }
 
+// mockCapabilityService implements service.CapabilityService for testing
+type mockCapabilityService struct{}
+
+func (m *mockCapabilityService) Create(ctx context.Context, req *service.CreateCapabilityRequest) (*model.Capability, error) {
+	return &model.Capability{}, nil
+}
+
+func (m *mockCapabilityService) GetByID(ctx context.Context, id string) (*model.Capability, error) {
+	return &model.Capability{}, nil
+}
+
+func (m *mockCapabilityService) List(ctx context.Context, filter *service.CapabilityFilter) ([]*model.Capability, int64, error) {
+	return []*model.Capability{}, 0, nil
+}
+
+func (m *mockCapabilityService) Update(ctx context.Context, id string, req *service.UpdateCapabilityRequest) error {
+	return nil
+}
+
+func (m *mockCapabilityService) Delete(ctx context.Context, id string) error {
+	return nil
+}
+
+func (m *mockCapabilityService) Activate(ctx context.Context, id string) error {
+	return nil
+}
+
+func (m *mockCapabilityService) Deactivate(ctx context.Context, id string) error {
+	return nil
+}
+
 // mockDBChecker implements DBChecker for testing
 type mockDBChecker struct{}
 
@@ -137,8 +168,9 @@ func TestSetup_Routes(t *testing.T) {
 	mockTemplateSvc := &mockTemplateService{}
 	mockTaskSvc := &mockTaskService{}
 	mockProviderSvc := &mockProviderService{}
+	mockCapabilitySvc := &mockCapabilityService{}
 	mockDB := &mockDBChecker{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockDB)
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockDB)
 
 	tests := []struct {
 		name   string
@@ -156,6 +188,8 @@ func TestSetup_Routes(t *testing.T) {
 		{"create task", http.MethodPost, "/api/v1/tasks", http.StatusBadRequest}, // 400 because no body
 		{"list providers", http.MethodGet, "/api/v1/providers", http.StatusOK},
 		{"create provider", http.MethodPost, "/api/v1/providers", http.StatusBadRequest}, // 400 because no body
+		{"list capabilities", http.MethodGet, "/api/v1/capabilities", http.StatusOK},
+		{"create capability", http.MethodPost, "/api/v1/capabilities", http.StatusBadRequest}, // 400 because no body
 	}
 
 	for _, tt := range tests {
@@ -176,8 +210,9 @@ func TestSetup_TenantRoutes(t *testing.T) {
 	mockTemplateSvc := &mockTemplateService{}
 	mockTaskSvc := &mockTaskService{}
 	mockProviderSvc := &mockProviderService{}
+	mockCapabilitySvc := &mockCapabilityService{}
 	mockDB := &mockDBChecker{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockDB)
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockDB)
 
 	// Verify all tenant routes are registered
 	routes := router.Routes()
@@ -207,8 +242,9 @@ func TestSetup_TaskRoutes(t *testing.T) {
 	mockTemplateSvc := &mockTemplateService{}
 	mockTaskSvc := &mockTaskService{}
 	mockProviderSvc := &mockProviderService{}
+	mockCapabilitySvc := &mockCapabilityService{}
 	mockDB := &mockDBChecker{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockDB)
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockDB)
 
 	// Verify all task routes are registered
 	routes := router.Routes()
@@ -238,8 +274,9 @@ func TestSetup_ProviderRoutes(t *testing.T) {
 	mockTemplateSvc := &mockTemplateService{}
 	mockTaskSvc := &mockTaskService{}
 	mockProviderSvc := &mockProviderService{}
+	mockCapabilitySvc := &mockCapabilityService{}
 	mockDB := &mockDBChecker{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockDB)
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockDB)
 
 	// Verify all provider routes are registered
 	routes := router.Routes()
@@ -272,10 +309,72 @@ func TestSetup_TaskListWithParams(t *testing.T) {
 	mockTemplateSvc := &mockTemplateService{}
 	mockTaskSvc := &mockTaskService{}
 	mockProviderSvc := &mockProviderService{}
+	mockCapabilitySvc := &mockCapabilityService{}
 	mockDB := &mockDBChecker{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockDB)
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockDB)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/tasks?page=1&page_size=10&status=pending", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+		t.Errorf("Failed to parse response: %v", err)
+	}
+
+	if response["code"].(float64) != 0 {
+		t.Errorf("Expected code 0, got %v", response["code"])
+	}
+}
+
+func TestSetup_CapabilityRoutes(t *testing.T) {
+	mockTenantSvc := &mockTenantService{}
+	mockTemplateSvc := &mockTemplateService{}
+	mockTaskSvc := &mockTaskService{}
+	mockProviderSvc := &mockProviderService{}
+	mockCapabilitySvc := &mockCapabilityService{}
+	mockDB := &mockDBChecker{}
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockDB)
+
+	// Verify all capability routes are registered
+	routes := router.Routes()
+	routeMap := make(map[string]bool)
+	for _, route := range routes {
+		key := route.Method + " " + route.Path
+		routeMap[key] = true
+	}
+
+	expectedRoutes := []string{
+		"POST /api/v1/capabilities",
+		"GET /api/v1/capabilities",
+		"GET /api/v1/capabilities/:id",
+		"PUT /api/v1/capabilities/:id",
+		"DELETE /api/v1/capabilities/:id",
+		"POST /api/v1/capabilities/:id/activate",
+		"POST /api/v1/capabilities/:id/deactivate",
+	}
+
+	for _, expected := range expectedRoutes {
+		if !routeMap[expected] {
+			t.Errorf("Expected route %s not found", expected)
+		}
+	}
+}
+
+func TestSetup_CapabilityListWithParams(t *testing.T) {
+	mockTenantSvc := &mockTenantService{}
+	mockTemplateSvc := &mockTemplateService{}
+	mockTaskSvc := &mockTaskService{}
+	mockProviderSvc := &mockProviderService{}
+	mockCapabilitySvc := &mockCapabilityService{}
+	mockDB := &mockDBChecker{}
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockDB)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/capabilities?page=1&page_size=10&type=tool&status=active", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
