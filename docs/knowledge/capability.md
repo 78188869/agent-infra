@@ -181,8 +181,37 @@ execution:
 | 权限控制 | 三级（public/restricted/admin_only） | 平衡安全与易用 |
 | 全局能力 | tenant_id=NULL | 简化共享能力管理 |
 
+### 4.4 实际实现架构
+
+> **Implemented in Issue #10** - See source files for details
+
+```
+internal/
+├── repository/
+│   └── capability_repo.go      # CapabilityRepository (GORM)
+├── service/
+│   └── capability_service.go   # CapabilityService (业务逻辑)
+├── api/handler/
+│   └── capability.go           # CapabilityHandler (HTTP)
+└── model/
+    └── capability.go           # Capability model (已存在)
+```
+
+### 4.5 API 端点
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /api/v1/capabilities | 注册能力 |
+| GET | /api/v1/capabilities | 能力列表 |
+| GET | /api/v1/capabilities/:id | 能力详情 |
+| PUT | /api/v1/capabilities/:id | 更新能力 |
+| DELETE | /api/v1/capabilities/:id | 删除能力 |
+| POST | /api/v1/capabilities/:id/activate | 激活能力 |
+| POST | /api/v1/capabilities/:id/deactivate | 停用能力 |
+
 ## 5. Change History
 
 | Date | Version | Issue | PRD Ref | TRD Ref | Changes |
 |------|---------|-------|---------|---------|---------|
+| 2026-03-24 | v1.1 | #10 | §4.3 | §4.1, §6.2.8 | 实现能力管理 CRUD API |
 | 2026-03-23 | v1.0 | - | §4.3 | §4.1, §6.2.8 | 初始定义：能力注册与管理 |
