@@ -191,6 +191,23 @@ func (m *JobManager) buildJobSpec(task *model.Task) *batchv1.Job {
 	timeoutSeconds := m.config.DefaultTimeoutSeconds
 	// TODO: Get timeout from task template if specified
 
+	// Build PodSpec
+	podSpec := corev1.PodSpec{
+		ShareProcessNamespace: boolPtr(true),
+		RestartPolicy:         corev1.RestartPolicyNever,
+		SecurityContext:       m.buildPodSecurityContext(),
+		Containers: []corev1.Container{
+			m.buildCLIRunnerContainer(task),
+			m.buildWrapperContainer(task),
+		},
+		Volumes: m.buildVolumes(),
+	}
+
+	// Set ServiceAccountName if configured
+	if m.config.ServiceAccountName != "" {
+		podSpec.ServiceAccountName = m.config.ServiceAccountName
+	}
+
 	// Build Job spec
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
@@ -208,15 +225,7 @@ func (m *JobManager) buildJobSpec(task *model.Task) *batchv1.Job {
 					Labels:      labels,
 					Annotations: annotations,
 				},
-				Spec: corev1.PodSpec{
-					ShareProcessNamespace: boolPtr(true),
-					RestartPolicy:         corev1.RestartPolicyNever,
-					Containers: []corev1.Container{
-						m.buildCLIRunnerContainer(task),
-						m.buildWrapperContainer(task),
-					},
-					Volumes: m.buildVolumes(),
-				},
+				Spec: podSpec,
 			},
 		},
 	}
@@ -231,6 +240,7 @@ func (m *JobManager) buildCLIRunnerContainer(task *model.Task) corev1.Container 
 		Name:            "cli-runner",
 		Image:           m.config.CLIRunnerImage,
 		ImagePullPolicy: corev1.PullIfNotPresent,
+		SecurityContext: m.buildContainerSecurityContext(),
 		Resources: corev1.ResourceRequirements{
 			Limits: corev1.ResourceList{
 				corev1.ResourceCPU:    resource.MustParse(m.config.DefaultCPULimit),
@@ -256,21 +266,41 @@ func (m *JobManager) buildCLIRunnerContainer(task *model.Task) corev1.Container 
 // buildWrapperContainer builds the wrapper sidecar container.
 func (m *JobManager) buildWrapperContainer(task *model.Task) corev1.Container {
 	taskID := task.ID.String()
+
+	// Use config values with fallback to defaults for backward compatibility
+	cpuLimit := m.config.WrapperCPULimit
+	if cpuLimit == "" {
+		cpuLimit = "100m"
+	}
+	memoryLimit := m.config.WrapperMemoryLimit
+	if memoryLimit == "" {
+		memoryLimit = "128Mi"
+	}
+	cpuRequest := m.config.WrapperCPURequest
+	if cpuRequest == "" {
+		cpuRequest = "50m"
+	}
+	memoryRequest := m.config.WrapperMemoryRequest
+	if memoryRequest == "" {
+		memoryRequest = "64Mi"
+	}
+
 	return corev1.Container{
 		Name:            "wrapper",
 		Image:           m.config.WrapperImage,
 		ImagePullPolicy: corev1.PullIfNotPresent,
+		SecurityContext: m.buildContainerSecurityContext(),
 		Ports: []corev1.ContainerPort{
 			{ContainerPort: int32(m.config.WrapperPort), Name: "http"},
 		},
 		Resources: corev1.ResourceRequirements{
 			Limits: corev1.ResourceList{
-				corev1.ResourceCPU:    resource.MustParse("100m"),
-				corev1.ResourceMemory: resource.MustParse("128Mi"),
+				corev1.ResourceCPU:    resource.MustParse(cpuLimit),
+				corev1.ResourceMemory: resource.MustParse(memoryLimit),
 			},
 			Requests: corev1.ResourceList{
-				corev1.ResourceCPU:    resource.MustParse("50m"),
-				corev1.ResourceMemory: resource.MustParse("64Mi"),
+				corev1.ResourceCPU:    resource.MustParse(cpuRequest),
+				corev1.ResourceMemory: resource.MustParse(memoryRequest),
 			},
 		},
 		Env: []corev1.EnvVar{
@@ -335,4 +365,42 @@ func int32Ptr(i int32) *int32 {
 
 func boolPtr(b bool) *bool {
 	return &b
+}
+
+func int64Ptr(i int64) *int64 {
+	return &i
+}
+
+// getSecurityConfig returns the security configuration, using defaults if not set.
+func (m *JobManager) getSecurityConfig() *SecurityConfig {
+	if m.config.Security != nil {
+		return m.config.Security
+	}
+	return DefaultSecurityConfig()
+}
+
+// buildPodSecurityContext creates a PodSecurityContext from the security config.
+func (m *JobManager) buildPodSecurityContext() *corev1.PodSecurityContext {
+	sec := m.getSecurityConfig()
+
+	podSecCtx := &corev1.PodSecurityContext{
+		RunAsNonRoot: &sec.RunAsNonRoot,
+		RunAsUser:    &sec.RunAsUser,
+		RunAsGroup:   &sec.RunAsGroup,
+		FSGroup:      sec.FSGroup,
+	}
+
+	return podSecCtx
+}
+
+// buildContainerSecurityContext creates a SecurityContext for a container.
+func (m *JobManager) buildContainerSecurityContext() *corev1.SecurityContext {
+	sec := m.getSecurityConfig()
+
+	return &corev1.SecurityContext{
+		RunAsNonRoot:            &sec.RunAsNonRoot,
+		RunAsUser:               &sec.RunAsUser,
+		ReadOnlyRootFilesystem:  &sec.ReadOnlyRootFilesystem,
+		AllowPrivilegeEscalation: sec.AllowPrivilegeEscalation,
+	}
 }

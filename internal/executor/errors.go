@@ -39,4 +39,10 @@ var (
 
 	// ErrJobDeletionFailed indicates Job deletion failed.
 	ErrJobDeletionFailed = errors.New("failed to delete job")
+
+	// ErrInvalidTaskID indicates the task ID is invalid.
+	ErrInvalidTaskID = errors.New("invalid task ID")
+
+	// ErrNilRedisClient indicates that a nil RedisClient was provided.
+	ErrNilRedisClient = errors.New("redis client cannot be nil")
 )

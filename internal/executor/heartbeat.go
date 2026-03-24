@@ -3,6 +3,7 @@ package executor
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 )
@@ -34,6 +35,9 @@ type HeartbeatManager struct {
 
 	// Callbacks
 	onTimeout func(ctx context.Context, taskID string) error
+
+	// Error channel for reporting callback errors (optional)
+	errorChan chan error
 }
 
 // HeartbeatInfo contains heartbeat information for a task.
@@ -51,10 +55,19 @@ type HeartbeatManagerConfig struct {
 	Interval  time.Duration
 	Timeout   time.Duration
 	OnTimeout func(ctx context.Context, taskID string) error
+
+	// ErrorChanSize specifies the buffer size for the error channel.
+	// If 0 (default), no error channel is created.
+	// Set to a positive value to enable error reporting via channel.
+	ErrorChanSize int
 }
 
 // NewHeartbeatManager creates a new HeartbeatManager instance.
-func NewHeartbeatManager(client RedisClient, cfg *HeartbeatManagerConfig) *HeartbeatManager {
+func NewHeartbeatManager(client RedisClient, cfg *HeartbeatManagerConfig) (*HeartbeatManager, error) {
+	if client == nil {
+		return nil, ErrNilRedisClient
+	}
+
 	if cfg == nil {
 		cfg = &HeartbeatManagerConfig{}
 	}
@@ -65,7 +78,7 @@ func NewHeartbeatManager(client RedisClient, cfg *HeartbeatManagerConfig) *Heart
 		cfg.Timeout = DefaultHeartbeatTimeout
 	}
 
-	return &HeartbeatManager{
+	hm := &HeartbeatManager{
 		client:    client,
 		interval:  cfg.Interval,
 		timeout:   cfg.Timeout,
@@ -73,6 +86,13 @@ func NewHeartbeatManager(client RedisClient, cfg *HeartbeatManagerConfig) *Heart
 		stopCh:    make(chan struct{}),
 		onTimeout: cfg.OnTimeout,
 	}
+
+	// Create error channel if configured
+	if cfg.ErrorChanSize > 0 {
+		hm.errorChan = make(chan error, cfg.ErrorChanSize)
+	}
+
+	return hm, nil
 }
 
 // Register registers a task for heartbeat monitoring.
@@ -216,6 +236,14 @@ func (m *HeartbeatManager) GetTaskCount() int {
 	return len(m.tasks)
 }
 
+// Errors returns a channel for receiving callback errors.
+// Returns nil if error channel is not configured (ErrorChanSize = 0).
+// The channel is buffered with the size specified in HeartbeatManagerConfig.
+// Errors sent to this channel are from OnTimeout callback failures.
+func (m *HeartbeatManager) Errors() <-chan error {
+	return m.errorChan
+}
+
 // monitorLoop runs the periodic heartbeat check.
 func (m *HeartbeatManager) monitorLoop(ctx context.Context) {
 	defer m.wg.Done()
@@ -289,6 +317,19 @@ func (m *HeartbeatManager) handleTimeout(ctx context.Context, taskID string) {
 
 	// Call timeout callback
 	if m.onTimeout != nil {
-		m.onTimeout(ctx, taskID)
+		if err := m.onTimeout(ctx, taskID); err != nil {
+			// Log the error - this is important for debugging task state inconsistencies
+			log.Printf("[HeartbeatManager] OnTimeout callback failed for task %s: %v", taskID, err)
+
+			// Send error to channel if available (non-blocking)
+			if m.errorChan != nil {
+				select {
+				case m.errorChan <- fmt.Errorf("OnTimeout callback failed for task %s: %w", taskID, err):
+				default:
+					// Channel full, log and skip
+					log.Printf("[HeartbeatManager] Error channel full, dropping error for task %s", taskID)
+				}
+			}
+		}
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"time"
@@ -104,10 +105,7 @@ func (c *WrapperClient) Health(ctx context.Context, podIP string) (*WrapperHealt
 	if err != nil {
 		return nil, fmt.Errorf("health check failed: %w", err)
 	}
-	defer func() {
-		io.Copy(io.Discard, resp.Body)
-		resp.Body.Close()
-	}()
+	defer drainAndClose(resp.Body, "Health")
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("health check returned status %d", resp.StatusCode)
@@ -131,10 +129,7 @@ func (c *WrapperClient) GetStatus(ctx context.Context, podIP string) (*WrapperSt
 	if err != nil {
 		return nil, fmt.Errorf("get status failed: %w", err)
 	}
-	defer func() {
-		io.Copy(io.Discard, resp.Body)
-		resp.Body.Close()
-	}()
+	defer drainAndClose(resp.Body, "GetStatus")
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("get status returned status %d", resp.StatusCode)
@@ -158,10 +153,7 @@ func (c *WrapperClient) Pause(ctx context.Context, podIP string) error {
 	if err != nil {
 		return fmt.Errorf("pause request failed: %w", err)
 	}
-	defer func() {
-		io.Copy(io.Discard, resp.Body)
-		resp.Body.Close()
-	}()
+	defer drainAndClose(resp.Body, "Pause")
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("pause returned status %d", resp.StatusCode)
@@ -189,10 +181,7 @@ func (c *WrapperClient) Resume(ctx context.Context, podIP string) error {
 	if err != nil {
 		return fmt.Errorf("resume request failed: %w", err)
 	}
-	defer func() {
-		io.Copy(io.Discard, resp.Body)
-		resp.Body.Close()
-	}()
+	defer drainAndClose(resp.Body, "Resume")
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("resume returned status %d", resp.StatusCode)
@@ -230,10 +219,7 @@ func (c *WrapperClient) Inject(ctx context.Context, podIP string, content string
 	if err != nil {
 		return fmt.Errorf("inject request failed: %w", err)
 	}
-	defer func() {
-		io.Copy(io.Discard, resp.Body)
-		resp.Body.Close()
-	}()
+	defer drainAndClose(resp.Body, "Inject")
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("inject returned status %d", resp.StatusCode)
@@ -268,4 +254,26 @@ func (c *WrapperClient) doRequest(ctx context.Context, method, url string, body 
 	}
 
 	return c.httpClient.Do(req)
+}
+
+// drainAndClose drains the response body and closes it, logging any errors.
+// This is important for connection reuse - if the body is not fully drained,
+// the connection cannot be reused for subsequent requests.
+func drainAndClose(body io.ReadCloser, methodName string) {
+	if body == nil {
+		return
+	}
+	_, drainErr := io.Copy(io.Discard, body)
+	if drainErr != nil {
+		slog.Warn("failed to drain response body, connection reuse may be affected",
+			"method", methodName,
+			"error", drainErr,
+		)
+	}
+	if closeErr := body.Close(); closeErr != nil {
+		slog.Warn("failed to close response body",
+			"method", methodName,
+			"error", closeErr,
+		)
+	}
 }

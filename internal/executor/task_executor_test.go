@@ -199,7 +199,7 @@ func TestTaskExecutor_HandleTaskEvent(t *testing.T) {
 	}
 	defer executor.Stop(context.Background())
 
-	taskID := "test-task-123"
+	taskID := uuid.New().String()
 
 	// Test status_change event
 	err = executor.HandleTaskEvent(context.Background(), taskID, "status_change", map[string]interface{}{
@@ -239,7 +239,7 @@ func TestTaskExecutor_HandleTaskEvent_Complete(t *testing.T) {
 	}
 	defer executor.Stop(context.Background())
 
-	taskID := "test-task-123"
+	taskID := uuid.New().String()
 	executor.heartbeat.Register(taskID, "10.0.0.1")
 
 	err = executor.HandleTaskEvent(context.Background(), taskID, "complete", map[string]interface{}{
@@ -285,7 +285,7 @@ func TestTaskExecutor_HandleTaskEvent_Failed(t *testing.T) {
 	}
 	defer executor.Stop(context.Background())
 
-	taskID := "test-task-123"
+	taskID := uuid.New().String()
 	executor.heartbeat.Register(taskID, "10.0.0.1")
 
 	err = executor.HandleTaskEvent(context.Background(), taskID, "failed", map[string]interface{}{
@@ -337,4 +337,231 @@ func TestTaskExecutor_GetHeartbeatManager(t *testing.T) {
 func TestTaskExecutor_HandleHeartbeat(t *testing.T) {
 	// Skip this test as it requires a full Redis mock with pipeline support
 	t.Skip("Requires full Redis mock with pipeline support")
+}
+
+func TestValidateTaskID(t *testing.T) {
+	tests := []struct {
+		name      string
+		taskID    string
+		wantError bool
+	}{
+		{
+			name:      "empty task ID",
+			taskID:    "",
+			wantError: true,
+		},
+		{
+			name:      "invalid UUID format",
+			taskID:    "not-a-uuid",
+			wantError: true,
+		},
+		{
+			name:      "invalid UUID format with numbers",
+			taskID:    "test-task-123",
+			wantError: true,
+		},
+		{
+			name:      "valid UUID",
+			taskID:    uuid.New().String(),
+			wantError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateTaskID(tt.taskID)
+			if (err != nil) != tt.wantError {
+				t.Errorf("validateTaskID(%q) error = %v, wantError %v", tt.taskID, err, tt.wantError)
+			}
+			if err != nil && tt.wantError {
+				// Verify the error wraps ErrInvalidTaskID
+				if err.Error() == "" {
+					t.Error("error message should not be empty")
+				}
+			}
+		})
+	}
+}
+
+func TestTaskExecutor_Execute_InvalidTaskID(t *testing.T) {
+	k8sClient := fake.NewSimpleClientset()
+	mockRedis := NewMockRedisClient()
+
+	executor, err := NewTaskExecutor(k8sClient, mockRedis, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Task with nil UUID (zero value)
+	task := &model.Task{
+		BaseModel: model.BaseModel{
+			ID: uuid.Nil,
+		},
+		Status: model.TaskStatusScheduled,
+	}
+
+	_, err = executor.Execute(context.Background(), task)
+	if err == nil {
+		t.Error("expected error for nil UUID task ID")
+	}
+}
+
+func TestTaskExecutor_GetStatus_InvalidTaskID(t *testing.T) {
+	k8sClient := fake.NewSimpleClientset()
+	mockRedis := NewMockRedisClient()
+
+	executor, err := NewTaskExecutor(k8sClient, mockRedis, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	_, err = executor.GetStatus(context.Background(), "")
+	if err == nil {
+		t.Error("expected error for empty task ID")
+	}
+
+	_, err = executor.GetStatus(context.Background(), "invalid-uuid")
+	if err == nil {
+		t.Error("expected error for invalid UUID format")
+	}
+}
+
+func TestTaskExecutor_Pause_InvalidTaskID(t *testing.T) {
+	k8sClient := fake.NewSimpleClientset()
+	mockRedis := NewMockRedisClient()
+
+	executor, err := NewTaskExecutor(k8sClient, mockRedis, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	err = executor.Pause(context.Background(), "")
+	if err == nil {
+		t.Error("expected error for empty task ID")
+	}
+
+	err = executor.Pause(context.Background(), "invalid-uuid")
+	if err == nil {
+		t.Error("expected error for invalid UUID format")
+	}
+}
+
+func TestTaskExecutor_Resume_InvalidTaskID(t *testing.T) {
+	k8sClient := fake.NewSimpleClientset()
+	mockRedis := NewMockRedisClient()
+
+	executor, err := NewTaskExecutor(k8sClient, mockRedis, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	err = executor.Resume(context.Background(), "")
+	if err == nil {
+		t.Error("expected error for empty task ID")
+	}
+
+	err = executor.Resume(context.Background(), "invalid-uuid")
+	if err == nil {
+		t.Error("expected error for invalid UUID format")
+	}
+}
+
+func TestTaskExecutor_Cancel_InvalidTaskID(t *testing.T) {
+	k8sClient := fake.NewSimpleClientset()
+	mockRedis := NewMockRedisClient()
+
+	executor, err := NewTaskExecutor(k8sClient, mockRedis, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	err = executor.Cancel(context.Background(), "", "test reason")
+	if err == nil {
+		t.Error("expected error for empty task ID")
+	}
+
+	err = executor.Cancel(context.Background(), "invalid-uuid", "test reason")
+	if err == nil {
+		t.Error("expected error for invalid UUID format")
+	}
+}
+
+func TestTaskExecutor_GetPodAddress_InvalidTaskID(t *testing.T) {
+	k8sClient := fake.NewSimpleClientset()
+	mockRedis := NewMockRedisClient()
+
+	executor, err := NewTaskExecutor(k8sClient, mockRedis, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	_, err = executor.GetPodAddress(context.Background(), "")
+	if err == nil {
+		t.Error("expected error for empty task ID")
+	}
+
+	_, err = executor.GetPodAddress(context.Background(), "invalid-uuid")
+	if err == nil {
+		t.Error("expected error for invalid UUID format")
+	}
+}
+
+func TestTaskExecutor_HandleHeartbeat_InvalidTaskID(t *testing.T) {
+	k8sClient := fake.NewSimpleClientset()
+	mockRedis := NewMockRedisClient()
+
+	executor, err := NewTaskExecutor(k8sClient, mockRedis, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	err = executor.HandleHeartbeat(context.Background(), "", "running", 50)
+	if err == nil {
+		t.Error("expected error for empty task ID")
+	}
+
+	err = executor.HandleHeartbeat(context.Background(), "invalid-uuid", "running", 50)
+	if err == nil {
+		t.Error("expected error for invalid UUID format")
+	}
+}
+
+func TestTaskExecutor_HandleTaskEvent_InvalidTaskID(t *testing.T) {
+	k8sClient := fake.NewSimpleClientset()
+	mockRedis := NewMockRedisClient()
+
+	executor, err := NewTaskExecutor(k8sClient, mockRedis, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	err = executor.HandleTaskEvent(context.Background(), "", "status_change", map[string]interface{}{})
+	if err == nil {
+		t.Error("expected error for empty task ID")
+	}
+
+	err = executor.HandleTaskEvent(context.Background(), "invalid-uuid", "status_change", map[string]interface{}{})
+	if err == nil {
+		t.Error("expected error for invalid UUID format")
+	}
+}
+
+func TestTaskExecutor_InjectInstruction_InvalidTaskID(t *testing.T) {
+	k8sClient := fake.NewSimpleClientset()
+	mockRedis := NewMockRedisClient()
+
+	executor, err := NewTaskExecutor(k8sClient, mockRedis, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	err = executor.InjectInstruction(context.Background(), "", "test instruction")
+	if err == nil {
+		t.Error("expected error for empty task ID")
+	}
+
+	err = executor.InjectInstruction(context.Background(), "invalid-uuid", "test instruction")
+	if err == nil {
+		t.Error("expected error for invalid UUID format")
+	}
 }

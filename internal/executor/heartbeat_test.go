@@ -2,6 +2,8 @@ package executor
 
 import (
 	"context"
+	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -91,7 +93,10 @@ func TestNewHeartbeatManager(t *testing.T) {
 			Timeout:   30 * time.Second,
 			OnTimeout: func(ctx context.Context, taskID string) error { return nil },
 		}
-		mgr := NewHeartbeatManager(mockRedis, cfg)
+		mgr, err := NewHeartbeatManager(mockRedis, cfg)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 
 		if mgr.interval != 10*time.Second {
 			t.Errorf("expected interval 10s, got %v", mgr.interval)
@@ -102,7 +107,10 @@ func TestNewHeartbeatManager(t *testing.T) {
 	})
 
 	t.Run("nil config uses defaults", func(t *testing.T) {
-		mgr := NewHeartbeatManager(mockRedis, nil)
+		mgr, err := NewHeartbeatManager(mockRedis, nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 
 		if mgr.interval != DefaultHeartbeatInterval {
 			t.Errorf("expected default interval, got %v", mgr.interval)
@@ -111,11 +119,24 @@ func TestNewHeartbeatManager(t *testing.T) {
 			t.Errorf("expected default timeout, got %v", mgr.timeout)
 		}
 	})
+
+	t.Run("nil redis client returns error", func(t *testing.T) {
+		mgr, err := NewHeartbeatManager(nil, nil)
+		if err != ErrNilRedisClient {
+			t.Errorf("expected ErrNilRedisClient, got %v", err)
+		}
+		if mgr != nil {
+			t.Error("expected nil manager when redis client is nil")
+		}
+	})
 }
 
 func TestHeartbeatManager_Register(t *testing.T) {
 	mockRedis := NewMockRedisClient()
-	mgr := NewHeartbeatManager(mockRedis, nil)
+	mgr, err := NewHeartbeatManager(mockRedis, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	taskID := "test-task-123"
 	podIP := "10.0.0.1"
@@ -140,7 +161,10 @@ func TestHeartbeatManager_Register(t *testing.T) {
 
 func TestHeartbeatManager_Unregister(t *testing.T) {
 	mockRedis := NewMockRedisClient()
-	mgr := NewHeartbeatManager(mockRedis, nil)
+	mgr, err := NewHeartbeatManager(mockRedis, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	taskID := "test-task-123"
 	mgr.Register(taskID, "10.0.0.1")
@@ -164,7 +188,10 @@ func TestHeartbeatManager_UpdateHeartbeat(t *testing.T) {
 
 func TestHeartbeatManager_GetHeartbeat(t *testing.T) {
 	mockRedis := NewMockRedisClient()
-	mgr := NewHeartbeatManager(mockRedis, nil)
+	mgr, err := NewHeartbeatManager(mockRedis, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	taskID := "test-task-123"
 
@@ -193,7 +220,10 @@ func TestHeartbeatManager_GetHeartbeat(t *testing.T) {
 
 func TestHeartbeatManager_GetHeartbeat_NotFound(t *testing.T) {
 	mockRedis := NewMockRedisClient()
-	mgr := NewHeartbeatManager(mockRedis, nil)
+	mgr, err := NewHeartbeatManager(mockRedis, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	info, err := mgr.GetHeartbeat(context.Background(), "nonexistent")
 	if err != nil {
@@ -206,7 +236,10 @@ func TestHeartbeatManager_GetHeartbeat_NotFound(t *testing.T) {
 
 func TestHeartbeatManager_StartStop(t *testing.T) {
 	mockRedis := NewMockRedisClient()
-	mgr := NewHeartbeatManager(mockRedis, nil)
+	mgr, err := NewHeartbeatManager(mockRedis, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	// Start
 	err := mgr.Start(context.Background())
@@ -237,7 +270,10 @@ func TestHeartbeatManager_StartStop(t *testing.T) {
 
 func TestHeartbeatManager_GetTaskCount(t *testing.T) {
 	mockRedis := NewMockRedisClient()
-	mgr := NewHeartbeatManager(mockRedis, nil)
+	mgr, err := NewHeartbeatManager(mockRedis, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if mgr.GetTaskCount() != 0 {
 		t.Errorf("expected 0 tasks, got %d", mgr.GetTaskCount())
@@ -255,5 +291,138 @@ func TestHeartbeatManager_GetTaskCount(t *testing.T) {
 
 	if mgr.GetTaskCount() != 2 {
 		t.Errorf("expected 2 tasks, got %d", mgr.GetTaskCount())
+	}
+}
+
+func TestHeartbeatManager_ErrorsChannel(t *testing.T) {
+	mockRedis := NewMockRedisClient()
+
+	t.Run("no error channel by default", func(t *testing.T) {
+		mgr, err := NewHeartbeatManager(mockRedis, nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if mgr.Errors() != nil {
+			t.Error("expected nil error channel by default")
+		}
+	})
+
+	t.Run("error channel created when configured", func(t *testing.T) {
+		cfg := &HeartbeatManagerConfig{
+			ErrorChanSize: 10,
+		}
+		mgr, err := NewHeartbeatManager(mockRedis, cfg)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if mgr.Errors() == nil {
+			t.Error("expected error channel to be created")
+		}
+	})
+}
+
+func TestHeartbeatManager_HandleTimeout_CallbackError(t *testing.T) {
+	mockRedis := NewMockRedisClient()
+
+	testError := errors.New("callback failed")
+
+	cfg := &HeartbeatManagerConfig{
+		ErrorChanSize: 10,
+		OnTimeout: func(ctx context.Context, taskID string) error {
+			return testError
+		},
+	}
+	mgr, err := NewHeartbeatManager(mockRedis, cfg)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	taskID := "test-task-timeout"
+	mgr.Register(taskID, "10.0.0.1")
+
+	// Call handleTimeout directly
+	mgr.handleTimeout(context.Background(), taskID)
+
+	// Task should be unregistered
+	if mgr.GetTaskCount() != 0 {
+		t.Errorf("expected 0 tasks after timeout, got %d", mgr.GetTaskCount())
+	}
+
+	// Error should be sent to channel
+	select {
+	case err := <-mgr.Errors():
+		if err == nil {
+			t.Error("expected error from channel")
+		}
+		if !strings.Contains(err.Error(), "callback failed") {
+			t.Errorf("expected error to contain 'callback failed', got: %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Error("expected error in channel, but got none")
+	}
+}
+
+func TestHeartbeatManager_HandleTimeout_CallbackSuccess(t *testing.T) {
+	mockRedis := NewMockRedisClient()
+
+	callbackCalled := false
+	cfg := &HeartbeatManagerConfig{
+		ErrorChanSize: 10,
+		OnTimeout: func(ctx context.Context, taskID string) error {
+			callbackCalled = true
+			return nil // Success
+		},
+	}
+	mgr, err := NewHeartbeatManager(mockRedis, cfg)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	taskID := "test-task-success"
+	mgr.Register(taskID, "10.0.0.1")
+
+	// Call handleTimeout directly
+	mgr.handleTimeout(context.Background(), taskID)
+
+	// Task should be unregistered
+	if mgr.GetTaskCount() != 0 {
+		t.Errorf("expected 0 tasks after timeout, got %d", mgr.GetTaskCount())
+	}
+
+	// Callback should have been called
+	if !callbackCalled {
+		t.Error("expected callback to be called")
+	}
+
+	// No error should be sent to channel
+	select {
+	case err := <-mgr.Errors():
+		t.Errorf("unexpected error in channel: %v", err)
+	case <-time.After(100 * time.Millisecond):
+		// Expected - no error
+	}
+}
+
+func TestHeartbeatManager_HandleTimeout_NoCallback(t *testing.T) {
+	mockRedis := NewMockRedisClient()
+
+	cfg := &HeartbeatManagerConfig{
+		ErrorChanSize: 10,
+		// No OnTimeout callback
+	}
+	mgr, err := NewHeartbeatManager(mockRedis, cfg)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	taskID := "test-task-nocallback"
+	mgr.Register(taskID, "10.0.0.1")
+
+	// Call handleTimeout directly - should not panic
+	mgr.handleTimeout(context.Background(), taskID)
+
+	// Task should be unregistered
+	if mgr.GetTaskCount() != 0 {
+		t.Errorf("expected 0 tasks after timeout, got %d", mgr.GetTaskCount())
 	}
 }

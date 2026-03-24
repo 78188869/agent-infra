@@ -74,6 +74,28 @@ type JobStatus struct {
 	ExitCode       *int32 `json:"exit_code"`       // Container exit code
 }
 
+// SecurityConfig holds security-related configuration for Pods and containers.
+type SecurityConfig struct {
+	// RunAsNonRoot indicates that the container must run as a non-root user.
+	RunAsNonRoot bool `yaml:"run_as_non_root"` // Default: true
+
+	// RunAsUser is the UID to run the entrypoint of the container process.
+	RunAsUser int64 `yaml:"run_as_user"` // Default: 1000
+
+	// RunAsGroup is the GID to run the entrypoint of the container process.
+	RunAsGroup int64 `yaml:"run_as_group"` // Default: 1000
+
+	// ReadOnlyRootFilesystem mounts the container's root filesystem as read-only.
+	ReadOnlyRootFilesystem bool `yaml:"read_only_root_filesystem"` // Default: true
+
+	// AllowPrivilegeEscalation controls whether a process can gain more privileges.
+	// Default is false for security.
+	AllowPrivilegeEscalation *bool `yaml:"allow_privilege_escalation"` // Default: false
+
+	// FSGroup is a special supplemental group that applies to all containers in a pod.
+	FSGroup *int64 `yaml:"fs_group"` // Default: 1000
+}
+
 // JobConfig holds the configuration for creating a K8s Job.
 type JobConfig struct {
 	// Job naming
@@ -87,11 +109,17 @@ type JobConfig struct {
 	WrapperImage   string `yaml:"wrapper_image"`
 	LogAgentImage  string `yaml:"log_agent_image"`
 
-	// Resource limits
+	// Resource limits for CLI Runner container
 	DefaultCPULimit      string `yaml:"default_cpu_limit"`      // e.g., "2"
 	DefaultMemoryLimit   string `yaml:"default_memory_limit"`   // e.g., "4Gi"
 	DefaultCPURequest    string `yaml:"default_cpu_request"`    // e.g., "500m"
 	DefaultMemoryRequest string `yaml:"default_memory_request"` // e.g., "1Gi"
+
+	// Resource limits for Wrapper container
+	WrapperCPULimit      string `yaml:"wrapper_cpu_limit"`      // e.g., "100m"
+	WrapperMemoryLimit   string `yaml:"wrapper_memory_limit"`   // e.g., "128Mi"
+	WrapperCPURequest    string `yaml:"wrapper_cpu_request"`    // e.g., "50m"
+	WrapperMemoryRequest string `yaml:"wrapper_memory_request"` // e.g., "64Mi"
 
 	// TTL configuration
 	TTLSecondsAfterFinished int32 `yaml:"ttl_seconds_after_finished"` // Default: 3600
@@ -105,9 +133,31 @@ type JobConfig struct {
 	// Environment configuration
 	ControlPlaneURL string `yaml:"control_plane_url"`
 
+	// Security configuration for Pods and containers
+	// If nil, secure defaults will be used.
+	Security *SecurityConfig `yaml:"security"`
+
+	// ServiceAccountName is the name of the ServiceAccount to use for the Pod.
+	// If empty, the namespace's default ServiceAccount will be used.
+	ServiceAccountName string `yaml:"service_account_name"`
+
 	// Labels and annotations
 	Labels      map[string]string `yaml:"labels"`
 	Annotations map[string]string `yaml:"annotations"`
+}
+
+// DefaultSecurityConfig returns a SecurityConfig with secure default values.
+func DefaultSecurityConfig() *SecurityConfig {
+	allowPrivilegeEscalation := false
+	fsGroup := int64(1000)
+	return &SecurityConfig{
+		RunAsNonRoot:            true,
+		RunAsUser:               1000,
+		RunAsGroup:              1000,
+		ReadOnlyRootFilesystem:  true,
+		AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+		FSGroup:                 &fsGroup,
+	}
 }
 
 // DefaultJobConfig returns a JobConfig with default values.
@@ -122,9 +172,14 @@ func DefaultJobConfig() *JobConfig {
 		DefaultMemoryLimit:      "4Gi",
 		DefaultCPURequest:       "500m",
 		DefaultMemoryRequest:    "1Gi",
+		WrapperCPULimit:         "100m",
+		WrapperMemoryLimit:      "128Mi",
+		WrapperCPURequest:       "50m",
+		WrapperMemoryRequest:    "64Mi",
 		TTLSecondsAfterFinished: 3600,
 		DefaultTimeoutSeconds:   3600,
 		WrapperPort:             9090,
+		Security:                DefaultSecurityConfig(),
 		Labels:                  make(map[string]string),
 		Annotations:             make(map[string]string),
 	}
