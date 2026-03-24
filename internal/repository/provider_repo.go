@@ -131,12 +131,19 @@ func (r *providerRepository) List(ctx context.Context, filter ProviderFilter) ([
 
 // Update updates an existing provider.
 func (r *providerRepository) Update(ctx context.Context, provider *model.Provider) error {
+	// First check if the provider exists
+	var existing model.Provider
+	if err := r.db.WithContext(ctx).Where("id = ?", provider.ID).First(&existing).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return errors.NewNotFoundError("provider not found")
+		}
+		return errors.NewInternalError("failed to check provider existence: " + err.Error())
+	}
+
+	// Now perform the update
 	result := r.db.WithContext(ctx).Save(provider)
 	if result.Error != nil {
 		return errors.NewInternalError("failed to update provider: " + result.Error.Error())
-	}
-	if result.RowsAffected == 0 {
-		return errors.NewNotFoundError("provider not found")
 	}
 	return nil
 }
