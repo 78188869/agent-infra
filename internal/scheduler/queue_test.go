@@ -35,7 +35,7 @@ func TestPriorityQueue_Enqueue(t *testing.T) {
 	item := &QueueItem{
 		TaskID:    "task-1",
 		TenantID:  "tenant-1",
-		Priority:  model.PriorityNormal,
+		Priority:  model.TaskPriorityNormal,
 		CreatedAt: now,
 	}
 
@@ -45,7 +45,7 @@ func TestPriorityQueue_Enqueue(t *testing.T) {
 	}
 
 	// Verify task is in the queue
-	size, err := queue.SizeByPriority(ctx, model.PriorityNormal)
+	size, err := queue.SizeByPriority(ctx, model.TaskPriorityNormal)
 	if err != nil {
 		t.Fatalf("failed to get queue size: %v", err)
 	}
@@ -85,9 +85,9 @@ func TestPriorityQueue_EnqueueDifferentPriorities(t *testing.T) {
 	now := time.Now()
 
 	items := []*QueueItem{
-		{TaskID: "low-1", TenantID: "tenant-1", Priority: model.PriorityLow, CreatedAt: now},
-		{TaskID: "normal-1", TenantID: "tenant-1", Priority: model.PriorityNormal, CreatedAt: now.Add(time.Millisecond)},
-		{TaskID: "high-1", TenantID: "tenant-1", Priority: model.PriorityHigh, CreatedAt: now.Add(2 * time.Millisecond)},
+		{TaskID: "low-1", TenantID: "tenant-1", Priority: model.TaskPriorityLow, CreatedAt: now},
+		{TaskID: "normal-1", TenantID: "tenant-1", Priority: model.TaskPriorityNormal, CreatedAt: now.Add(time.Millisecond)},
+		{TaskID: "high-1", TenantID: "tenant-1", Priority: model.TaskPriorityHigh, CreatedAt: now.Add(2 * time.Millisecond)},
 	}
 
 	for _, item := range items {
@@ -97,9 +97,9 @@ func TestPriorityQueue_EnqueueDifferentPriorities(t *testing.T) {
 	}
 
 	// Verify each queue has correct count
-	highSize, _ := queue.SizeByPriority(ctx, model.PriorityHigh)
-	normalSize, _ := queue.SizeByPriority(ctx, model.PriorityNormal)
-	lowSize, _ := queue.SizeByPriority(ctx, model.PriorityLow)
+	highSize, _ := queue.SizeByPriority(ctx, model.TaskPriorityHigh)
+	normalSize, _ := queue.SizeByPriority(ctx, model.TaskPriorityNormal)
+	lowSize, _ := queue.SizeByPriority(ctx, model.TaskPriorityLow)
 
 	if highSize != 1 {
 		t.Errorf("expected high queue size 1, got %d", highSize)
@@ -122,9 +122,9 @@ func TestPriorityQueue_Dequeue_PriorityOrder(t *testing.T) {
 
 	// Add tasks in random order
 	items := []*QueueItem{
-		{TaskID: "low-1", TenantID: "tenant-1", Priority: model.PriorityLow, CreatedAt: now},
-		{TaskID: "high-1", TenantID: "tenant-1", Priority: model.PriorityHigh, CreatedAt: now.Add(time.Millisecond)},
-		{TaskID: "normal-1", TenantID: "tenant-1", Priority: model.PriorityNormal, CreatedAt: now.Add(2 * time.Millisecond)},
+		{TaskID: "low-1", TenantID: "tenant-1", Priority: model.TaskPriorityLow, CreatedAt: now},
+		{TaskID: "high-1", TenantID: "tenant-1", Priority: model.TaskPriorityHigh, CreatedAt: now.Add(time.Millisecond)},
+		{TaskID: "normal-1", TenantID: "tenant-1", Priority: model.TaskPriorityNormal, CreatedAt: now.Add(2 * time.Millisecond)},
 	}
 
 	for _, item := range items {
@@ -168,9 +168,9 @@ func TestPriorityQueue_Dequeue_FIFO(t *testing.T) {
 
 	// Add tasks with same priority but different timestamps
 	items := []*QueueItem{
-		{TaskID: "task-3", TenantID: "tenant-1", Priority: model.PriorityNormal, CreatedAt: now.Add(2 * time.Millisecond)},
-		{TaskID: "task-1", TenantID: "tenant-1", Priority: model.PriorityNormal, CreatedAt: now},
-		{TaskID: "task-2", TenantID: "tenant-1", Priority: model.PriorityNormal, CreatedAt: now.Add(time.Millisecond)},
+		{TaskID: "task-3", TenantID: "tenant-1", Priority: model.TaskPriorityNormal, CreatedAt: now.Add(2 * time.Millisecond)},
+		{TaskID: "task-1", TenantID: "tenant-1", Priority: model.TaskPriorityNormal, CreatedAt: now},
+		{TaskID: "task-2", TenantID: "tenant-1", Priority: model.TaskPriorityNormal, CreatedAt: now.Add(time.Millisecond)},
 	}
 
 	for _, item := range items {
@@ -218,10 +218,10 @@ func TestPriorityQueue_GetPosition(t *testing.T) {
 
 	// Add tasks to different queues
 	items := []*QueueItem{
-		{TaskID: "high-1", TenantID: "tenant-1", Priority: model.PriorityHigh, CreatedAt: now},
-		{TaskID: "high-2", TenantID: "tenant-1", Priority: model.PriorityHigh, CreatedAt: now.Add(time.Millisecond)},
-		{TaskID: "normal-1", TenantID: "tenant-1", Priority: model.PriorityNormal, CreatedAt: now.Add(2 * time.Millisecond)},
-		{TaskID: "low-1", TenantID: "tenant-1", Priority: model.PriorityLow, CreatedAt: now.Add(3 * time.Millisecond)},
+		{TaskID: "high-1", TenantID: "tenant-1", Priority: model.TaskPriorityHigh, CreatedAt: now},
+		{TaskID: "high-2", TenantID: "tenant-1", Priority: model.TaskPriorityHigh, CreatedAt: now.Add(time.Millisecond)},
+		{TaskID: "normal-1", TenantID: "tenant-1", Priority: model.TaskPriorityNormal, CreatedAt: now.Add(2 * time.Millisecond)},
+		{TaskID: "low-1", TenantID: "tenant-1", Priority: model.TaskPriorityLow, CreatedAt: now.Add(3 * time.Millisecond)},
 	}
 
 	for _, item := range items {
@@ -275,7 +275,7 @@ func TestPriorityQueue_Remove(t *testing.T) {
 	item := &QueueItem{
 		TaskID:    "task-1",
 		TenantID:  "tenant-1",
-		Priority:  model.PriorityNormal,
+		Priority:  model.TaskPriorityNormal,
 		CreatedAt: now,
 	}
 
@@ -284,7 +284,7 @@ func TestPriorityQueue_Remove(t *testing.T) {
 	}
 
 	// Remove the task
-	err := queue.Remove(ctx, "task-1", model.PriorityNormal)
+	err := queue.Remove(ctx, "task-1", model.TaskPriorityNormal)
 	if err != nil {
 		t.Fatalf("failed to remove: %v", err)
 	}
@@ -309,7 +309,7 @@ func TestPriorityQueue_Remove_NotFound(t *testing.T) {
 
 	ctx := context.Background()
 
-	err := queue.Remove(ctx, "non-existent", model.PriorityNormal)
+	err := queue.Remove(ctx, "non-existent", model.TaskPriorityNormal)
 	if err != ErrTaskNotFound {
 		t.Errorf("expected ErrTaskNotFound, got %v", err)
 	}
@@ -328,7 +328,7 @@ func TestPriorityQueue_Clear(t *testing.T) {
 		item := &QueueItem{
 			TaskID:    string(rune('a' + i)),
 			TenantID:  "tenant-1",
-			Priority:  model.Priority(model.PriorityHigh),
+			Priority:  model.TaskPriorityHigh,
 			CreatedAt: now.Add(time.Duration(i) * time.Millisecond),
 		}
 		if err := queue.Enqueue(ctx, item); err != nil {
