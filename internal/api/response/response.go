@@ -56,6 +56,14 @@ func NotFound(c *gin.Context, message string) {
 	})
 }
 
+// Unauthorized sends a 401 Unauthorized response with a custom message.
+func Unauthorized(c *gin.Context, message string) {
+	c.JSON(http.StatusUnauthorized, Response{
+		Code:    401,
+		Message: message,
+	})
+}
+
 // InternalError sends a 500 Internal Server Error response with a custom message.
 func InternalError(c *gin.Context, message string) {
 	c.JSON(http.StatusInternalServerError, Response{

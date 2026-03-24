@@ -107,6 +107,29 @@ func TestNotFound(t *testing.T) {
 	}
 }
 
+func TestUnauthorized(t *testing.T) {
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	Unauthorized(c, "user not authenticated")
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("Status = %v, want %v", w.Code, http.StatusUnauthorized)
+	}
+
+	var resp Response
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("Failed to unmarshal response: %v", err)
+	}
+
+	if resp.Code != 401 {
+		t.Errorf("Code = %v, want 401", resp.Code)
+	}
+	if resp.Message != "user not authenticated" {
+		t.Errorf("Message = %v, want 'user not authenticated'", resp.Message)
+	}
+}
+
 func TestInternalError(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
