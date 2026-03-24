@@ -9,7 +9,10 @@ import (
 )
 
 func TestSeedProviders(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	// Use DisableForeignKeyConstraintWhenMigrating to prevent GORM from trying to create related tables
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true,
+	})
 	if err != nil {
 		t.Fatalf("Failed to connect to database: %v", err)
 	}
