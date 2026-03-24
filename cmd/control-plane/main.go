@@ -61,6 +61,7 @@ func main() {
 	var tenantSvc service.TenantService
 	var templateSvc service.TemplateService
 	var taskSvc service.TaskService
+	var capabilitySvc service.CapabilityService
 	var db *config.Database
 	db, err = config.NewDatabase(cfg.ToDatabaseConfig())
 	if err != nil {
@@ -68,9 +69,10 @@ func main() {
 		tenantSvc = &mockTenantService{}
 		templateSvc = &mockTemplateService{}
 		taskSvc = &mockTaskService{}
+		capabilitySvc = &mockCapabilityService{}
 	} else {
 		// Auto-migrate models
-		if err := db.AutoMigrate(&model.Tenant{}, &model.Template{}, &model.Task{}); err != nil {
+		if err := db.AutoMigrate(&model.Tenant{}, &model.Template{}, &model.Task{}, &model.Capability{}); err != nil {
 			log.Printf("Warning: failed to auto-migrate: %v", err)
 		}
 		// Create real services with repositories
@@ -82,10 +84,13 @@ func main() {
 
 		taskRepo := repository.NewTaskRepository(db.DB)
 		taskSvc = service.NewTaskService(taskRepo)
+
+		capabilityRepo := repository.NewCapabilityRepository(db.DB)
+		capabilitySvc = service.NewCapabilityService(capabilityRepo)
 	}
 
 	// Setup router (pass db for health checks - can be nil if not available)
-	r := router.Setup(tenantSvc, templateSvc, taskSvc, db)
+	r := router.Setup(tenantSvc, templateSvc, taskSvc, capabilitySvc, db)
 
 	// Start server
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
@@ -161,6 +166,37 @@ func (m *mockTaskService) Update(ctx context.Context, id string, req *service.Up
 }
 
 func (m *mockTaskService) Delete(ctx context.Context, id string) error {
+	return fmt.Errorf("database not available")
+}
+
+// mockCapabilityService is a fallback service when database is not available.
+type mockCapabilityService struct{}
+
+func (m *mockCapabilityService) Create(ctx context.Context, req *service.CreateCapabilityRequest) (*model.Capability, error) {
+	return &model.Capability{Name: req.Name, Status: model.CapabilityStatusActive}, nil
+}
+
+func (m *mockCapabilityService) GetByID(ctx context.Context, id string) (*model.Capability, error) {
+	return nil, fmt.Errorf("database not available")
+}
+
+func (m *mockCapabilityService) List(ctx context.Context, filter *service.CapabilityFilter) ([]*model.Capability, int64, error) {
+	return []*model.Capability{}, 0, nil
+}
+
+func (m *mockCapabilityService) Update(ctx context.Context, id string, req *service.UpdateCapabilityRequest) error {
+	return fmt.Errorf("database not available")
+}
+
+func (m *mockCapabilityService) Delete(ctx context.Context, id string) error {
+	return fmt.Errorf("database not available")
+}
+
+func (m *mockCapabilityService) Activate(ctx context.Context, id string) error {
+	return fmt.Errorf("database not available")
+}
+
+func (m *mockCapabilityService) Deactivate(ctx context.Context, id string) error {
 	return fmt.Errorf("database not available")
 }
 
