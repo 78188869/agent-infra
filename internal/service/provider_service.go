@@ -52,18 +52,6 @@ type UpdateProviderRequest struct {
 	Status         *model.ProviderStatus `json:"status"`
 }
 
-// ProviderFilter represents filtering options for listing providers.
-type ProviderFilter struct {
-	Page     int    `form:"page"`
-	PageSize int    `form:"page_size"`
-	Scope    string `form:"scope"`
-	TenantID string `form:"tenant_id"`
-	UserID   string `form:"user_id"`
-	Type     string `form:"type"`
-	Status   string `form:"status"`
-	Search   string `form:"search"`
-}
-
 // ConnectionTestResult represents the result of a provider connection test.
 type ConnectionTestResult struct {
 	Success      bool  `json:"success"`
@@ -75,7 +63,7 @@ type ConnectionTestResult struct {
 type ProviderService interface {
 	Create(ctx context.Context, req *CreateProviderRequest) (*model.Provider, error)
 	GetByID(ctx context.Context, id string) (*model.Provider, error)
-	List(ctx context.Context, filter *ProviderFilter) ([]*model.Provider, int64, error)
+	List(ctx context.Context, filter *repository.ProviderFilter) ([]*model.Provider, int64, error)
 	Update(ctx context.Context, id string, req *UpdateProviderRequest) error
 	Delete(ctx context.Context, id string) error
 
@@ -188,21 +176,9 @@ func (s *providerService) GetByID(ctx context.Context, id string) (*model.Provid
 }
 
 // List retrieves providers based on filter criteria.
-func (s *providerService) List(ctx context.Context, filter *ProviderFilter) ([]*model.Provider, int64, error) {
-	// Convert service filter to repository filter
-	repoFilter := repository.ProviderFilter{
-		Page:     filter.Page,
-		PageSize: filter.PageSize,
-		Scope:    filter.Scope,
-		TenantID: filter.TenantID,
-		UserID:   filter.UserID,
-		Type:     filter.Type,
-		Status:   filter.Status,
-		Search:   filter.Search,
-	}
-
+func (s *providerService) List(ctx context.Context, filter *repository.ProviderFilter) ([]*model.Provider, int64, error) {
 	// Call repository
-	providers, total, err := s.repo.List(ctx, repoFilter)
+	providers, total, err := s.repo.List(ctx, *filter)
 	if err != nil {
 		return nil, 0, err
 	}

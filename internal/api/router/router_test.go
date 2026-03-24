@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/example/agent-infra/internal/model"
+	"github.com/example/agent-infra/internal/repository"
 	"github.com/example/agent-infra/internal/service"
 	"github.com/gin-gonic/gin"
 )
@@ -92,7 +93,7 @@ func (m *mockProviderService) GetByID(ctx context.Context, id string) (*model.Pr
 	return &model.Provider{}, nil
 }
 
-func (m *mockProviderService) List(ctx context.Context, filter *service.ProviderFilter) ([]*model.Provider, int64, error) {
+func (m *mockProviderService) List(ctx context.Context, filter *repository.ProviderFilter) ([]*model.Provider, int64, error) {
 	return []*model.Provider{}, 0, nil
 }
 

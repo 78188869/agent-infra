@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/example/agent-infra/internal/model"
+	"github.com/example/agent-infra/internal/repository"
 	"github.com/example/agent-infra/internal/service"
 	"github.com/example/agent-infra/pkg/errors"
 	"github.com/gin-gonic/gin"
@@ -19,7 +20,7 @@ import (
 type mockProviderService struct {
 	createFunc              func(ctx context.Context, req *service.CreateProviderRequest) (*model.Provider, error)
 	getByIDFunc             func(ctx context.Context, id string) (*model.Provider, error)
-	listFunc                func(ctx context.Context, filter *service.ProviderFilter) ([]*model.Provider, int64, error)
+	listFunc                func(ctx context.Context, filter *repository.ProviderFilter) ([]*model.Provider, int64, error)
 	updateFunc              func(ctx context.Context, id string, req *service.UpdateProviderRequest) error
 	deleteFunc              func(ctx context.Context, id string) error
 	testConnectionFunc      func(ctx context.Context, id string) (*service.ConnectionTestResult, error)
@@ -42,7 +43,7 @@ func (m *mockProviderService) GetByID(ctx context.Context, id string) (*model.Pr
 	return nil, nil
 }
 
-func (m *mockProviderService) List(ctx context.Context, filter *service.ProviderFilter) ([]*model.Provider, int64, error) {
+func (m *mockProviderService) List(ctx context.Context, filter *repository.ProviderFilter) ([]*model.Provider, int64, error) {
 	if m.listFunc != nil {
 		return m.listFunc(ctx, filter)
 	}
@@ -332,7 +333,7 @@ func TestProviderHandler_List(t *testing.T) {
 			name:        "successful list with defaults",
 			queryParams: "",
 			mockSetup: func(m *mockProviderService) {
-				m.listFunc = func(ctx context.Context, filter *service.ProviderFilter) ([]*model.Provider, int64, error) {
+				m.listFunc = func(ctx context.Context, filter *repository.ProviderFilter) ([]*model.Provider, int64, error) {
 					return []*model.Provider{
 						{ID: id1.String(), Name: "Provider 1", Status: model.ProviderStatusActive},
 						{ID: id2.String(), Name: "Provider 2", Status: model.ProviderStatusActive},
@@ -358,7 +359,7 @@ func TestProviderHandler_List(t *testing.T) {
 			name:        "list with pagination params",
 			queryParams: "?page=2&page_size=5",
 			mockSetup: func(m *mockProviderService) {
-				m.listFunc = func(ctx context.Context, filter *service.ProviderFilter) ([]*model.Provider, int64, error) {
+				m.listFunc = func(ctx context.Context, filter *repository.ProviderFilter) ([]*model.Provider, int64, error) {
 					if filter.Page != 2 {
 						t.Errorf("Expected page 2, got %d", filter.Page)
 					}
@@ -383,7 +384,7 @@ func TestProviderHandler_List(t *testing.T) {
 			name:        "list with scope filter",
 			queryParams: "?scope=system",
 			mockSetup: func(m *mockProviderService) {
-				m.listFunc = func(ctx context.Context, filter *service.ProviderFilter) ([]*model.Provider, int64, error) {
+				m.listFunc = func(ctx context.Context, filter *repository.ProviderFilter) ([]*model.Provider, int64, error) {
 					if filter.Scope != "system" {
 						t.Errorf("Expected scope 'system', got '%s'", filter.Scope)
 					}
@@ -396,7 +397,7 @@ func TestProviderHandler_List(t *testing.T) {
 			name:        "empty list",
 			queryParams: "",
 			mockSetup: func(m *mockProviderService) {
-				m.listFunc = func(ctx context.Context, filter *service.ProviderFilter) ([]*model.Provider, int64, error) {
+				m.listFunc = func(ctx context.Context, filter *repository.ProviderFilter) ([]*model.Provider, int64, error) {
 					return []*model.Provider{}, 0, nil
 				}
 			},
@@ -416,7 +417,7 @@ func TestProviderHandler_List(t *testing.T) {
 			name:        "internal error",
 			queryParams: "",
 			mockSetup: func(m *mockProviderService) {
-				m.listFunc = func(ctx context.Context, filter *service.ProviderFilter) ([]*model.Provider, int64, error) {
+				m.listFunc = func(ctx context.Context, filter *repository.ProviderFilter) ([]*model.Provider, int64, error) {
 					return nil, 0, errors.NewInternalError("database error")
 				}
 			},

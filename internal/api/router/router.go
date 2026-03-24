@@ -60,6 +60,8 @@ func Setup(tenantSvc service.TenantService, templateSvc service.TemplateService,
 		}
 
 		// Provider routes
+		// TODO: Add auth middleware when available. SetDefault requires user_id from context.
+		// GetAvailable benefits from tenant_id/user_id context for personalized results.
 		providerHandler := handler.NewProviderHandler(providerSvc)
 		providers := v1.Group("/providers")
 		{

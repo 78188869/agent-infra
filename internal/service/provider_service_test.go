@@ -330,7 +330,7 @@ func TestProviderService_List(t *testing.T) {
 		}
 		service := NewProviderService(repo)
 
-		filter := &ProviderFilter{Page: 1, PageSize: 10}
+		filter := &repository.ProviderFilter{Page: 1, PageSize: 10}
 		providers, total, err := service.List(ctx, filter)
 		if err != nil {
 			t.Errorf("List returned error: %v", err)
@@ -351,7 +351,7 @@ func TestProviderService_List(t *testing.T) {
 		}
 		service := NewProviderService(repo)
 
-		filter := &ProviderFilter{Page: 1, PageSize: 10}
+		filter := &repository.ProviderFilter{Page: 1, PageSize: 10}
 		providers, total, err := service.List(ctx, filter)
 		if err != nil {
 			t.Errorf("List returned error: %v", err)

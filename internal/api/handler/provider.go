@@ -3,6 +3,7 @@ package handler
 
 import (
 	"github.com/example/agent-infra/internal/api/response"
+	"github.com/example/agent-infra/internal/repository"
 	"github.com/example/agent-infra/internal/service"
 	"github.com/gin-gonic/gin"
 )
@@ -51,7 +52,7 @@ func (h *ProviderHandler) GetByID(c *gin.Context) {
 
 // List handles GET /api/v1/providers - List providers with pagination.
 func (h *ProviderHandler) List(c *gin.Context) {
-	var filter service.ProviderFilter
+	var filter repository.ProviderFilter
 	if err := c.ShouldBindQuery(&filter); err != nil {
 		response.BadRequest(c, "invalid query parameters: "+err.Error())
 		return
