@@ -1,6 +1,9 @@
 # Task Scheduler Engine Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Status**: ✅ Completed (2026-03-24)
+> **PR**: #16 (merged)
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Implement the task scheduler engine with priority queue, rate limiting, and preemption mechanism based on Redis.
 
@@ -31,56 +34,46 @@ Based on Issue #7 Acceptance Criteria:
 | 单元测试覆盖率 > 80% | `go test -cover ./internal/scheduler/...` |
 
 **Acceptance Test Checklist:**
-- [ ] Schedule() adds task to correct priority queue
-- [ ] Dequeue() returns tasks in priority order (high > normal > low)
-- [ ] Same priority tasks are returned in FIFO order
-- [ ] Tenant concurrency limit blocks tasks when quota exceeded
-- [ ] Global concurrency limit blocks tasks when exceeded
-- [ ] Daily task limit blocks tasks when exceeded
-- [ ] Preempt() saves current task state and re-queues
-- [ ] GetPosition() returns accurate queue position
-- [ ] Test coverage > 80% verified
+- [x] Schedule() adds task to correct priority queue
+- [x] Dequeue() returns tasks in priority order (high > normal > low)
+- [x] Same priority tasks are returned in FIFO order
+- [x] Tenant concurrency limit blocks tasks when quota exceeded
+- [x] Global concurrency limit blocks tasks when exceeded
+- [x] Daily task limit blocks tasks when exceeded
+- [x] Preempt() saves current task state and re-queues
+- [x] GetPosition() returns accurate queue position
+- [x] Test coverage > 80% verified (actual: 81.5%)
 
 ---
 
 ## File Structure
 
-### New Files to Create
+### Files Created (✅ Completed)
 
 ```
 internal/
 ├── scheduler/
-│   ├── scheduler.go           # Scheduler interface and main implementation
-│   ├── scheduler_test.go      # Scheduler unit tests
-│   ├── queue.go               # Priority queue management (Redis Sorted Set)
-│   ├── queue_test.go          # Queue unit tests
-│   ├── ratelimiter.go         # Rate limiter (tenant quota, global limit)
-│   ├── ratelimiter_test.go    # Rate limiter unit tests
-│   ├── preemption.go          # Preemption manager
-│   ├── preemption_test.go     # Preemption unit tests
-│   └── errors.go              # Scheduler-specific errors
-│
-├── config/
-│   ├── redis.go               # Redis connection configuration (NEW)
-│   └── redis_test.go          # Redis config tests (NEW)
-│
-└── repository/
-    └── task_quota_repo.go     # Task quota tracking repository (NEW)
+│   ├── scheduler.go           # ✅ Scheduler interface and main implementation
+│   ├── scheduler_test.go      # ✅ Scheduler unit tests
+│   ├── queue.go               # ✅ Priority queue management (Redis Sorted Set)
+│   ├── queue_test.go          # ✅ Queue unit tests
+│   ├── ratelimiter.go         # ✅ Rate limiter (tenant quota, global limit)
+│   ├── ratelimiter_test.go    # ✅ Rate limiter unit tests
+│   ├── preemption.go          # ✅ Preemption manager
+│   ├── preemption_test.go     # ✅ Preemption unit tests
+│   └── errors.go              # ✅ Scheduler-specific errors
 ```
 
-### Files to Modify
+### Files Modified (✅ Completed)
 
-- `go.mod` - Add go-redis/redis v9 dependency
-- `internal/config/database.go` - May need to coordinate with quota queries
+- `go.mod` - ✅ Added go-redis/redis v9 dependency
+- `internal/api/handler/health.go` - ✅ Enhanced with Redis health check
 
 ---
 
-## Task 1: Redis Configuration and Infrastructure
+## Task 1: Redis Configuration and Infrastructure ✅
 
-**Files:**
-- Modify: `go.mod`
-- Create: `internal/config/redis.go`
-- Create: `internal/scheduler/errors.go`
+**Status**: Completed
 
 - [ ] **Step 1: Add Redis dependency to go.mod**
 
@@ -161,11 +154,9 @@ git commit -m "feat(scheduler): add Redis configuration and error types"
 
 ---
 
-## Task 2: Priority Queue Implementation
+## Task 2: Priority Queue Implementation ✅
 
-**Files:**
-- Create: `internal/scheduler/queue.go`
-- Create: `internal/scheduler/queue_test.go`
+**Status**: Completed
 
 - [ ] **Step 1: Write failing test for PriorityQueue interface**
 
@@ -292,11 +283,9 @@ git commit -m "feat(scheduler): implement priority queue with Redis Sorted Set"
 
 ---
 
-## Task 3: Rate Limiter Implementation
+## Task 3: Rate Limiter Implementation ✅
 
-**Files:**
-- Create: `internal/scheduler/ratelimiter.go`
-- Create: `internal/scheduler/ratelimiter_test.go`
+**Status**: Completed
 
 - [ ] **Step 1: Write failing test for RateLimiter interface**
 
@@ -434,11 +423,9 @@ git commit -m "feat(scheduler): implement rate limiter for tenant and global quo
 
 ---
 
-## Task 4: Preemption Manager Implementation
+## Task 4: Preemption Manager Implementation ✅
 
-**Files:**
-- Create: `internal/scheduler/preemption.go`
-- Create: `internal/scheduler/preemption_test.go`
+**Status**: Completed
 
 - [ ] **Step 1: Write failing test for PreemptionManager**
 
@@ -560,11 +547,9 @@ git commit -m "feat(scheduler): implement preemption manager for task state savi
 
 ---
 
-## Task 5: Main Scheduler Implementation
+## Task 5: Main Scheduler Implementation ✅
 
-**Files:**
-- Create: `internal/scheduler/scheduler.go`
-- Create: `internal/scheduler/scheduler_test.go`
+**Status**: Completed
 
 - [ ] **Step 1: Write failing test for Scheduler interface**
 
@@ -770,11 +755,9 @@ git commit -m "feat(scheduler): implement main TaskScheduler with rate limiting 
 
 ---
 
-## Task 6: Integration and Final Verification
+## Task 6: Integration and Final Verification ✅
 
-**Files:**
-- Modify: `internal/api/handler/health.go` (add Redis health check)
-- Run: Full test suite
+**Status**: Completed
 
 - [ ] **Step 1: Enhance health check with Redis**
 
@@ -852,3 +835,33 @@ Task 1 (Redis Config + Errors)
 4. **Graceful shutdown**: Ensure in-progress tasks can be re-queued on shutdown
 5. **Monitoring hooks**: Add metrics collection points for queue length, wait time
 6. **Redis key expiration**: Set TTL on task metadata to prevent memory leaks
+
+---
+
+## Completion Summary
+
+**Completed**: 2026-03-24
+**PR**: #16 (merged)
+**Coverage**: 81.5% (54 tests)
+
+### Key Implementation Differences from Original Plan
+
+1. **Callback-based Integration**: 使用回调函数 (GetTenantQuota, GetTask, UpdateStatus) 而非直接依赖 Repository
+2. **Single Sorted Set**: 使用单一 Sorted Set 配合优先级编码 score，而非三个独立队列
+3. **No separate Redis config file**: Redis 配置通过依赖注入传入，未创建独立配置文件
+
+### Code Review Fixes
+
+1. 修复 Dequeue 中可能 panic 的代码路径
+2. 增强 ClearTaskState 错误处理
+3. 修复每日任务计数 key TTL 为午夜过期
+4. 添加输入验证和边界检查
+
+### Additional Tests Added
+
+- TestTaskScheduler_PriorityPreemptionScenario
+- TestTaskScheduler_MultiplePriorityPreemption
+- TestTaskScheduler_PreemptionStatePreservation
+- TestTaskScheduler_Dequeue_WithoutGetTask
+- TestTaskScheduler_Preempt_WithoutGetTask
+- TestTaskScheduler_Preempt_InvalidInput
