@@ -181,7 +181,6 @@ func (s *TaskScheduler) Dequeue(ctx context.Context) (*DequeuedTask, error) {
 		} else {
 			// Create minimal task object
 			task = &model.Task{}
-			task.ID.String() // This will panic, but we won't reach here in tests
 		}
 
 		return &DequeuedTask{
