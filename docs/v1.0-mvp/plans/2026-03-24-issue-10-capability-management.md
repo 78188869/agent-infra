@@ -10,6 +10,42 @@
 
 ---
 
+## 🔄 Execution Progress
+
+> **IMPORTANT:** 执行每一步后，必须立即更新此进度表。如果 Agent 异常退出，重启后可通过此表追踪执行进度。
+
+| Task | Status | Started | Completed | Notes |
+|------|--------|---------|-----------|-------|
+| Task 0: Pull Latest Code | ⬜ Not Started | - | - | |
+| Task 1: Capability Repository | ⬜ Not Started | - | - | |
+| Task 2: Capability Service | ⬜ Not Started | - | - | |
+| Task 3: Capability Handler | ⬜ Not Started | - | - | |
+| Task 4: Router Integration | ⬜ Not Started | - | - | |
+| Task 5: Update Main Entry Point | ⬜ Not Started | - | - | |
+| Task 6: Update Knowledge Documentation | ⬜ Not Started | - | - | |
+| Task 7: Final Verification | ⬜ Not Started | - | - | |
+| Task 8: Code Review | ⬜ Not Started | - | - | |
+| Task 9: Create Pull Request | ⬜ Not Started | - | - | |
+| Task 10: Wait for PR Merge | ⬜ Not Started | - | - | ⏳ Human Required |
+| Task 11: Close Issue | ⬜ Not Started | - | - | |
+| Task 12: Cleanup Environment | ⬜ Not Started | - | - | |
+
+**Status Legend:** ⬜ Not Started | 🔄 In Progress | ✅ Completed | ❌ Failed | ⏸️ Blocked
+
+**Last Updated:** 2026-03-24 (Plan Created)
+
+---
+
+## 📝 Execution Log
+
+> 执行过程中在此记录关键信息，便于追踪和恢复。
+
+```
+[2026-03-24] Plan created and worktree set up
+```
+
+---
+
 ## Files to Create/Modify
 
 | File | Action | Purpose |
@@ -1185,3 +1221,52 @@ Expected: Only main worktree listed
 | Task 5: Main Entry Point | 0.25 day |
 | Task 6: Documentation | 0.25 day |
 | Task 7: Final Verification | 0.25 day |
+
+---
+
+## ⚙️ Execution Instructions
+
+### Progress Tracking Rules
+
+执行过程中，**每完成一个步骤**，必须立即更新此计划文件：
+
+1. **更新进度表** - 将对应 Task 的 Status 更新为 `🔄 In Progress` 或 `✅ Completed`
+2. **记录时间** - 填写 Started 和 Completed 时间
+3. **添加备注** - 在 Notes 列记录关键信息（如 commit hash、文件名等）
+4. **更新执行日志** - 在 Execution Log 部分添加执行记录
+
+### Progress Update Template
+
+每完成一个 Task 后，更新进度表：
+
+```markdown
+| Task X: Task Name | ✅ Completed | 2026-03-24 10:00 | 2026-03-24 10:30 | commit: abc123 |
+```
+
+并在 Execution Log 添加：
+
+```
+[2026-03-24 10:30] Task X completed: <brief description>
+```
+
+### Recovery from Abnormal Exit
+
+如果 Agent 异常退出，重启后：
+
+1. 读取此计划文件的 **🔄 Execution Progress** 部分
+2. 找到最后一个 `🔄 In Progress` 或 `✅ Completed` 的 Task
+3. 从下一个未完成的 Task 继续执行
+4. 如果某个 Task 状态是 `🔄 In Progress`，检查该 Task 的详细步骤，从第一个未勾选的 Step 继续
+
+### Commit Strategy
+
+建议在以下时机提交代码：
+
+- 每个 Task 完成后
+- 每个 Step 完成后（可选）
+- 提交信息格式：`feat(capability): <description>`
+
+```bash
+# 示例
+git add . && git commit -m "feat(capability): add CapabilityRepository with tests"
+```
