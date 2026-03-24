@@ -969,11 +969,184 @@ Expected: Coverage > 80%
 Run: `cd /Users/yang/workspace/learning/agent-infra/.claude/worktrees/issue-10-capability-management && golangci-lint run ./...`
 Expected: No linting errors
 
-- [ ] **Step 4: Push to remote**
+- [ ] **Step 4: Commit final verification**
+
+```bash
+git add .
+git commit -m "test: verify all tests pass with >80% coverage"
+```
+
+---
+
+## Task 8: Code Review
+
+**Purpose:** Use test cases document to review the implementation for completeness and correctness.
+
+- [ ] **Step 1: Read test cases document**
+
+Read: `docs/v1.0-mvp/test-cases.md`
+Focus on Section 8: Capability Management Tests (TC-CAP-001 to TC-CAP-005)
+
+- [ ] **Step 2: Review implementation against test cases**
+
+Verify each test case is covered:
+| Test Case | Description | Status |
+|-----------|-------------|--------|
+| TC-CAP-001 | 创建能力 (POST /api/v1/capabilities) | [ ] |
+| TC-CAP-002 | 获取能力列表 (GET /api/v1/capabilities) | [ ] |
+| TC-CAP-003 | 获取能力详情 (GET /api/v1/capabilities/:id) | [ ] |
+| TC-CAP-004 | 更新能力 (PUT /api/v1/capabilities/:id) | [ ] |
+| TC-CAP-005 | 删除能力 (DELETE /api/v1/capabilities/:id) | [ ] |
+
+- [ ] **Step 3: Fix any gaps found**
+
+If any test case is not covered, add the missing implementation or tests.
+
+- [ ] **Step 4: Commit review fixes (if any)**
+
+```bash
+git add .
+git commit -m "fix: address code review findings"
+```
+
+---
+
+## Task 9: Create Pull Request
+
+- [ ] **Step 1: Push branch to remote**
 
 ```bash
 git push -u origin feature/issue-10-capability-management
 ```
+
+- [ ] **Step 2: Create Pull Request**
+
+```bash
+gh pr create --base main --title "feat(capability): implement Capability Management System (Issue #10)" --body "$(cat <<'EOF'
+## Summary
+
+Implements the Capability Management System for MVP Phase 6, providing CRUD API for managing tools, skills, and agent runtimes.
+
+## Changes
+
+- Add `CapabilityRepository` for data access layer
+- Add `CapabilityService` for business logic layer
+- Add `CapabilityHandler` for HTTP endpoints
+- Update router to include capability routes
+- Update main entry point to initialize capability service
+
+## API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | /api/v1/capabilities | Register capability |
+| GET | /api/v1/capabilities | List capabilities |
+| GET | /api/v1/capabilities/:id | Get capability |
+| PUT | /api/v1/capabilities/:id | Update capability |
+| DELETE | /api/v1/capabilities/:id | Delete capability |
+| POST | /api/v1/capabilities/:id/activate | Activate capability |
+| POST | /api/v1/capabilities/:id/deactivate | Deactivate capability |
+
+## Test Coverage
+
+- Repository tests: >80%
+- Service tests: >80%
+- Handler tests: >80%
+
+## Related
+
+- Closes #10
+- Dependencies: #5 (completed), #6 (completed)
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+EOF
+)"
+```
+
+- [ ] **Step 3: Record PR number**
+
+PR Number: ________ (fill in after creation)
+
+---
+
+## Task 10: Wait for PR Merge (Human Confirmation Required)
+
+> ⚠️ **This step requires human input.** Wait for PR review and merge confirmation.
+
+- [ ] **Step 1: Wait for human to confirm PR merge**
+
+**Human Action Required:**
+1. Review the PR at GitHub
+2. Approve and merge the PR
+3. Confirm merge by typing "merged" or the PR number
+
+**Waiting for confirmation...**
+
+- [ ] **Step 2: Pull latest main after merge**
+
+After human confirms merge:
+```bash
+git checkout main
+git pull origin main
+```
+
+---
+
+## Task 11: Close Issue
+
+- [ ] **Step 1: Close GitHub issue**
+
+```bash
+gh issue close 10 --repo 78188869/agent-infra --comment "Implemented in PR #<PR_NUMBER>
+
+## Summary
+- Capability Management System with full CRUD API
+- Support for tool/skill/agent_runtime types
+- Permission levels: public/restricted/admin_only
+- Test coverage >80%
+
+## Files Created
+- internal/repository/capability_repo.go
+- internal/service/capability_service.go
+- internal/api/handler/capability.go
+
+## Files Modified
+- internal/api/router/router.go
+- cmd/control-plane/main.go
+- docs/knowledge/capability.md"
+```
+
+- [ ] **Step 2: Update Issue Summary**
+
+Update `docs/v1.0-mvp/issues/issue-10-summary.md`:
+- Change status to ✅ Completed
+- Add Resolution section
+- Add PR number
+
+---
+
+## Task 12: Cleanup Environment
+
+- [ ] **Step 1: Remove worktree**
+
+```bash
+# Switch back to main repo
+cd /Users/yang/workspace/learning/agent-infra
+
+# Remove the worktree
+git worktree remove .claude/worktrees/issue-10-capability-management
+
+# Delete the branch (optional, keeps remote)
+git branch -d feature/issue-10-capability-management
+```
+
+- [ ] **Step 2: Verify cleanup**
+
+```bash
+git worktree list
+```
+
+Expected: Only main worktree listed
 
 ---
 

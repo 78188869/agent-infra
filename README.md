@@ -99,61 +99,132 @@ make worktree
 ./scripts/create-worktree.sh <issue-number>
 ```
 
-### Workflow
+### Complete Workflow
 
-1. **Create Worktree** - Isolated directory for development
-   ```bash
-   make worktree
-   # or
-   ./scripts/create-worktree.sh <issue-number>
-   ```
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Issue Development Workflow                         │
+└─────────────────────────────────────────────────────────────────────┘
 
-2. **Create Issue Summary** - Document the task
-   ```bash
-   # Create docs/current/issues/issue-{number}-{title}.md
-   ```
+Step 0: Pull Latest Code
+    │
+    ├── git pull origin main
+    │
+    ▼
+Step 1: Create Worktree
+    │
+    ├── git worktree add -b feature/issue-{number} .claude/worktrees/issue-{number} main
+    │
+    ▼
+Step 2: Create Issue Summary
+    │
+    ├── 在 docs/current/issues/ 创建 issue-{number}-{title}.md
+    │
+    ▼
+Step 3: Gather Knowledge
+    │
+    ├── 读取 docs/current/TRD.md
+    ├── 读取 docs/current/decisions/
+    ├── 读取 docs/knowledge/{modules}.md
+    │
+    ▼
+Step 4: Create Plan
+    │
+    ├── 在 docs/current/plans/ 创建 {date}-{title}.md
+    │
+    ▼
+Step 5: Develop (TDD)
+    │
+    ├── 按照计划逐步实现
+    ├── 编写测试用例
+    ├── 确保测试覆盖率 > 80%
+    │
+    ▼
+Step 6: Test & Verify
+    │
+    ├── make test
+    ├── make lint
+    ├── go test -cover ./internal/...
+    │
+    ▼
+Step 7: Code Review (Test Cases)
+    │
+    ├── 使用 test-cases.md 进行代码审查
+    ├── 验证所有测试用例通过
+    ├── 修复发现的问题
+    │
+    ▼
+Step 8: Commit & Push
+    │
+    ├── git add .
+    ├── git commit -m "feat(scope): description"
+    ├── git push -u origin <branch-name>
+    │
+    ▼
+Step 9: Create Pull Request
+    │
+    ├── gh pr create --base main --title "feat: description"
+    │
+    ▼
+Step 10: Wait for PR Merge (⏳ Human Required)
+    │
+    ├── 等待人工审核并合并 PR
+    ├── 人工确认: 输入 "merged" 或 PR 编号
+    │
+    ▼
+Step 11: Pull Merged Changes
+    │
+    ├── git checkout main
+    ├── git pull origin main
+    │
+    ▼
+Step 12: Close Issue
+    │
+    ├── gh issue close {number} --repo {repo}
+    ├── 更新 Issue Summary 状态
+    │
+    ▼
+Step 13: Cleanup Environment
+    │
+    ├── git worktree remove .claude/worktrees/issue-{number}
+    ├── git branch -d feature/issue-{number} (可选)
+    │
+    ▼
+✅ Complete
+```
 
-3. **Gather Knowledge** - Read relevant docs
-   ```bash
-   # Read docs/current/TRD.md
-   # Read docs/current/decisions/
-   # Read docs/knowledge/{modules}.md
-   ```
+### Quick Workflow Commands
 
-4. **Create Plan** - Document the approach
-   ```bash
-   # Create docs/current/plans/{date}-{title}.md
-   ```
+```bash
+# 1. Pull latest code
+git pull origin main
 
-5. **Develop** - Work in the isolated worktree
-   ```bash
-   cd /Users/yang/workspace/learning/agent-infra/worktrees/<issue-number>
-   # Make changes...
-   ```
+# 2. Create worktree for issue #10
+git worktree add -b feature/issue-10-capability-management .claude/worktrees/issue-10-capability-management main
+cd .claude/worktrees/issue-10-capability-management
 
-6. **Test & Verify**
-   ```bash
-   make test
-   make lint
-   ```
+# 3. After development - Run tests
+make test
+make lint
 
-7. **Commit & Push**
-   ```bash
-   git add .
-   git commit -m "feat(scope): description"
-   git push -u origin <branch-name>
-   ```
+# 4. Check coverage
+go test ./internal/... -coverprofile=coverage.out
+go tool cover -func=coverage.out
 
-8. **Create Pull Request**
-   ```bash
-   gh pr create --base main --title "feat: description"
-   ```
+# 5. Push and create PR
+git push -u origin feature/issue-10-capability-management
+gh pr create --base main --title "feat(capability): implement Capability Management System"
 
-9. **Merge** - After PR approval
-   ```bash
-   gh pr merge --merge
-   make clean-worktree  # optional cleanup
-   ```
+# 6. After PR merge (human confirms)
+git checkout main
+git pull origin main
+
+# 7. Close issue
+gh issue close 10 --repo 78188869/agent-infra
+
+# 8. Cleanup worktree
+git worktree remove .claude/worktrees/issue-10-capability-management
+```
 
 ### Branch Naming Convention
 
