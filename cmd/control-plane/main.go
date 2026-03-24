@@ -61,6 +61,7 @@ func main() {
 	var tenantSvc service.TenantService
 	var templateSvc service.TemplateService
 	var taskSvc service.TaskService
+	var providerSvc service.ProviderService
 	var capabilitySvc service.CapabilityService
 	var db *config.Database
 	db, err = config.NewDatabase(cfg.ToDatabaseConfig())
@@ -69,10 +70,11 @@ func main() {
 		tenantSvc = &mockTenantService{}
 		templateSvc = &mockTemplateService{}
 		taskSvc = &mockTaskService{}
+		providerSvc = &mockProviderService{}
 		capabilitySvc = &mockCapabilityService{}
 	} else {
 		// Auto-migrate models
-		if err := db.AutoMigrate(&model.Tenant{}, &model.Template{}, &model.Task{}, &model.Capability{}); err != nil {
+		if err := db.AutoMigrate(&model.Tenant{}, &model.Template{}, &model.Task{}, &model.Provider{}, &model.Capability{}); err != nil {
 			log.Printf("Warning: failed to auto-migrate: %v", err)
 		}
 		// Create real services with repositories
@@ -85,12 +87,15 @@ func main() {
 		taskRepo := repository.NewTaskRepository(db.DB)
 		taskSvc = service.NewTaskService(taskRepo)
 
+		providerRepo := repository.NewProviderRepository(db.DB)
+		providerSvc = service.NewProviderService(providerRepo)
+
 		capabilityRepo := repository.NewCapabilityRepository(db.DB)
 		capabilitySvc = service.NewCapabilityService(capabilityRepo)
 	}
 
 	// Setup router (pass db for health checks - can be nil if not available)
-	r := router.Setup(tenantSvc, templateSvc, taskSvc, capabilitySvc, db)
+	r := router.Setup(tenantSvc, templateSvc, taskSvc, providerSvc, capabilitySvc, db)
 
 	// Start server
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
@@ -166,6 +171,45 @@ func (m *mockTaskService) Update(ctx context.Context, id string, req *service.Up
 }
 
 func (m *mockTaskService) Delete(ctx context.Context, id string) error {
+	return fmt.Errorf("database not available")
+}
+
+// mockProviderService is a fallback service when database is not available.
+type mockProviderService struct{}
+
+func (m *mockProviderService) Create(ctx context.Context, req *service.CreateProviderRequest) (*model.Provider, error) {
+	return &model.Provider{Name: req.Name, Status: model.ProviderStatusActive}, nil
+}
+
+func (m *mockProviderService) GetByID(ctx context.Context, id string) (*model.Provider, error) {
+	return nil, fmt.Errorf("database not available")
+}
+
+func (m *mockProviderService) List(ctx context.Context, filter *repository.ProviderFilter) ([]*model.Provider, int64, error) {
+	return []*model.Provider{}, 0, nil
+}
+
+func (m *mockProviderService) Update(ctx context.Context, id string, req *service.UpdateProviderRequest) error {
+	return fmt.Errorf("database not available")
+}
+
+func (m *mockProviderService) Delete(ctx context.Context, id string) error {
+	return fmt.Errorf("database not available")
+}
+
+func (m *mockProviderService) TestConnection(ctx context.Context, id string) (*service.ConnectionTestResult, error) {
+	return &service.ConnectionTestResult{Success: false, Message: "database not available"}, nil
+}
+
+func (m *mockProviderService) GetAvailableProviders(ctx context.Context, tenantID, userID string) ([]*model.Provider, error) {
+	return []*model.Provider{}, nil
+}
+
+func (m *mockProviderService) ResolveProvider(ctx context.Context, specifiedProviderID, tenantID, userID string) (*model.Provider, error) {
+	return nil, fmt.Errorf("database not available")
+}
+
+func (m *mockProviderService) SetDefaultProvider(ctx context.Context, userID, providerID string) error {
 	return fmt.Errorf("database not available")
 }
 

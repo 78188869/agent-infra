@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/example/agent-infra/internal/model"
+	"github.com/example/agent-infra/internal/repository"
 	"github.com/example/agent-infra/internal/service"
 	"github.com/gin-gonic/gin"
 )
@@ -81,6 +82,45 @@ func (m *mockTaskService) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
+// mockProviderService implements service.ProviderService for testing
+type mockProviderService struct{}
+
+func (m *mockProviderService) Create(ctx context.Context, req *service.CreateProviderRequest) (*model.Provider, error) {
+	return &model.Provider{}, nil
+}
+
+func (m *mockProviderService) GetByID(ctx context.Context, id string) (*model.Provider, error) {
+	return &model.Provider{}, nil
+}
+
+func (m *mockProviderService) List(ctx context.Context, filter *repository.ProviderFilter) ([]*model.Provider, int64, error) {
+	return []*model.Provider{}, 0, nil
+}
+
+func (m *mockProviderService) Update(ctx context.Context, id string, req *service.UpdateProviderRequest) error {
+	return nil
+}
+
+func (m *mockProviderService) Delete(ctx context.Context, id string) error {
+	return nil
+}
+
+func (m *mockProviderService) TestConnection(ctx context.Context, id string) (*service.ConnectionTestResult, error) {
+	return &service.ConnectionTestResult{}, nil
+}
+
+func (m *mockProviderService) GetAvailableProviders(ctx context.Context, tenantID, userID string) ([]*model.Provider, error) {
+	return []*model.Provider{}, nil
+}
+
+func (m *mockProviderService) ResolveProvider(ctx context.Context, specifiedProviderID, tenantID, userID string) (*model.Provider, error) {
+	return &model.Provider{}, nil
+}
+
+func (m *mockProviderService) SetDefaultProvider(ctx context.Context, userID, providerID string) error {
+	return nil
+}
+
 // mockCapabilityService implements service.CapabilityService for testing
 type mockCapabilityService struct{}
 
@@ -127,9 +167,10 @@ func TestSetup_Routes(t *testing.T) {
 	mockTenantSvc := &mockTenantService{}
 	mockTemplateSvc := &mockTemplateService{}
 	mockTaskSvc := &mockTaskService{}
+	mockProviderSvc := &mockProviderService{}
 	mockCapabilitySvc := &mockCapabilityService{}
 	mockDB := &mockDBChecker{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockCapabilitySvc, mockDB)
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockDB)
 
 	tests := []struct {
 		name   string
@@ -145,6 +186,8 @@ func TestSetup_Routes(t *testing.T) {
 		{"create template", http.MethodPost, "/api/v1/templates", http.StatusBadRequest}, // 400 because no body
 		{"list tasks", http.MethodGet, "/api/v1/tasks", http.StatusOK},
 		{"create task", http.MethodPost, "/api/v1/tasks", http.StatusBadRequest}, // 400 because no body
+		{"list providers", http.MethodGet, "/api/v1/providers", http.StatusOK},
+		{"create provider", http.MethodPost, "/api/v1/providers", http.StatusBadRequest}, // 400 because no body
 		{"list capabilities", http.MethodGet, "/api/v1/capabilities", http.StatusOK},
 		{"create capability", http.MethodPost, "/api/v1/capabilities", http.StatusBadRequest}, // 400 because no body
 	}
@@ -166,9 +209,10 @@ func TestSetup_TenantRoutes(t *testing.T) {
 	mockTenantSvc := &mockTenantService{}
 	mockTemplateSvc := &mockTemplateService{}
 	mockTaskSvc := &mockTaskService{}
+	mockProviderSvc := &mockProviderService{}
 	mockCapabilitySvc := &mockCapabilityService{}
 	mockDB := &mockDBChecker{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockCapabilitySvc, mockDB)
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockDB)
 
 	// Verify all tenant routes are registered
 	routes := router.Routes()
@@ -197,9 +241,10 @@ func TestSetup_TaskRoutes(t *testing.T) {
 	mockTenantSvc := &mockTenantService{}
 	mockTemplateSvc := &mockTemplateService{}
 	mockTaskSvc := &mockTaskService{}
+	mockProviderSvc := &mockProviderService{}
 	mockCapabilitySvc := &mockCapabilityService{}
 	mockDB := &mockDBChecker{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockCapabilitySvc, mockDB)
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockDB)
 
 	// Verify all task routes are registered
 	routes := router.Routes()
@@ -224,13 +269,49 @@ func TestSetup_TaskRoutes(t *testing.T) {
 	}
 }
 
+func TestSetup_ProviderRoutes(t *testing.T) {
+	mockTenantSvc := &mockTenantService{}
+	mockTemplateSvc := &mockTemplateService{}
+	mockTaskSvc := &mockTaskService{}
+	mockProviderSvc := &mockProviderService{}
+	mockCapabilitySvc := &mockCapabilityService{}
+	mockDB := &mockDBChecker{}
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockDB)
+
+	// Verify all provider routes are registered
+	routes := router.Routes()
+	routeMap := make(map[string]bool)
+	for _, route := range routes {
+		key := route.Method + " " + route.Path
+		routeMap[key] = true
+	}
+
+	expectedRoutes := []string{
+		"POST /api/v1/providers",
+		"GET /api/v1/providers",
+		"GET /api/v1/providers/available",
+		"GET /api/v1/providers/:id",
+		"PUT /api/v1/providers/:id",
+		"DELETE /api/v1/providers/:id",
+		"POST /api/v1/providers/:id/test",
+		"PUT /api/v1/providers/:id/set-default",
+	}
+
+	for _, expected := range expectedRoutes {
+		if !routeMap[expected] {
+			t.Errorf("Expected route %s not found", expected)
+		}
+	}
+}
+
 func TestSetup_TaskListWithParams(t *testing.T) {
 	mockTenantSvc := &mockTenantService{}
 	mockTemplateSvc := &mockTemplateService{}
 	mockTaskSvc := &mockTaskService{}
+	mockProviderSvc := &mockProviderService{}
 	mockCapabilitySvc := &mockCapabilityService{}
 	mockDB := &mockDBChecker{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockCapabilitySvc, mockDB)
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockDB)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/tasks?page=1&page_size=10&status=pending", nil)
 	w := httptest.NewRecorder()
@@ -254,9 +335,10 @@ func TestSetup_CapabilityRoutes(t *testing.T) {
 	mockTenantSvc := &mockTenantService{}
 	mockTemplateSvc := &mockTemplateService{}
 	mockTaskSvc := &mockTaskService{}
+	mockProviderSvc := &mockProviderService{}
 	mockCapabilitySvc := &mockCapabilityService{}
 	mockDB := &mockDBChecker{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockCapabilitySvc, mockDB)
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockDB)
 
 	// Verify all capability routes are registered
 	routes := router.Routes()
@@ -287,9 +369,10 @@ func TestSetup_CapabilityListWithParams(t *testing.T) {
 	mockTenantSvc := &mockTenantService{}
 	mockTemplateSvc := &mockTemplateService{}
 	mockTaskSvc := &mockTaskService{}
+	mockProviderSvc := &mockProviderService{}
 	mockCapabilitySvc := &mockCapabilityService{}
 	mockDB := &mockDBChecker{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockCapabilitySvc, mockDB)
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockDB)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/capabilities?page=1&page_size=10&type=tool&status=active", nil)
 	w := httptest.NewRecorder()
