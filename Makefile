@@ -48,6 +48,30 @@ run: build
 test:
 	GOPROXY=$(GOPROXY) $(GOTEST) -v -race -coverprofile=coverage.out ./...
 
+# Test specific package: make test-pkg PKG=internal/service
+test-pkg:
+	GOPROXY=$(GOPROXY) $(GOTEST) -v -race $(PKG)
+
+# Test specific module shortcuts
+test-model:
+	GOPROXY=$(GOPROXY) $(GOTEST) -v -race ./internal/model/...
+
+test-repo:
+	GOPROXY=$(GOPROXY) $(GOTEST) -v -race ./internal/repository/...
+
+test-service:
+	GOPROXY=$(GOPROXY) $(GOTEST) -v -race ./internal/service/...
+
+test-handler:
+	GOPROXY=$(GOPROXY) $(GOTEST) -v -race ./internal/api/handler/...
+
+test-coverage: test
+	$(GOCMD) tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated: coverage.html"
+
+test-short:
+	GOPROXY=$(GOPROXY) $(GOTEST) -v -short ./...
+
 lint:
 	@echo "Running linter..."
 	@which golangci-lint > /dev/null || (echo "golangci-lint not found, skipping lint" && exit 0)

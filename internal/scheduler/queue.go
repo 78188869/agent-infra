@@ -22,10 +22,10 @@ const (
 
 // QueueItem represents an item in the priority queue.
 type QueueItem struct {
-	TaskID    string          `json:"task_id"`
-	TenantID  string          `json:"tenant_id"`
-	Priority  model.Priority  `json:"priority"`
-	CreatedAt time.Time       `json:"created_at"`
+	TaskID    string    `json:"task_id"`
+	TenantID  string    `json:"tenant_id"`
+	Priority  string    `json:"priority"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // PriorityQueue manages task queues with priority support using Redis Sorted Sets.
@@ -39,23 +39,11 @@ func NewPriorityQueue(client *redis.Client) *PriorityQueue {
 }
 
 // getQueueKey returns the Redis key for the given priority level.
-func (q *PriorityQueue) getQueueKey(priority model.Priority) string {
+func (q *PriorityQueue) getQueueKey(priority string) string {
 	switch priority {
-	case model.PriorityHigh:
+	case model.TaskPriorityHigh:
 		return QueueKeyHigh
-	case model.PriorityLow:
-		return QueueKeyLow
-	default:
-		return QueueKeyNormal
-	}
-}
-
-// getQueueKeyByString returns the Redis key for the given priority string.
-func (q *PriorityQueue) getQueueKeyByString(priority string) string {
-	switch model.Priority(priority) {
-	case model.PriorityHigh:
-		return QueueKeyHigh
-	case model.PriorityLow:
+	case model.TaskPriorityLow:
 		return QueueKeyLow
 	default:
 		return QueueKeyNormal
@@ -86,7 +74,7 @@ func (q *PriorityQueue) Enqueue(ctx context.Context, item *QueueItem) error {
 	return q.client.HSet(ctx, metaKey, map[string]interface{}{
 		"task_id":    item.TaskID,
 		"tenant_id":  item.TenantID,
-		"priority":   string(item.Priority),
+		"priority":   item.Priority,
 		"created_at": item.CreatedAt.UnixNano(),
 	}).Err()
 }
@@ -149,7 +137,7 @@ func (q *PriorityQueue) getTaskMeta(ctx context.Context, taskID string) (*QueueI
 	return &QueueItem{
 		TaskID:    result["task_id"],
 		TenantID:  result["tenant_id"],
-		Priority:  model.Priority(result["priority"]),
+		Priority:  result["priority"],
 		CreatedAt: time.Unix(0, createdAtNano),
 	}, nil
 }
@@ -169,7 +157,7 @@ func (q *PriorityQueue) GetPosition(ctx context.Context, taskID string) (int, er
 		return 0, ErrTaskNotFound
 	}
 
-	priority := model.Priority(result["priority"])
+	priority := result["priority"]
 	queueKey := q.getQueueKey(priority)
 
 	// Get the task's rank in its queue (0-indexed)
@@ -186,13 +174,13 @@ func (q *PriorityQueue) GetPosition(ctx context.Context, taskID string) (int, er
 
 	// Add counts of higher priority queues
 	switch priority {
-	case model.PriorityNormal:
+	case model.TaskPriorityNormal:
 		highCount, err := q.client.ZCard(ctx, QueueKeyHigh).Result()
 		if err != nil {
 			return 0, err
 		}
 		position += int(highCount)
-	case model.PriorityLow:
+	case model.TaskPriorityLow:
 		highCount, err := q.client.ZCard(ctx, QueueKeyHigh).Result()
 		if err != nil {
 			return 0, err
@@ -208,7 +196,7 @@ func (q *PriorityQueue) GetPosition(ctx context.Context, taskID string) (int, er
 }
 
 // Remove removes a task from the queue.
-func (q *PriorityQueue) Remove(ctx context.Context, taskID string, priority model.Priority) error {
+func (q *PriorityQueue) Remove(ctx context.Context, taskID string, priority string) error {
 	queueKey := q.getQueueKey(priority)
 	removed, err := q.client.ZRem(ctx, queueKey, taskID).Result()
 	if err != nil {
@@ -244,7 +232,7 @@ func (q *PriorityQueue) Size(ctx context.Context) (int64, error) {
 }
 
 // SizeByPriority returns the number of tasks in a specific priority queue.
-func (q *PriorityQueue) SizeByPriority(ctx context.Context, priority model.Priority) (int64, error) {
+func (q *PriorityQueue) SizeByPriority(ctx context.Context, priority string) (int64, error) {
 	queueKey := q.getQueueKey(priority)
 	return q.client.ZCard(ctx, queueKey).Result()
 }
