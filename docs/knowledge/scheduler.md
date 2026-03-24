@@ -1,8 +1,9 @@
 # Scheduler Knowledge
 
-> **Last Updated**: 2026-03-23
+> **Last Updated**: 2026-03-24
 > **PRD Version**: v0.7-draft
 > **TRD Version**: v2.4
+> **Implementation Status**: ✅ Completed (Issue #7)
 
 ## 1. Overview
 
@@ -79,59 +80,90 @@ internal/scheduler/
 
 ### 3.3 核心接口
 
+> **Note**: 以下为实际实现的接口定义 (Issue #7)
+
 ```go
 // Scheduler 调度器接口
 type Scheduler interface {
-    // 入队
-    Enqueue(ctx context.Context, task *Task) error
-
-    // 出队（阻塞等待）
-    Dequeue(ctx context.Context) (*Task, error)
-
-    // 查询排队位置
-    GetQueuePosition(ctx context.Context, taskID string) (int, error)
-
-    // 移除任务
-    Remove(ctx context.Context, taskID string) error
+    Schedule(ctx context.Context, task *model.Task) error
+    Dequeue(ctx context.Context) (*DequeuedTask, error)
+    GetPosition(ctx context.Context, taskID string) (int, error)
+    Preempt(ctx context.Context, taskID string, status string, progress int) error
+    Complete(ctx context.Context, taskID string, tenantID string) error
+    Start(ctx context.Context) error
+    Stop(ctx context.Context) error
+    IsRunning() bool
 }
 
-// RateLimiter 限流器接口
-type RateLimiter interface {
-    // 检查是否允许
-    Allow(ctx context.Context, tenantID string) (bool, error)
-
-    // 获取当前使用量
-    GetUsage(ctx context.Context, tenantID string) (*QuotaUsage, error)
-
-    // 预留资源
-    Reserve(ctx context.Context, tenantID string, resources *ResourceRequest) error
-
-    // 释放资源
-    Release(ctx context.Context, tenantID string, resources *ResourceRequest) error
+// DequeuedTask 出队任务结构
+type DequeuedTask struct {
+    Task      *model.Task
+    QueueItem *QueueItem
 }
+
+// RateLimiter 限流器
+type RateLimiter struct {
+    client      *redis.Client
+    globalLimit int
+}
+
+func (r *RateLimiter) Allow(ctx context.Context, tenantID string, quota *TenantQuota) error
+func (r *RateLimiter) Reserve(ctx context.Context, tenantID string) error
+func (r *RateLimiter) Release(ctx context.Context, tenantID string) error
+func (r *RateLimiter) GetUsage(ctx context.Context, tenantID string) (*QuotaUsage, error)
+func (r *RateLimiter) GetGlobalConcurrency(ctx context.Context) (int, error)
+
+// PreemptionManager 抢占管理器
+type PreemptionManager struct {
+    client *redis.Client
+    queue  *PriorityQueue
+}
+
+func (p *PreemptionManager) Preempt(ctx context.Context, item *QueueItem, status string, progress int) error
+func (p *PreemptionManager) SaveTaskState(ctx context.Context, state *TaskState) error
+func (p *PreemptionManager) GetTaskState(ctx context.Context, taskID string) (*TaskState, error)
+func (p *PreemptionManager) ClearTaskState(ctx context.Context, taskID string) error
 ```
 
 ### 3.4 Redis 队列设计
 
-```
-# 优先级队列 (Sorted Set)
-scheduler:queue:high     # 高优先级队列，score = 创建时间戳
-scheduler:queue:normal   # 普通优先级队列
-scheduler:queue:low      # 低优先级队列
+> **Actual Implementation**: 使用单一 Sorted Set 配合优先级编码 score 实现优先级队列
 
-# 租户配额 (Hash)
-scheduler:quota:{tenant_id}
-  ├── concurrency:current   # 当前并发数
-  ├── concurrency:max       # 最大并发数
-  ├── daily:current         # 当日任务数
-  └── daily:max             # 每日上限
+```
+# 优先级队列 (Sorted Set) - 使用优先级编码 score
+# score = priority * 10^15 + timestamp
+# high=3, normal=2, low=1
+scheduler:queue:tasks      # 单一队列，score 编码了优先级和时间戳
 
 # 任务元数据 (Hash)
-scheduler:task:{task_id}
+scheduler:task:{task_id}:meta
   ├── tenant_id
   ├── priority
-  ├── created_at
-  └── status
+  └── created_at
+
+# 租户配额 (Hash)
+scheduler:tenant:{tenant_id}:quota
+  └── current_concurrency   # 当前并发数
+
+# 租户每日任务计数 (String)
+scheduler:tenant:{tenant_id}:daily:{YYYY-MM-DD}
+  └── 每日任务数，自动在午夜过期
+
+# 全局配额 (Hash)
+scheduler:global:quota
+  └── current_concurrency   # 全局当前并发数
+
+# 抢占任务追踪 (Set)
+scheduler:preempted:tasks   # 被抢占的任务 ID 集合
+
+# 任务状态 (String, JSON)
+scheduler:task:{task_id}:state
+  ├── task_id
+  ├── status
+  ├── progress
+  ├── checkpoint (optional)
+  └── preempted_at
+  TTL: 24h
 ```
 
 ### 3.5 调度流程
@@ -165,31 +197,57 @@ scheduler:task:{task_id}
 
 ## 4. Implementation Notes
 
-### 4.1 关键实现要点
+> **Implemented in Issue #7** - See `internal/scheduler/` for source code
 
-1. **原子操作**：使用 Redis Lua 脚本保证队列操作原子性
-2. **心跳机制**：调度器定期更新心跳，支持主备切换
-3. **优雅关闭**：关闭时将正在处理的任务重新入队
-4. **监控指标**：队列长度、等待时间、吞吐量
+### 4.1 实际实现架构
 
-### 4.2 限流算法
+```
+internal/scheduler/
+├── scheduler.go       # TaskScheduler 主实现，协调各组件
+├── queue.go           # PriorityQueue (Redis Sorted Set)
+├── ratelimiter.go     # RateLimiter (租户/全局限流)
+├── preemption.go      # PreemptionManager (抢占管理)
+└── errors.go          # 错误定义
+```
 
-使用**令牌桶算法**实现租户级限流：
-- 每个租户独立的令牌桶
-- 令牌按速率补充（对应并发数）
-- 每个任务消耗一个令牌
-- 令牌不足时拒绝或排队
+### 4.2 关键设计决策
 
-### 4.3 抢占调度（可选）
+1. **Callback-based Integration**: 使用回调函数 (GetTenantQuota, GetTask, UpdateStatus) 而非直接依赖 Repository，提高灵活性
+2. **单一 Sorted Set**: 使用优先级编码 score 实现优先级队列，避免多队列复杂性
+3. **Graceful Shutdown**: 使用 atomic.Bool 和 channel 实现优雅关闭
+4. **Daily TTL**: 每日任务计数 key 在午夜自动过期，确保日边界准确
 
-MVP 阶段暂不实现抢占调度，后续版本可考虑：
-1. 高优先级任务到达时，检查是否有低优先级任务运行
-2. 选择合适的低优先级任务暂停
-3. 高优先级任务获得资源执行
-4. 低优先级任务恢复排队
+### 4.3 错误类型
+
+```go
+var (
+    ErrTaskNotFound            // 任务未找到
+    ErrQueueFull               // 队列已满
+    ErrQuotaExceeded           // 租户配额超限
+    ErrGlobalLimitExceeded     // 全局并发超限
+    ErrDailyLimitExceeded      // 每日任务数超限
+    ErrSchedulerNotRunning     // 调度器未运行
+    ErrSchedulerAlreadyRunning // 调度器已运行
+    ErrTaskNotRunning          // 任务未运行（抢占时）
+)
+```
+
+### 4.4 测试覆盖
+
+- 单元测试覆盖率: **81.5%**
+- 使用 miniredis 进行内存测试
+- 包含优先级抢占场景测试
 
 ## 5. Change History
 
 | Date | Version | Issue | PRD Ref | TRD Ref | Changes |
 |------|---------|-------|---------|---------|---------|
+| 2026-03-24 | v1.1 | #7 | §4.4 | §4.2 | 更新实际实现接口、Redis key 设计、错误类型 |
 | 2026-03-23 | v1.0 | - | §4.4 | §4.1 | 初始定义：任务调度引擎 |
+
+## 6. Related Files
+
+- **Source Code**: `internal/scheduler/`
+- **Test Files**: `internal/scheduler/*_test.go`
+- **Issue Summary**: `docs/v1.0-mvp/issues/issue-7-summary.md`
+- **Implementation Plan**: `docs/v1.0-mvp/plans/2026-03-23-issue-7-task-scheduler.md`

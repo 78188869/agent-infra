@@ -1,8 +1,10 @@
 # Issue #7: MVP Phase 3 - Task Scheduler Engine
 
-> **Status**: in_progress
+> **Status**: ✅ Completed
 > **Created**: 2026-03-23
+> **Completed**: 2026-03-24
 > **Assignee**: @claude
+> **PR**: #16 (merged)
 
 ## Summary
 
@@ -22,12 +24,40 @@
 
 ## Scope
 
-- [x] 优先级队列 (Redis Sorted Set)
+- [x] 优先级队列 (Redis Sorted Set with priority-encoded score)
 - [x] 租户级限流 (并发数、每日任务数)
 - [x] 全局并发限制
 - [x] 抢占机制 (保存/恢复任务状态)
 - [x] 排队位置查询
-- [x] 单元测试覆盖 > 80%
+- [x] 单元测试覆盖 > 80% (实际: 81.5%)
+- [x] Redis 健康检查集成
+
+## Resolution
+
+**Implementation Completed**: 2026-03-24
+
+**Files Created**:
+- `internal/scheduler/scheduler.go` - 主调度器实现
+- `internal/scheduler/queue.go` - 优先级队列 (Redis Sorted Set)
+- `internal/scheduler/ratelimiter.go` - 限流器 (租户/全局配额)
+- `internal/scheduler/preemption.go` - 抢占管理器
+- `internal/scheduler/errors.go` - 错误类型定义
+- `internal/scheduler/*_test.go` - 单元测试 (54 tests, 81.5% coverage)
+
+**Files Modified**:
+- `go.mod` - 添加 go-redis/v9 依赖
+- `internal/api/handler/health.go` - 增强 Redis 健康检查
+
+**Key Design Decisions**:
+1. 使用 Callback-based 集成模式 (GetTenantQuota, GetTask, UpdateStatus)
+2. 单一 Sorted Set 配合优先级编码 score 实现优先级队列
+3. 每日任务计数 key 在午夜自动过期
+4. 抢占状态使用 JSON 序列化存储，24h TTL
+
+**Test Results**:
+- 54 tests passed
+- Coverage: 81.5%
+- Includes priority preemption scenario tests
 
 ## Related
 
@@ -63,5 +93,9 @@
 
 | 日期 | 变更内容 |
 |------|---------|
+| 2026-03-24 | PR #16 合并，Issue 关闭 |
+| 2026-03-24 | 代码审查修复：panic 修复、错误处理增强、TTL 修复 |
+| 2026-03-24 | 添加优先级抢占场景测试 |
+| 2026-03-23 | 完成所有 Tasks 1-6 |
 | 2026-03-23 | 创建 Issue Summary |
 | 2026-03-23 | 创建执行计划 |

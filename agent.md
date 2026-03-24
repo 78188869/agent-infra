@@ -306,9 +306,13 @@ Pending → Scheduled → Running → Succeeded
 
 | Pattern | Description |
 |---------|-------------|
-| `queue:tasks:{high\|normal\|low}` | Priority queues |
-| `task:{id}:meta` | Task metadata |
-| `tenant:{id}:quota:used` | Quota usage |
+| `scheduler:queue:tasks` | Priority queue (single sorted set with encoded score) |
+| `scheduler:task:{id}:meta` | Task metadata |
+| `scheduler:tenant:{id}:quota` | Tenant quota (concurrency) |
+| `scheduler:tenant:{id}:daily:{date}` | Tenant daily task count (expires at midnight) |
+| `scheduler:global:quota` | Global concurrency quota |
+| `scheduler:task:{id}:state` | Preempted task state (JSON, 24h TTL) |
+| `scheduler:preempted:tasks` | Set of preempted task IDs |
 
 ---
 
