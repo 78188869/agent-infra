@@ -63,6 +63,7 @@ func main() {
 	var taskSvc service.TaskService
 	var providerSvc service.ProviderService
 	var capabilitySvc service.CapabilityService
+	var interventionSvc service.InterventionService
 	var db *config.Database
 	db, err = config.NewDatabase(cfg.ToDatabaseConfig())
 	if err != nil {
@@ -72,6 +73,7 @@ func main() {
 		taskSvc = &mockTaskService{}
 		providerSvc = &mockProviderService{}
 		capabilitySvc = &mockCapabilityService{}
+		interventionSvc = &mockInterventionService{}
 	} else {
 		// Auto-migrate models
 		if err := db.AutoMigrate(&model.Tenant{}, &model.Template{}, &model.Task{}, &model.Provider{}, &model.Capability{}); err != nil {
@@ -92,10 +94,13 @@ func main() {
 
 		capabilityRepo := repository.NewCapabilityRepository(db.DB)
 		capabilitySvc = service.NewCapabilityService(capabilityRepo)
+
+		interventionRepo := repository.NewInterventionRepository(db.DB)
+		interventionSvc = service.NewInterventionService(taskRepo, interventionRepo)
 	}
 
 	// Setup router (pass db for health checks - can be nil if not available)
-	r := router.Setup(tenantSvc, templateSvc, taskSvc, providerSvc, capabilitySvc, db)
+	r := router.Setup(tenantSvc, templateSvc, taskSvc, providerSvc, capabilitySvc, interventionSvc, db)
 
 	// Start server
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
@@ -242,6 +247,29 @@ func (m *mockCapabilityService) Activate(ctx context.Context, id string) error {
 
 func (m *mockCapabilityService) Deactivate(ctx context.Context, id string) error {
 	return fmt.Errorf("database not available")
+}
+
+// mockInterventionService is a fallback service when database is not available.
+type mockInterventionService struct{}
+
+func (m *mockInterventionService) Pause(ctx context.Context, taskID, operatorID, reason string) (*model.Intervention, error) {
+	return nil, fmt.Errorf("database not available")
+}
+
+func (m *mockInterventionService) Resume(ctx context.Context, taskID, operatorID, reason string) (*model.Intervention, error) {
+	return nil, fmt.Errorf("database not available")
+}
+
+func (m *mockInterventionService) Cancel(ctx context.Context, taskID, operatorID, reason string) (*model.Intervention, error) {
+	return nil, fmt.Errorf("database not available")
+}
+
+func (m *mockInterventionService) Inject(ctx context.Context, req *service.InjectInterventionRequest) (*model.Intervention, error) {
+	return nil, fmt.Errorf("database not available")
+}
+
+func (m *mockInterventionService) ListInterventions(ctx context.Context, taskID string, filter *service.InterventionFilter) ([]*model.Intervention, int64, error) {
+	return []*model.Intervention{}, 0, nil
 }
 
 func loadConfig(path string) (*Config, error) {
