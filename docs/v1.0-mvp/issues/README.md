@@ -57,5 +57,10 @@ issue-{number}-summary.md
 |-------|-------|--------|-----------|
 | #5 | MVP Phase 1 - Backend Core API Development | in_progress | core-api, database |
 | #6 | MVP Phase 2 - Database Models and Migrations | completed | database |
+| #7 | MVP Phase 3 - Task Scheduler Engine | completed | scheduler |
+| #8 | MVP Phase 4 - Task Executor Engine | completed | executor |
+| #9 | MVP Phase 5 - Provider Management | completed | provider |
+| #10 | MVP Phase 6 - Capability Management | completed | capability |
+| #11 | MVP Phase 7 - Human Intervention Mechanism | in_progress | intervention |
 
 > 注：MVP 开发开始后，在此列出所有 Issue 摘要。
