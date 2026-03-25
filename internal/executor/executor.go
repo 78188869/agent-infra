@@ -2,6 +2,7 @@ package executor
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/example/agent-infra/internal/model"
 )
@@ -185,10 +186,24 @@ func DefaultJobConfig() *JobConfig {
 	}
 }
 
+// MetricsRecorder defines the interface for recording metrics.
+type MetricsRecorder interface {
+	RecordTaskExecution(taskID string, status string)
+	RecordTaskCancelled(taskID string, reason string)
+	RecordTaskCompleted(taskID string)
+	RecordTaskFailed(taskID string, errMsg string)
+}
+
 // ExecutorConfig holds configuration for the TaskExecutor.
 type ExecutorConfig struct {
 	// JobConfig for creating Jobs
 	JobConfig *JobConfig
+
+	// Logger for structured logging
+	Logger *slog.Logger
+
+	// Metrics for recording observability data
+	Metrics MetricsRecorder
 
 	// Callbacks for external integration
 	UpdateTaskStatus func(ctx context.Context, taskID string, status string, message string) error

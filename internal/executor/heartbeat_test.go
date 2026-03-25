@@ -242,7 +242,7 @@ func TestHeartbeatManager_StartStop(t *testing.T) {
 	}
 
 	// Start
-	err := mgr.Start(context.Background())
+	err = mgr.Start(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error on start: %v", err)
 	}

@@ -226,10 +226,18 @@ func TestJobManager_CustomSecurityConfig(t *testing.T) {
 	allowPrivEsc := true
 	fsGroup := int64(2000)
 	cfg := &JobConfig{
-		NamePrefix:    "sandbox-",
-		Namespace:     "default",
-		CLIRunnerImage: "test:latest",
-		WrapperImage:   "test:latest",
+		NamePrefix:              "sandbox-",
+		Namespace:               "default",
+		CLIRunnerImage:          "test:latest",
+		WrapperImage:            "test:latest",
+		DefaultCPULimit:         "2",
+		DefaultMemoryLimit:      "4Gi",
+		DefaultCPURequest:       "500m",
+		DefaultMemoryRequest:    "1Gi",
+		WrapperCPULimit:         "100m",
+		WrapperMemoryLimit:      "128Mi",
+		WrapperCPURequest:       "50m",
+		WrapperMemoryRequest:    "64Mi",
 		Security: &SecurityConfig{
 			RunAsNonRoot:            true,
 			RunAsUser:               2000,
@@ -287,11 +295,19 @@ func TestJobManager_CustomSecurityConfig(t *testing.T) {
 func TestJobManager_NilSecurityConfig(t *testing.T) {
 	// Test with nil security configuration - should use defaults
 	cfg := &JobConfig{
-		NamePrefix:       "sandbox-",
-		Namespace:        "default",
-		CLIRunnerImage:   "test:latest",
-		WrapperImage:     "test:latest",
-		Security:         nil, // Explicitly nil
+		NamePrefix:              "sandbox-",
+		Namespace:               "default",
+		CLIRunnerImage:          "test:latest",
+		WrapperImage:            "test:latest",
+		DefaultCPULimit:         "2",
+		DefaultMemoryLimit:      "4Gi",
+		DefaultCPURequest:       "500m",
+		DefaultMemoryRequest:    "1Gi",
+		WrapperCPULimit:         "100m",
+		WrapperMemoryLimit:      "128Mi",
+		WrapperCPURequest:       "50m",
+		WrapperMemoryRequest:    "64Mi",
+		Security:                nil, // Explicitly nil
 	}
 	mgr := NewJobManager(nil, cfg)
 
