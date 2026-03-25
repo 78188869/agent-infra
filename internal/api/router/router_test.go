@@ -152,6 +152,29 @@ func (m *mockCapabilityService) Deactivate(ctx context.Context, id string) error
 	return nil
 }
 
+// mockInterventionService implements service.InterventionService for testing
+type mockInterventionService struct{}
+
+func (m *mockInterventionService) Pause(ctx context.Context, taskID, operatorID, reason string) (*model.Intervention, error) {
+	return &model.Intervention{}, nil
+}
+
+func (m *mockInterventionService) Resume(ctx context.Context, taskID, operatorID, reason string) (*model.Intervention, error) {
+	return &model.Intervention{}, nil
+}
+
+func (m *mockInterventionService) Cancel(ctx context.Context, taskID, operatorID, reason string) (*model.Intervention, error) {
+	return &model.Intervention{}, nil
+}
+
+func (m *mockInterventionService) Inject(ctx context.Context, req *service.InjectInterventionRequest) (*model.Intervention, error) {
+	return &model.Intervention{}, nil
+}
+
+func (m *mockInterventionService) ListInterventions(ctx context.Context, taskID string, filter *service.InterventionFilter) ([]*model.Intervention, int64, error) {
+	return []*model.Intervention{}, 0, nil
+}
+
 // mockDBChecker implements DBChecker for testing
 type mockDBChecker struct{}
 
@@ -170,7 +193,8 @@ func TestSetup_Routes(t *testing.T) {
 	mockProviderSvc := &mockProviderService{}
 	mockCapabilitySvc := &mockCapabilityService{}
 	mockDB := &mockDBChecker{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockDB)
+	mockInterventionSvc := &mockInterventionService{}
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockInterventionSvc, mockDB)
 
 	tests := []struct {
 		name   string
@@ -212,7 +236,8 @@ func TestSetup_TenantRoutes(t *testing.T) {
 	mockProviderSvc := &mockProviderService{}
 	mockCapabilitySvc := &mockCapabilityService{}
 	mockDB := &mockDBChecker{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockDB)
+	mockInterventionSvc := &mockInterventionService{}
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockInterventionSvc, mockDB)
 
 	// Verify all tenant routes are registered
 	routes := router.Routes()
@@ -244,7 +269,8 @@ func TestSetup_TaskRoutes(t *testing.T) {
 	mockProviderSvc := &mockProviderService{}
 	mockCapabilitySvc := &mockCapabilityService{}
 	mockDB := &mockDBChecker{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockDB)
+	mockInterventionSvc := &mockInterventionService{}
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockInterventionSvc, mockDB)
 
 	// Verify all task routes are registered
 	routes := router.Routes()
@@ -276,7 +302,8 @@ func TestSetup_ProviderRoutes(t *testing.T) {
 	mockProviderSvc := &mockProviderService{}
 	mockCapabilitySvc := &mockCapabilityService{}
 	mockDB := &mockDBChecker{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockDB)
+	mockInterventionSvc := &mockInterventionService{}
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockInterventionSvc, mockDB)
 
 	// Verify all provider routes are registered
 	routes := router.Routes()
@@ -311,7 +338,8 @@ func TestSetup_TaskListWithParams(t *testing.T) {
 	mockProviderSvc := &mockProviderService{}
 	mockCapabilitySvc := &mockCapabilityService{}
 	mockDB := &mockDBChecker{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockDB)
+	mockInterventionSvc := &mockInterventionService{}
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockInterventionSvc, mockDB)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/tasks?page=1&page_size=10&status=pending", nil)
 	w := httptest.NewRecorder()
@@ -338,7 +366,8 @@ func TestSetup_CapabilityRoutes(t *testing.T) {
 	mockProviderSvc := &mockProviderService{}
 	mockCapabilitySvc := &mockCapabilityService{}
 	mockDB := &mockDBChecker{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockDB)
+	mockInterventionSvc := &mockInterventionService{}
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockInterventionSvc, mockDB)
 
 	// Verify all capability routes are registered
 	routes := router.Routes()
@@ -372,7 +401,8 @@ func TestSetup_CapabilityListWithParams(t *testing.T) {
 	mockProviderSvc := &mockProviderService{}
 	mockCapabilitySvc := &mockCapabilityService{}
 	mockDB := &mockDBChecker{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockDB)
+	mockInterventionSvc := &mockInterventionService{}
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockInterventionSvc, mockDB)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/capabilities?page=1&page_size=10&type=tool&status=active", nil)
 	w := httptest.NewRecorder()
@@ -389,5 +419,38 @@ func TestSetup_CapabilityListWithParams(t *testing.T) {
 
 	if response["code"].(float64) != 0 {
 		t.Errorf("Expected code 0, got %v", response["code"])
+	}
+}
+
+func TestSetup_InterventionRoutes(t *testing.T) {
+	mockTenantSvc := &mockTenantService{}
+	mockTemplateSvc := &mockTemplateService{}
+	mockTaskSvc := &mockTaskService{}
+	mockProviderSvc := &mockProviderService{}
+	mockCapabilitySvc := &mockCapabilityService{}
+	mockDB := &mockDBChecker{}
+	mockInterventionSvc := &mockInterventionService{}
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, mockInterventionSvc, mockDB)
+
+	// Verify all intervention routes are registered
+	routes := router.Routes()
+	routeMap := make(map[string]bool)
+	for _, route := range routes {
+		key := route.Method + " " + route.Path
+		routeMap[key] = true
+	}
+
+	expectedRoutes := []string{
+		"POST /api/v1/tasks/:id/pause",
+		"POST /api/v1/tasks/:id/resume",
+		"POST /api/v1/tasks/:id/cancel",
+		"POST /api/v1/tasks/:id/inject",
+		"GET /api/v1/tasks/:id/interventions",
+	}
+
+	for _, expected := range expectedRoutes {
+		if !routeMap[expected] {
+			t.Errorf("Expected route %s not found", expected)
+		}
 	}
 }

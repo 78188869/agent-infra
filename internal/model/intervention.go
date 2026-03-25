@@ -2,10 +2,7 @@
 package model
 
 import (
-	"time"
-
 	"gorm.io/datatypes"
-	"gorm.io/gorm"
 )
 
 // InterventionAction represents the type of intervention action.
@@ -31,21 +28,18 @@ const (
 // Intervention represents a human intervention record.
 // Interventions are manual actions taken on running tasks.
 type Intervention struct {
-	ID         string             `gorm:"type:varchar(36);primaryKey" json:"id"`
+	BaseModel
 	TaskID     string             `gorm:"type:varchar(36);not null;index" json:"task_id"`
 	OperatorID string             `gorm:"type:varchar(36);not null;index" json:"operator_id"`
 
 	// Intervention Information
-	Action     InterventionAction `gorm:"type:enum('pause','resume','cancel','inject','modify');not null" json:"action"`
-	Content    datatypes.JSON     `gorm:"type:json" json:"content"`
-	Reason     string             `gorm:"type:varchar(512)" json:"reason"`
+	Action  InterventionAction `gorm:"type:enum('pause','resume','cancel','inject','modify');not null" json:"action"`
+	Content datatypes.JSON     `gorm:"type:json" json:"content"`
+	Reason  string             `gorm:"type:varchar(512)" json:"reason"`
 
 	// Result
-	Result     datatypes.JSON     `gorm:"type:json" json:"result"`
-	Status     InterventionStatus `gorm:"type:enum('pending','applied','failed');default:'pending'" json:"status"`
-
-	// Timestamps
-	CreatedAt time.Time `gorm:"autoCreateTime;index" json:"created_at"`
+	Result datatypes.JSON     `gorm:"type:json" json:"result"`
+	Status InterventionStatus `gorm:"type:enum('pending','applied','failed');default:'pending'" json:"status"`
 
 	// Relations
 	Task     *Task `gorm:"foreignKey:TaskID" json:"task,omitempty"`
@@ -55,14 +49,6 @@ type Intervention struct {
 // TableName returns the table name for Intervention.
 func (Intervention) TableName() string {
 	return "interventions"
-}
-
-// BeforeCreate is a GORM hook that generates a UUID before creating a record.
-func (i *Intervention) BeforeCreate(tx *gorm.DB) error {
-	if i.ID == "" {
-		i.ID = generateUUID()
-	}
-	return nil
 }
 
 // IsPending checks if the intervention is pending.
