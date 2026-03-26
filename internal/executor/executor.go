@@ -2,6 +2,7 @@ package executor
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/example/agent-infra/internal/model"
 )
@@ -195,4 +196,8 @@ type ExecutorConfig struct {
 	GetTask          func(ctx context.Context, taskID string) (*model.Task, error)
 	OnTaskComplete   func(ctx context.Context, taskID string, result map[string]interface{}) error
 	OnTaskFailed     func(ctx context.Context, taskID string, err error) error
+
+	// Observability (optional)
+	Logger  *slog.Logger
+	Metrics MetricsRecorder
 }

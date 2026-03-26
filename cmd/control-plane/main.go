@@ -8,9 +8,11 @@ import (
 
 	"github.com/example/agent-infra/internal/api/router"
 	"github.com/example/agent-infra/internal/config"
+	"github.com/example/agent-infra/internal/monitoring"
 	"github.com/example/agent-infra/internal/model"
 	"github.com/example/agent-infra/internal/repository"
 	"github.com/example/agent-infra/internal/service"
+	"github.com/example/agent-infra/pkg/aliyun/sls"
 	"github.com/gin-gonic/gin"
 	"gopkg.in/yaml.v3"
 )
@@ -63,6 +65,7 @@ func main() {
 	var taskSvc service.TaskService
 	var providerSvc service.ProviderService
 	var capabilitySvc service.CapabilityService
+	var monitoringSvc service.MonitoringService
 	var db *config.Database
 	db, err = config.NewDatabase(cfg.ToDatabaseConfig())
 	if err != nil {
@@ -72,6 +75,7 @@ func main() {
 		taskSvc = &mockTaskService{}
 		providerSvc = &mockProviderService{}
 		capabilitySvc = &mockCapabilityService{}
+		monitoringSvc = &mockMonitoringService{}
 	} else {
 		// Auto-migrate models
 		if err := db.AutoMigrate(&model.Tenant{}, &model.Template{}, &model.Task{}, &model.Provider{}, &model.Capability{}); err != nil {
@@ -94,8 +98,19 @@ func main() {
 		capabilitySvc = service.NewCapabilityService(capabilityRepo)
 	}
 
+	// Initialize monitoring (Phase 8 - MVP Monitoring & Logging)
+	monitoringHub := monitoring.NewHub()
+	slsClient := monitoring.NewSLSClient(sls.Config{
+		Endpoint:        os.Getenv("SLS_ENDPOINT"),
+		AccessKeyID:     os.Getenv("ALIBABA_CLOUD_ACCESS_KEY_ID"),
+		AccessKeySecret: os.Getenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET"),
+		Project:         os.Getenv("SLS_PROJECT"),
+		LogStore:        "execution-logs",
+	})
+	monitoringSvc = service.NewMonitoringService(monitoringHub, slsClient)
+
 	// Setup router (pass db for health checks - can be nil if not available)
-	r := router.Setup(tenantSvc, templateSvc, taskSvc, providerSvc, capabilitySvc, db)
+	r := router.Setup(tenantSvc, templateSvc, taskSvc, providerSvc, capabilitySvc, monitoringSvc, monitoringHub, db)
 
 	// Start server
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
@@ -242,6 +257,25 @@ func (m *mockCapabilityService) Activate(ctx context.Context, id string) error {
 
 func (m *mockCapabilityService) Deactivate(ctx context.Context, id string) error {
 	return fmt.Errorf("database not available")
+}
+
+// mockMonitoringService is a fallback monitoring service when components are not initialized.
+type mockMonitoringService struct{}
+
+func (m *mockMonitoringService) RecordTaskStatusChange(ctx context.Context, taskID, tenantID, oldStatus, newStatus string) error {
+	return nil
+}
+
+func (m *mockMonitoringService) RecordLogEntry(ctx context.Context, taskID, tenantID string, eventType model.EventType, eventName string, content interface{}) error {
+	return nil
+}
+
+func (m *mockMonitoringService) RecordTaskProgress(ctx context.Context, taskID, tenantID string, progress int64, tokensUsed int64, elapsedSecs int64) error {
+	return nil
+}
+
+func (m *mockMonitoringService) BroadcastTaskCompletion(ctx context.Context, taskID, tenantID string) error {
+	return nil
 }
 
 func loadConfig(path string) (*Config, error) {
