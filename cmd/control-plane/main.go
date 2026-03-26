@@ -65,6 +65,7 @@ func main() {
 	var taskSvc service.TaskService
 	var providerSvc service.ProviderService
 	var capabilitySvc service.CapabilityService
+	var interventionSvc service.InterventionService
 	var monitoringSvc service.MonitoringService
 	var db *config.Database
 	db, err = config.NewDatabase(cfg.ToDatabaseConfig())
@@ -75,10 +76,11 @@ func main() {
 		taskSvc = &mockTaskService{}
 		providerSvc = &mockProviderService{}
 		capabilitySvc = &mockCapabilityService{}
+		interventionSvc = &mockInterventionService{}
 		monitoringSvc = &mockMonitoringService{}
 	} else {
 		// Auto-migrate models
-		if err := db.AutoMigrate(&model.Tenant{}, &model.Template{}, &model.Task{}, &model.Provider{}, &model.Capability{}); err != nil {
+		if err := db.AutoMigrate(&model.Tenant{}, &model.Template{}, &model.Task{}, &model.Provider{}, &model.Capability{}, &model.Intervention{}); err != nil {
 			log.Printf("Warning: failed to auto-migrate: %v", err)
 		}
 		// Create real services with repositories
@@ -96,6 +98,9 @@ func main() {
 
 		capabilityRepo := repository.NewCapabilityRepository(db.DB)
 		capabilitySvc = service.NewCapabilityService(capabilityRepo)
+
+		interventionRepo := repository.NewInterventionRepository(db.DB)
+		interventionSvc = service.NewInterventionService(taskRepo, interventionRepo)
 	}
 
 	// Initialize monitoring (Phase 8 - MVP Monitoring & Logging)
@@ -110,7 +115,7 @@ func main() {
 	monitoringSvc = service.NewMonitoringService(monitoringHub, slsClient)
 
 	// Setup router (pass db for health checks - can be nil if not available)
-	r := router.Setup(tenantSvc, templateSvc, taskSvc, providerSvc, capabilitySvc, monitoringSvc, monitoringHub, db)
+	r := router.Setup(tenantSvc, templateSvc, taskSvc, providerSvc, capabilitySvc, monitoringSvc, monitoringHub, interventionSvc, db)
 
 	// Start server
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
@@ -257,6 +262,29 @@ func (m *mockCapabilityService) Activate(ctx context.Context, id string) error {
 
 func (m *mockCapabilityService) Deactivate(ctx context.Context, id string) error {
 	return fmt.Errorf("database not available")
+}
+
+// mockInterventionService is a fallback service when database is not available.
+type mockInterventionService struct{}
+
+func (m *mockInterventionService) Pause(ctx context.Context, taskID, operatorID, reason string) (*model.Intervention, error) {
+	return nil, fmt.Errorf("database not available")
+}
+
+func (m *mockInterventionService) Resume(ctx context.Context, taskID, operatorID, reason string) (*model.Intervention, error) {
+	return nil, fmt.Errorf("database not available")
+}
+
+func (m *mockInterventionService) Cancel(ctx context.Context, taskID, operatorID, reason string) (*model.Intervention, error) {
+	return nil, fmt.Errorf("database not available")
+}
+
+func (m *mockInterventionService) Inject(ctx context.Context, req *service.InjectInterventionRequest) (*model.Intervention, error) {
+	return nil, fmt.Errorf("database not available")
+}
+
+func (m *mockInterventionService) ListInterventions(ctx context.Context, taskID string, filter *service.InterventionFilter) ([]*model.Intervention, int64, error) {
+	return []*model.Intervention{}, 0, nil
 }
 
 // mockMonitoringService is a fallback monitoring service when components are not initialized.

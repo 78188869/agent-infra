@@ -14,7 +14,7 @@ type DBChecker interface {
 }
 
 // Setup initializes the gin router with all routes.
-func Setup(tenantSvc service.TenantService, templateSvc service.TemplateService, taskSvc service.TaskService, providerSvc service.ProviderService, capabilitySvc service.CapabilityService, monitorSvc service.MonitoringService, hub *monitoring.Hub, db DBChecker) *gin.Engine {
+func Setup(tenantSvc service.TenantService, templateSvc service.TemplateService, taskSvc service.TaskService, providerSvc service.ProviderService, capabilitySvc service.CapabilityService, monitorSvc service.MonitoringService, hub *monitoring.Hub, interventionSvc service.InterventionService, db DBChecker) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(middleware.Logger())
@@ -59,6 +59,14 @@ func Setup(tenantSvc service.TenantService, templateSvc service.TemplateService,
 			tasks.PUT("/:id", taskHandler.Update)
 			tasks.DELETE("/:id", taskHandler.Delete)
 		}
+
+		// Intervention routes (nested under tasks)
+		interventionHandler := handler.NewInterventionHandler(interventionSvc)
+		tasks.POST("/:id/pause", interventionHandler.Pause)
+		tasks.POST("/:id/resume", interventionHandler.Resume)
+		tasks.POST("/:id/cancel", interventionHandler.Cancel)
+		tasks.POST("/:id/inject", interventionHandler.Inject)
+		tasks.GET("/:id/interventions", interventionHandler.ListInterventions)
 
 		// Provider routes
 		// TODO: Add auth middleware when available. SetDefault requires user_id from context.

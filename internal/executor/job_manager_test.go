@@ -234,6 +234,10 @@ func TestJobManager_CustomSecurityConfig(t *testing.T) {
 		DefaultMemoryLimit:      "4Gi",
 		DefaultCPURequest:       "500m",
 		DefaultMemoryRequest:    "1Gi",
+		WrapperCPULimit:         "100m",
+		WrapperMemoryLimit:      "128Mi",
+		WrapperCPURequest:       "50m",
+		WrapperMemoryRequest:    "64Mi",
 		Security: &SecurityConfig{
 			RunAsNonRoot:              true,
 			RunAsUser:                 2000,
@@ -299,6 +303,10 @@ func TestJobManager_NilSecurityConfig(t *testing.T) {
 		DefaultMemoryLimit:      "4Gi",
 		DefaultCPURequest:       "500m",
 		DefaultMemoryRequest:    "1Gi",
+		WrapperCPULimit:         "100m",
+		WrapperMemoryLimit:      "128Mi",
+		WrapperCPURequest:       "50m",
+		WrapperMemoryRequest:    "64Mi",
 		Security:                nil, // Explicitly nil
 	}
 	mgr := NewJobManager(nil, cfg)

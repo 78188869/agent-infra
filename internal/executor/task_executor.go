@@ -484,8 +484,12 @@ func validateTaskID(taskID string) error {
 	if taskID == "" {
 		return fmt.Errorf("%w: task ID cannot be empty", ErrInvalidTaskID)
 	}
-	if _, err := uuid.Parse(taskID); err != nil {
+	parsed, err := uuid.Parse(taskID)
+	if err != nil {
 		return fmt.Errorf("%w: %v", ErrInvalidTaskID, err)
+	}
+	if parsed == uuid.Nil {
+		return fmt.Errorf("%w: task ID cannot be nil UUID", ErrInvalidTaskID)
 	}
 	return nil
 }
@@ -641,4 +645,22 @@ func (e *TaskExecutor) GetJobManager() *JobManager {
 // GetHeartbeatManager returns the HeartbeatManager for direct access.
 func (e *TaskExecutor) GetHeartbeatManager() *HeartbeatManager {
 	return e.heartbeat
+}
+
+// recordMetric records a metric event if metrics recorder is configured.
+func (e *TaskExecutor) recordMetric(event string, taskID string, detail string) {
+	if e.metrics != nil {
+		switch event {
+		case "task_execution_started":
+			e.metrics.RecordTaskExecution(taskID, "started")
+		case "task_execution_failed":
+			e.metrics.RecordTaskExecution(taskID, "failed")
+		case "task_cancelled":
+			e.metrics.RecordTaskCancelled(taskID, detail)
+		case "task_completed":
+			e.metrics.RecordTaskCompleted(taskID)
+		case "task_failed":
+			e.metrics.RecordTaskFailed(taskID, detail)
+		}
+	}
 }
