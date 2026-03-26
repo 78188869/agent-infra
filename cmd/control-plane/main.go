@@ -8,9 +8,11 @@ import (
 
 	"github.com/example/agent-infra/internal/api/router"
 	"github.com/example/agent-infra/internal/config"
+	"github.com/example/agent-infra/internal/monitoring"
 	"github.com/example/agent-infra/internal/model"
 	"github.com/example/agent-infra/internal/repository"
 	"github.com/example/agent-infra/internal/service"
+	"github.com/example/agent-infra/pkg/aliyun/sls"
 	"github.com/gin-gonic/gin"
 	"gopkg.in/yaml.v3"
 )
@@ -64,6 +66,7 @@ func main() {
 	var providerSvc service.ProviderService
 	var capabilitySvc service.CapabilityService
 	var interventionSvc service.InterventionService
+	var monitoringSvc service.MonitoringService
 	var db *config.Database
 	db, err = config.NewDatabase(cfg.ToDatabaseConfig())
 	if err != nil {
@@ -74,9 +77,10 @@ func main() {
 		providerSvc = &mockProviderService{}
 		capabilitySvc = &mockCapabilityService{}
 		interventionSvc = &mockInterventionService{}
+		monitoringSvc = &mockMonitoringService{}
 	} else {
 		// Auto-migrate models
-		if err := db.AutoMigrate(&model.Tenant{}, &model.Template{}, &model.Task{}, &model.Provider{}, &model.Capability{}); err != nil {
+		if err := db.AutoMigrate(&model.Tenant{}, &model.Template{}, &model.Task{}, &model.Provider{}, &model.Capability{}, &model.Intervention{}); err != nil {
 			log.Printf("Warning: failed to auto-migrate: %v", err)
 		}
 		// Create real services with repositories
@@ -99,8 +103,19 @@ func main() {
 		interventionSvc = service.NewInterventionService(taskRepo, interventionRepo)
 	}
 
+	// Initialize monitoring (Phase 8 - MVP Monitoring & Logging)
+	monitoringHub := monitoring.NewHub()
+	slsClient := monitoring.NewSLSClient(sls.Config{
+		Endpoint:        os.Getenv("SLS_ENDPOINT"),
+		AccessKeyID:     os.Getenv("ALIBABA_CLOUD_ACCESS_KEY_ID"),
+		AccessKeySecret: os.Getenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET"),
+		Project:         os.Getenv("SLS_PROJECT"),
+		LogStore:        "execution-logs",
+	})
+	monitoringSvc = service.NewMonitoringService(monitoringHub, slsClient)
+
 	// Setup router (pass db for health checks - can be nil if not available)
-	r := router.Setup(tenantSvc, templateSvc, taskSvc, providerSvc, capabilitySvc, interventionSvc, db)
+	r := router.Setup(tenantSvc, templateSvc, taskSvc, providerSvc, capabilitySvc, monitoringSvc, monitoringHub, interventionSvc, db)
 
 	// Start server
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
@@ -270,6 +285,25 @@ func (m *mockInterventionService) Inject(ctx context.Context, req *service.Injec
 
 func (m *mockInterventionService) ListInterventions(ctx context.Context, taskID string, filter *service.InterventionFilter) ([]*model.Intervention, int64, error) {
 	return []*model.Intervention{}, 0, nil
+}
+
+// mockMonitoringService is a fallback monitoring service when components are not initialized.
+type mockMonitoringService struct{}
+
+func (m *mockMonitoringService) RecordTaskStatusChange(ctx context.Context, taskID, tenantID, oldStatus, newStatus string) error {
+	return nil
+}
+
+func (m *mockMonitoringService) RecordLogEntry(ctx context.Context, taskID, tenantID string, eventType model.EventType, eventName string, content interface{}) error {
+	return nil
+}
+
+func (m *mockMonitoringService) RecordTaskProgress(ctx context.Context, taskID, tenantID string, progress int64, tokensUsed int64, elapsedSecs int64) error {
+	return nil
+}
+
+func (m *mockMonitoringService) BroadcastTaskCompletion(ctx context.Context, taskID, tenantID string) error {
+	return nil
 }
 
 func loadConfig(path string) (*Config, error) {

@@ -99,6 +99,11 @@ func (e *TaskExecutor) Execute(ctx context.Context, task *model.Task) (*JobInfo,
 
 	taskID := task.ID.String()
 
+	// Validate task ID is not zero UUID
+	if task.ID == uuid.Nil {
+		return nil, fmt.Errorf("%w: task ID cannot be nil UUID", ErrInvalidTaskID)
+	}
+
 	// Validate task ID
 	if err := validateTaskID(taskID); err != nil {
 		e.logger.Warn("task execution rejected: invalid task ID",

@@ -3,6 +3,7 @@ package router
 import (
 	"github.com/example/agent-infra/internal/api/handler"
 	"github.com/example/agent-infra/internal/api/middleware"
+	"github.com/example/agent-infra/internal/monitoring"
 	"github.com/example/agent-infra/internal/service"
 	"github.com/gin-gonic/gin"
 )
@@ -13,7 +14,7 @@ type DBChecker interface {
 }
 
 // Setup initializes the gin router with all routes.
-func Setup(tenantSvc service.TenantService, templateSvc service.TemplateService, taskSvc service.TaskService, providerSvc service.ProviderService, capabilitySvc service.CapabilityService, interventionSvc service.InterventionService, db DBChecker) *gin.Engine {
+func Setup(tenantSvc service.TenantService, templateSvc service.TemplateService, taskSvc service.TaskService, providerSvc service.ProviderService, capabilitySvc service.CapabilityService, monitorSvc service.MonitoringService, hub *monitoring.Hub, interventionSvc service.InterventionService, db DBChecker) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(middleware.Logger())
@@ -95,6 +96,22 @@ func Setup(tenantSvc service.TenantService, templateSvc service.TemplateService,
 			capabilities.POST("/:id/activate", capabilityHandler.Activate)
 			capabilities.POST("/:id/deactivate", capabilityHandler.Deactivate)
 		}
+
+		// Monitoring routes
+		wsHandler := handler.NewWSHandler(hub)
+		metricsHandler := handler.NewMetricsHandler(monitorSvc)
+		v1.GET("/ws", wsHandler.HandleWebSocket)
+
+		metrics := v1.Group("/metrics")
+		{
+			metrics.GET("/dashboard", metricsHandler.GetDashboard)
+			metrics.GET("/tasks", metricsHandler.GetTaskStats)
+			metrics.GET("/resources", metricsHandler.GetResourceUsage)
+			metrics.GET("/tenants", metricsHandler.GetTenantStats)
+		}
+
+		// Task log routes
+		tasks.GET("/:id/logs", metricsHandler.GetTaskLogs)
 	}
 
 	return r

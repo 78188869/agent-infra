@@ -239,12 +239,12 @@ func TestJobManager_CustomSecurityConfig(t *testing.T) {
 		WrapperCPURequest:       "50m",
 		WrapperMemoryRequest:    "64Mi",
 		Security: &SecurityConfig{
-			RunAsNonRoot:            true,
-			RunAsUser:               2000,
-			RunAsGroup:              2000,
-			ReadOnlyRootFilesystem:  false,
-			AllowPrivilegeEscalation: &allowPrivEsc,
-			FSGroup:                 &fsGroup,
+			RunAsNonRoot:              true,
+			RunAsUser:                 2000,
+			RunAsGroup:                2000,
+			ReadOnlyRootFilesystem:    false,
+			AllowPrivilegeEscalation:  &allowPrivEsc,
+			FSGroup:                   &fsGroup,
 		},
 	}
 	mgr := NewJobManager(nil, cfg)
