@@ -140,8 +140,8 @@ func (s *TaskScheduler) Dequeue(ctx context.Context) (*DequeuedTask, error) {
 		if s.getTenantQuota != nil {
 			quota, err = s.getTenantQuota(ctx, item.TenantID)
 			if err != nil {
-				// Re-queue on error
-				s.queue.Enqueue(ctx, item)
+				// Re-queue on error (best effort)
+				_ = s.queue.Enqueue(ctx, item)
 				return nil, fmt.Errorf("failed to get tenant quota: %w", err)
 			}
 		} else {
@@ -154,8 +154,8 @@ func (s *TaskScheduler) Dequeue(ctx context.Context) (*DequeuedTask, error) {
 
 		// Check rate limit
 		if err := s.limiter.Allow(ctx, item.TenantID, quota); err != nil {
-			// Rate limited - re-queue with slight delay
-			s.queue.Enqueue(ctx, item)
+			// Rate limited - re-queue with slight delay (best effort)
+			_ = s.queue.Enqueue(ctx, item)
 			select {
 			case <-time.After(100 * time.Millisecond):
 				continue
@@ -166,7 +166,7 @@ func (s *TaskScheduler) Dequeue(ctx context.Context) (*DequeuedTask, error) {
 
 		// Reserve resources
 		if err := s.limiter.Reserve(ctx, item.TenantID); err != nil {
-			s.queue.Enqueue(ctx, item)
+			_ = s.queue.Enqueue(ctx, item)
 			return nil, fmt.Errorf("failed to reserve resources: %w", err)
 		}
 
@@ -175,7 +175,7 @@ func (s *TaskScheduler) Dequeue(ctx context.Context) (*DequeuedTask, error) {
 		if s.getTask != nil {
 			task, err = s.getTask(ctx, item.TaskID)
 			if err != nil {
-				s.limiter.Release(ctx, item.TenantID)
+				_ = s.limiter.Release(ctx, item.TenantID)
 				return nil, fmt.Errorf("failed to get task: %w", err)
 			}
 		} else {
@@ -225,8 +225,8 @@ func (s *TaskScheduler) Preempt(ctx context.Context, taskID string, status strin
 		return err
 	}
 
-	// Release resources
-	s.limiter.Release(ctx, item.TenantID)
+	// Release resources (best effort on preempt)
+	_ = s.limiter.Release(ctx, item.TenantID)
 
 	// Update task status if callback is provided
 	if s.updateStatus != nil {
@@ -245,8 +245,8 @@ func (s *TaskScheduler) Complete(ctx context.Context, taskID string, tenantID st
 		return fmt.Errorf("failed to release resources: %w", err)
 	}
 
-	// Clear any preemption state
-	s.preemption.ClearTaskState(ctx, taskID)
+	// Clear any preemption state (best effort)
+	_ = s.preemption.ClearTaskState(ctx, taskID)
 
 	return nil
 }

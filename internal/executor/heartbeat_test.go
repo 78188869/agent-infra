@@ -13,8 +13,6 @@ import (
 // MockRedisClient implements RedisClient interface for testing.
 type MockRedisClient struct {
 	data     map[string]map[string]string
-	err      error
-	closed   bool
 	commands []*mockCommand
 }
 

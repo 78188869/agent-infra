@@ -164,7 +164,9 @@ func (m *HeartbeatManager) GetHeartbeat(ctx context.Context, taskID string) (*He
 
 	if v, ok := result["last_seen"]; ok {
 		var timestamp int64
-		fmt.Sscanf(v, "%d", &timestamp)
+		if _, err := fmt.Sscanf(v, "%d", &timestamp); err != nil {
+			return nil, fmt.Errorf("failed to parse last_seen: %w", err)
+		}
 		info.LastSeen = time.Unix(timestamp, 0)
 	}
 
@@ -173,7 +175,9 @@ func (m *HeartbeatManager) GetHeartbeat(ctx context.Context, taskID string) (*He
 	}
 
 	if v, ok := result["progress"]; ok {
-		fmt.Sscanf(v, "%d", &info.Progress)
+		if _, err := fmt.Sscanf(v, "%d", &info.Progress); err != nil {
+			return nil, fmt.Errorf("failed to parse progress: %w", err)
+		}
 	}
 
 	return info, nil

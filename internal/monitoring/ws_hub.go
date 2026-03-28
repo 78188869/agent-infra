@@ -57,7 +57,7 @@ func (h *Hub) Broadcast(tenantID string, msg []byte) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	for conn := range h.clients[tenantID] {
-		conn.WriteMessage(websocket.TextMessage, msg)
+		_ = conn.WriteMessage(websocket.TextMessage, msg)
 	}
 }
 

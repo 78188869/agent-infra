@@ -131,7 +131,9 @@ func (q *PriorityQueue) getTaskMeta(ctx context.Context, taskID string) (*QueueI
 	// Parse created_at from string to int64 (nanoseconds)
 	var createdAtNano int64
 	if v, ok := result["created_at"]; ok {
-		fmt.Sscanf(v, "%d", &createdAtNano)
+		if _, err := fmt.Sscanf(v, "%d", &createdAtNano); err != nil {
+			return nil, fmt.Errorf("failed to parse created_at: %w", err)
+		}
 	}
 
 	return &QueueItem{

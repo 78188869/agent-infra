@@ -48,7 +48,6 @@ func main() {
 		providerSvc = &mockProviderService{}
 		capabilitySvc = &mockCapabilityService{}
 		interventionSvc = &mockInterventionService{}
-		monitoringSvc = &mockMonitoringService{}
 	} else {
 		if err := db.AutoMigrate(&model.Tenant{}, &model.Template{}, &model.Task{}, &model.Provider{}, &model.Capability{}, &model.Intervention{}); err != nil {
 			slog.Warn("failed to auto-migrate", "error", err)
@@ -252,23 +251,4 @@ func (m *mockInterventionService) Inject(ctx context.Context, req *service.Injec
 
 func (m *mockInterventionService) ListInterventions(ctx context.Context, taskID string, filter *service.InterventionFilter) ([]*model.Intervention, int64, error) {
 	return []*model.Intervention{}, 0, nil
-}
-
-// mockMonitoringService is a fallback monitoring service when components are not initialized.
-type mockMonitoringService struct{}
-
-func (m *mockMonitoringService) RecordTaskStatusChange(ctx context.Context, taskID, tenantID, oldStatus, newStatus string) error {
-	return nil
-}
-
-func (m *mockMonitoringService) RecordLogEntry(ctx context.Context, taskID, tenantID string, eventType model.EventType, eventName string, content interface{}) error {
-	return nil
-}
-
-func (m *mockMonitoringService) RecordTaskProgress(ctx context.Context, taskID, tenantID string, progress int64, tokensUsed int64, elapsedSecs int64) error {
-	return nil
-}
-
-func (m *mockMonitoringService) BroadcastTaskCompletion(ctx context.Context, taskID, tenantID string) error {
-	return nil
 }

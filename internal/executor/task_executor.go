@@ -2,6 +2,7 @@ package executor
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -578,7 +579,12 @@ func (e *TaskExecutor) HandleTaskEvent(ctx context.Context, taskID string, event
 			"status", status,
 			"progress", progress,
 		)
-		e.heartbeat.UpdateHeartbeat(ctx, taskID, status, progress)
+		if err := e.heartbeat.UpdateHeartbeat(ctx, taskID, status, progress); err != nil {
+			e.logger.Error("failed to update heartbeat",
+				"task_id", taskID,
+				"error", err,
+			)
+		}
 
 	case "complete":
 		e.logger.Info("task completed event",
@@ -612,7 +618,7 @@ func (e *TaskExecutor) HandleTaskEvent(ctx context.Context, taskID string, event
 		e.heartbeat.Unregister(taskID)
 		e.recordMetric("task_failed", taskID, errMsg)
 		if e.config.OnTaskFailed != nil {
-			if err := e.config.OnTaskFailed(ctx, taskID, fmt.Errorf(errMsg)); err != nil {
+			if err := e.config.OnTaskFailed(ctx, taskID, errors.New(errMsg)); err != nil {
 				e.logger.Error("OnTaskFailed callback failed",
 					"task_id", taskID,
 					"error", err,

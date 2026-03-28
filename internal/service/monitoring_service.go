@@ -135,6 +135,6 @@ func (s *monitoringService) BroadcastTaskCompletion(ctx context.Context, taskID,
 func toMap(v interface{}) map[string]interface{} {
 	data, _ := json.Marshal(v)
 	var m map[string]interface{}
-	json.Unmarshal(data, &m)
+	_ = json.Unmarshal(data, &m)
 	return m
 }

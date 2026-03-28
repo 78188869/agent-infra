@@ -197,8 +197,8 @@ func (h *MultiOutputHandler) Handle(_ context.Context, r slog.Record) error {
 	}
 	line := append(data, '\n')
 
-	// Write to stdout
-	h.stdout.Write(line)
+	// Write to stdout (best effort)
+	_, _ = h.stdout.Write(line)
 
 	// Route to file by component, supporting prefix matching (e.g. "business.xxx" -> "business")
 	if component != "" {
@@ -206,7 +206,7 @@ func (h *MultiOutputHandler) Handle(_ context.Context, r slog.Record) error {
 		defer h.mu.Unlock()
 		for key, fw := range h.files {
 			if component == key || strings.HasPrefix(component, key+".") {
-				fw.write(line)
+				_, _ = fw.write(line)
 				break
 			}
 		}
@@ -261,14 +261,14 @@ func (c *multiOutputChild) Handle(ctx context.Context, r slog.Record) error {
 	}
 	line := append(data, '\n')
 
-	c.parent.stdout.Write(line)
+	_, _ = c.parent.stdout.Write(line)
 
 	if component != "" {
 		c.parent.mu.Lock()
 		defer c.parent.mu.Unlock()
 		for key, fw := range c.parent.files {
 			if component == key || strings.HasPrefix(component, key+".") {
-				fw.write(line)
+				_, _ = fw.write(line)
 				break
 			}
 		}
