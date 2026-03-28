@@ -248,8 +248,18 @@ func (e *TaskExecutor) Pause(ctx context.Context, taskID string) error {
 		return fmt.Errorf("failed to get runtime address: %w", err)
 	}
 
-	// Call Wrapper pause API
-	if err := e.wrapperClient.Pause(ctx, address); err != nil {
+	// Try Interrupt first (Agent SDK wrapper), fall back to Pause (legacy K8s)
+	err = e.wrapperClient.Interrupt(ctx, address)
+	if err != nil {
+		// Fallback to legacy pause for K8s runtime
+		e.logger.Warn("Interrupt failed, falling back to legacy Pause",
+			"task_id", taskID,
+			"address", address,
+			"error", err,
+		)
+		err = e.wrapperClient.Pause(ctx, address)
+	}
+	if err != nil {
 		e.logger.Error("failed to pause wrapper",
 			"task_id", taskID,
 			"address", address,
@@ -280,6 +290,8 @@ func (e *TaskExecutor) Pause(ctx context.Context, taskID string) error {
 }
 
 // Resume resumes a paused Job.
+// For Agent SDK wrapper, use InjectInstruction to send new instructions to an interrupted agent.
+// This method is kept for backward compatibility with K8s runtime.
 func (e *TaskExecutor) Resume(ctx context.Context, taskID string) error {
 	startTime := time.Now()
 

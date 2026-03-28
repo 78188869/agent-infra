@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/example/agent-infra/internal/monitoring"
@@ -174,6 +175,10 @@ func (m *mockInterventionService) Inject(ctx context.Context, req *service.Injec
 
 func (m *mockInterventionService) ListInterventions(ctx context.Context, taskID string, filter *service.InterventionFilter) ([]*model.Intervention, int64, error) {
 	return []*model.Intervention{}, 0, nil
+}
+
+func (m *mockInterventionService) HandleWrapperEvent(ctx context.Context, taskID string, eventType string, payload map[string]interface{}) error {
+	return nil
 }
 
 // mockDBChecker implements DBChecker for testing
@@ -480,5 +485,58 @@ func TestSetup_InterventionRoutes(t *testing.T) {
 		if !routeMap[expected] {
 			t.Errorf("Expected route %s not found", expected)
 		}
+	}
+}
+
+func TestSetup_InternalRoutes(t *testing.T) {
+	mockTenantSvc := &mockTenantService{}
+	mockTemplateSvc := &mockTemplateService{}
+	mockTaskSvc := &mockTaskService{}
+	mockProviderSvc := &mockProviderService{}
+	mockCapabilitySvc := &mockCapabilityService{}
+	mockDB := &mockDBChecker{}
+	mockHub := monitoring.NewHub()
+	mockInterventionSvc := &mockInterventionService{}
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, &mockMonitoringService{}, mockHub, mockInterventionSvc, mockDB)
+
+	// Verify internal wrapper event routes are registered
+	routes := router.Routes()
+	routeMap := make(map[string]bool)
+	for _, route := range routes {
+		key := route.Method + " " + route.Path
+		routeMap[key] = true
+	}
+
+	expectedRoutes := []string{
+		"POST /internal/tasks/:id/events",
+	}
+
+	for _, expected := range expectedRoutes {
+		if !routeMap[expected] {
+			t.Errorf("Expected route %s not found", expected)
+		}
+	}
+}
+
+func TestSetup_InternalWrapperEvent(t *testing.T) {
+	mockTenantSvc := &mockTenantService{}
+	mockTemplateSvc := &mockTemplateService{}
+	mockTaskSvc := &mockTaskService{}
+	mockProviderSvc := &mockProviderService{}
+	mockCapabilitySvc := &mockCapabilityService{}
+	mockDB := &mockDBChecker{}
+	mockHub := monitoring.NewHub()
+	mockInterventionSvc := &mockInterventionService{}
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, &mockMonitoringService{}, mockHub, mockInterventionSvc, mockDB)
+
+	taskID := "00000000-0000-0000-0000-000000000001"
+	body := strings.NewReader(`{"event_type":"heartbeat","payload":{"status":"running","progress":50}}`)
+	req := httptest.NewRequest(http.MethodPost, "/internal/tasks/"+taskID+"/events", body)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status %d, got %d, body: %s", http.StatusOK, w.Code, w.Body.String())
 	}
 }
