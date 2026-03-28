@@ -140,7 +140,7 @@ docs/
 | 1 | 创建 Worktree | `git worktree add -b feature/issue-{N} .claude/worktrees/issue-{N} main` |
 | 2 | 创建 Issue Summary | `docs/current/issues/issue-{N}-{title}.md`，模板见 `issues/README.md` |
 | 3 | 获取背景知识 | 读 TRD.md → decisions/ → knowledge/{modules}.md，按下方模块选择表确定范围 |
-| 3.5 | 设计与文档回流 | **（条件）** 经 brainstorming 后，将架构决策写入 ADR、更新 TRD 和 knowledge 文档，详见下方说明 |
+| 3.5 | 设计与文档回流 | **（条件）** brainstorming 后将决策写入 ADR → 更新 TRD/knowledge 文档 → commit |
 | 4 | 创建执行计划 | `docs/current/plans/{YYYY-MM-DD}-{title}.md`，模板见 `plans/README.md` |
 | 5 | 开发实现 (TDD) | 按 Plan 逐步实现，编写测试用例，覆盖率 > 80% |
 | 6 | 测试验证 | `make test && make lint && go test -cover ./internal/...` |
@@ -151,18 +151,6 @@ docs/
 | 11 | 拉取合并代码 | `git checkout main && git pull origin main` |
 | 12 | 关闭 Issue | `gh issue close {N} --repo {repo}` + 更新 Issue Summary 状态 |
 | 13 | 清理环境 | `git worktree remove .claude/worktrees/issue-{N}` |
-
-### Step 3.5 设计与文档回流（条件步骤）
-
-当使用 brainstorming 技能进行设计时，设计被批准后需将决策和方案回流到正式文档体系，确保知识库与代码同步演进：
-
-| 回流目标 | 内容 | 条件 |
-|---------|------|------|
-| `docs/current/decisions/adr-{N}-{title}.md` | 新增 ADR 记录架构决策（方案选择、折衷、理由） | 产生新的架构决策时 |
-| `docs/current/TRD.md` | 更新相关章节，补充技术设计细节 | TRD 中缺少对应设计时 |
-| `docs/knowledge/{module}.md` | 更新模块知识文档，补充实现细节和变更历史 | 涉及已有模块的扩展时 |
-
-**操作顺序**：ADR → TRD → knowledge → commit
 
 > **计划结构要求**：Step 4 的执行计划必须覆盖 Step 5-9（实现、测试、审查、推送、PR），每个 Step 对应一个 Task；Step 0-4 和 Step 10-13 在开发前创建完整的 15 步 TaskCreate 列表跟踪进度。
 
