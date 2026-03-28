@@ -43,9 +43,9 @@ type Executor interface {
 	// Cancel cancels a running Job and cleans up resources.
 	Cancel(ctx context.Context, taskID string, reason string) error
 
-	// GetPodAddress returns the Pod IP address for a task's Job.
+	// GetAddress returns the network address for a task's runtime environment.
 	// This is used for intervention operations.
-	GetPodAddress(ctx context.Context, taskID string) (string, error)
+	GetAddress(ctx context.Context, taskID string) (string, error)
 
 	// Start begins the executor's processing loop.
 	Start(ctx context.Context) error
@@ -196,8 +196,8 @@ type MetricsRecorder interface {
 
 // ExecutorConfig holds configuration for the TaskExecutor.
 type ExecutorConfig struct {
-	// JobConfig for creating Jobs
-	JobConfig *JobConfig
+	// WrapperPort is the HTTP port for the wrapper sidecar.
+	WrapperPort int
 
 	// Logger for structured logging
 	Logger *slog.Logger
