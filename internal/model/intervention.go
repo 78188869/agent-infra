@@ -33,13 +33,13 @@ type Intervention struct {
 	OperatorID string             `gorm:"type:varchar(36);not null;index:idx_operator;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"operator_id"`
 
 	// Intervention Information
-	Action  InterventionAction `gorm:"type:enum('pause','resume','cancel','inject','modify');not null" json:"action"`
+	Action  InterventionAction `gorm:"type:varchar(20);not null" json:"action"`
 	Content datatypes.JSON    `gorm:"type:json" json:"content"`
 	Reason  string            `gorm:"type:varchar(512)" json:"reason"`
 
 	// Result
 	Result datatypes.JSON     `gorm:"type:json" json:"result"`
-	Status InterventionStatus `gorm:"type:enum('pending','applied','failed');default:'pending'" json:"status"`
+	Status InterventionStatus `gorm:"type:varchar(20);default:'pending'" json:"status"`
 
 	// Relations
 	Task     *Task `gorm:"foreignKey:TaskID" json:"task,omitempty"`

@@ -41,7 +41,7 @@ type Capability struct {
 	TenantID *string          `gorm:"type:varchar(36);uniqueIndex:uk_tenant_type_name" json:"tenant_id"` // NULL means global capability
 
 	// Capability Information
-	Type        CapabilityType `gorm:"type:enum('tool','skill','agent_runtime');not null;uniqueIndex:uk_tenant_type_name;index:idx_type_status" json:"type"`
+	Type        CapabilityType `gorm:"type:varchar(20);not null;uniqueIndex:uk_tenant_type_name;index:idx_type_status" json:"type"`
 	Name        string         `gorm:"type:varchar(64);not null;uniqueIndex:uk_tenant_type_name" json:"name"`
 	Description string         `gorm:"type:text" json:"description"`
 	Version     string         `gorm:"type:varchar(32);default:'1.0.0'" json:"version"`
@@ -51,10 +51,10 @@ type Capability struct {
 	Schema datatypes.JSON `gorm:"type:json" json:"schema"` // Parameter schema
 
 	// Permissions
-	PermissionLevel PermissionLevel `gorm:"type:enum('public','restricted','admin_only');default:'public'" json:"permission_level"`
+	PermissionLevel PermissionLevel `gorm:"type:varchar(20);default:'public'" json:"permission_level"`
 
 	// Status
-	Status CapabilityStatus `gorm:"type:enum('active','inactive');default:'active';index:idx_type_status" json:"status"`
+	Status CapabilityStatus `gorm:"type:varchar(20);default:'active';index:idx_type_status" json:"status"`
 
 	// Timestamps
 	CreatedAt time.Time      `gorm:"autoCreateTime" json:"created_at"`

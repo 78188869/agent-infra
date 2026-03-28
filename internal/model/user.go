@@ -35,11 +35,11 @@ type User struct {
 	Email       string     `gorm:"type:varchar(128)" json:"email"`
 
 	// Role and Status
-	Role   UserRole   `gorm:"type:enum('developer','admin','operator','reviewer');default:'developer'" json:"role"`
-	Status UserStatus `gorm:"type:enum('active','disabled');default:'active'" json:"status"`
+	Role   UserRole   `gorm:"type:varchar(20);default:'developer'" json:"role"`
+	Status UserStatus `gorm:"type:varchar(20);default:'active'" json:"status"`
 
 	// Timestamps
-	LastLoginAt *time.Time    `gorm:"type:timestamp" json:"last_login_at"`
+	LastLoginAt *time.Time    `json:"last_login_at"`
 	CreatedAt   time.Time     `gorm:"autoCreateTime" json:"created_at"`
 	UpdatedAt   time.Time     `gorm:"autoUpdateTime" json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
