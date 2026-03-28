@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"strconv"
 
 	"gopkg.in/yaml.v3"
 )
@@ -154,11 +153,6 @@ func (c *AppConfig) ApplyDefaults() {
 			c.Log.Format = "json"
 		}
 	}
-
-	// Apply defaults only when not already set
-	if c.Server.Port == 0 {
-		c.Server.Port = 8080
-	}
 }
 
 // Load reads a YAML configuration file, expands environment variables,
@@ -179,13 +173,6 @@ func Load(path string) (*AppConfig, error) {
 
 	// Override env with APP_ENV if set
 	cfg.Env = cfg.GetEnvironment()
-
-	// Expand env vars for integer port fields that may contain strings
-	if portStr := os.Getenv("SERVER_PORT"); portStr != "" {
-		if p, err := strconv.Atoi(portStr); err == nil {
-			cfg.Server.Port = p
-		}
-	}
 
 	cfg.ApplyDefaults()
 

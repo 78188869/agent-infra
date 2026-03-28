@@ -20,7 +20,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
-	cfg.ApplyDefaults()
 
 	env := cfg.GetEnvironment()
 	log.Printf("Starting control-plane in %q environment", env)
