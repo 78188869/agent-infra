@@ -1,6 +1,8 @@
 package router
 
 import (
+	"os"
+
 	"github.com/example/agent-infra/internal/api/handler"
 	"github.com/example/agent-infra/internal/api/middleware"
 	"github.com/example/agent-infra/internal/monitoring"
@@ -117,8 +119,9 @@ func Setup(tenantSvc service.TenantService, templateSvc service.TemplateService,
 		tasks.GET("/:id/logs", metricsHandler.GetTaskLogs)
 	}
 
-	// Internal routes for wrapper event push
-	internal := r.Group("/internal")
+	// Internal routes for wrapper event push (protected with shared-secret auth)
+	internalToken := os.Getenv("INTERNAL_TOKEN")
+	internal := r.Group("/internal", middleware.InternalAuth(internalToken))
 	{
 		internal.POST("/tasks/:id/events", interventionHandler.HandleWrapperEvent)
 	}

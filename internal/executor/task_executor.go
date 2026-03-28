@@ -556,24 +556,48 @@ func (e *TaskExecutor) HandleTaskEvent(ctx context.Context, taskID string, event
 
 	switch eventType {
 	case "status_change":
-		if status, ok := payload["status"].(string); ok {
-			e.logger.Info("task status change event",
+		status, ok := payload["status"].(string)
+		if !ok || status == "" {
+			e.logger.Warn("invalid status in status_change event",
 				"task_id", taskID,
-				"new_status", status,
+				"payload", payload,
 			)
-			if e.config.UpdateTaskStatus != nil {
-				message := ""
-				if m, ok := payload["message"].(string); ok {
-					message = m
-				}
-				if err := e.config.UpdateTaskStatus(ctx, taskID, status, message); err != nil {
-					e.logger.Error("UpdateTaskStatus callback failed for status_change",
-						"task_id", taskID,
-						"status", status,
-						"error", err,
-					)
-					return fmt.Errorf("UpdateTaskStatus callback failed for task %s: %w", taskID, err)
-				}
+			return nil
+		}
+		validStatuses := map[string]bool{
+			model.TaskStatusPending:         true,
+			model.TaskStatusScheduled:       true,
+			model.TaskStatusRunning:         true,
+			model.TaskStatusPaused:          true,
+			model.TaskStatusWaitingApproval: true,
+			model.TaskStatusRetrying:        true,
+			model.TaskStatusSucceeded:       true,
+			model.TaskStatusFailed:          true,
+			model.TaskStatusCancelled:       true,
+		}
+		if !validStatuses[status] {
+			e.logger.Warn("unknown status in status_change event",
+				"task_id", taskID,
+				"status", status,
+			)
+			return nil
+		}
+		e.logger.Info("task status change event",
+			"task_id", taskID,
+			"new_status", status,
+		)
+		if e.config.UpdateTaskStatus != nil {
+			message := ""
+			if m, ok := payload["message"].(string); ok {
+				message = m
+			}
+			if err := e.config.UpdateTaskStatus(ctx, taskID, status, message); err != nil {
+				e.logger.Error("UpdateTaskStatus callback failed for status_change",
+					"task_id", taskID,
+					"status", status,
+					"error", err,
+				)
+				return fmt.Errorf("UpdateTaskStatus callback failed for task %s: %w", taskID, err)
 			}
 		}
 

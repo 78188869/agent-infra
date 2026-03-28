@@ -93,7 +93,8 @@ func (cm *ComposeManager) GenerateSingleContainerConfig(ctx context.Context, dat
 		"AllowedTools":    data.AllowedTools,
 	}
 
-	f, err := os.Create(filepath.Join(taskDir, "docker-compose.yml"))
+	composeFile := filepath.Join(taskDir, "docker-compose.yml")
+	f, err := os.Create(composeFile)
 	if err != nil {
 		return fmt.Errorf("failed to create compose file: %w", err)
 	}
@@ -101,6 +102,11 @@ func (cm *ComposeManager) GenerateSingleContainerConfig(ctx context.Context, dat
 
 	if err := tmpl.Execute(f, templateData); err != nil {
 		return fmt.Errorf("failed to execute single-container compose template: %w", err)
+	}
+
+	// Restrict compose file permissions since it contains sensitive data (API key)
+	if err := os.Chmod(composeFile, 0600); err != nil {
+		return fmt.Errorf("failed to set compose file permissions: %w", err)
 	}
 
 	return nil

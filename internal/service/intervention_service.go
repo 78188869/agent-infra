@@ -327,6 +327,28 @@ func (s *interventionService) Inject(ctx context.Context, req *InjectInterventio
 		return nil, err
 	}
 
+	// Forward instruction to the task executor via the event handler
+	if s.eventHandler != nil {
+		eventPayload := map[string]interface{}{
+			"instruction": req.Instruction,
+			"context":     req.Context,
+			"task_id":     req.TaskID,
+		}
+		if err := s.eventHandler.HandleTaskEvent(ctx, req.TaskID, "inject_instruction", eventPayload); err != nil {
+			// Update intervention status to failed
+			intervention.Status = model.InterventionStatusFailed
+			failResult := model.InterventionResult{
+				Success:   false,
+				Message:   "Failed to inject instruction: " + err.Error(),
+				Timestamp: time.Now().Unix(),
+			}
+			failResultJSON, _ := json.Marshal(failResult)
+			intervention.Result = datatypes.JSON(failResultJSON)
+			s.interventionRepo.Update(ctx, intervention)
+			return nil, err
+		}
+	}
+
 	// Update intervention status to applied
 	intervention.Status = model.InterventionStatusApplied
 	result := model.InterventionResult{

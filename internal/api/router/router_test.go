@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -519,6 +520,11 @@ func TestSetup_InternalRoutes(t *testing.T) {
 }
 
 func TestSetup_InternalWrapperEvent(t *testing.T) {
+	// Set INTERNAL_TOKEN env var for authentication
+	testToken := "test-internal-token-12345"
+	os.Setenv("INTERNAL_TOKEN", testToken)
+	defer os.Unsetenv("INTERNAL_TOKEN")
+
 	mockTenantSvc := &mockTenantService{}
 	mockTemplateSvc := &mockTemplateService{}
 	mockTaskSvc := &mockTaskService{}
@@ -533,10 +539,40 @@ func TestSetup_InternalWrapperEvent(t *testing.T) {
 	body := strings.NewReader(`{"event_type":"heartbeat","payload":{"status":"running","progress":50}}`)
 	req := httptest.NewRequest(http.MethodPost, "/internal/tasks/"+taskID+"/events", body)
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Internal-Token", testToken)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status %d, got %d, body: %s", http.StatusOK, w.Code, w.Body.String())
+	}
+}
+
+func TestSetup_InternalWrapperEvent_Unauthorized(t *testing.T) {
+	// Set INTERNAL_TOKEN env var so auth is required
+	testToken := "secret-token"
+	os.Setenv("INTERNAL_TOKEN", testToken)
+	defer os.Unsetenv("INTERNAL_TOKEN")
+
+	mockTenantSvc := &mockTenantService{}
+	mockTemplateSvc := &mockTemplateService{}
+	mockTaskSvc := &mockTaskService{}
+	mockProviderSvc := &mockProviderService{}
+	mockCapabilitySvc := &mockCapabilityService{}
+	mockDB := &mockDBChecker{}
+	mockHub := monitoring.NewHub()
+	mockInterventionSvc := &mockInterventionService{}
+	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, &mockMonitoringService{}, mockHub, mockInterventionSvc, mockDB)
+
+	taskID := "00000000-0000-0000-0000-000000000001"
+	body := strings.NewReader(`{"event_type":"heartbeat","payload":{"status":"running","progress":50}}`)
+	req := httptest.NewRequest(http.MethodPost, "/internal/tasks/"+taskID+"/events", body)
+	req.Header.Set("Content-Type", "application/json")
+	// No X-Internal-Token header => should be rejected
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("Expected status %d, got %d, body: %s", http.StatusUnauthorized, w.Code, w.Body.String())
 	}
 }
