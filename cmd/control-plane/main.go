@@ -3,7 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
+	"os"
 
 	"github.com/example/agent-infra/internal/api/router"
 	"github.com/example/agent-infra/internal/config"
@@ -18,11 +19,15 @@ import (
 func main() {
 	cfg, err := config.Load("configs/config.yaml")
 	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+		slog.Error("failed to load config", "error", err)
+		os.Exit(1)
 	}
 
 	env := cfg.GetEnvironment()
-	log.Printf("Starting control-plane in %q environment", env)
+	// Initialize structured logger (file output in local env, stdout in production)
+	logger := monitoring.NewLogger(cfg)
+	slog.SetDefault(logger)
+	slog.Info("starting control-plane", "env", env)
 
 	gin.SetMode(cfg.Server.Mode)
 
@@ -36,7 +41,7 @@ func main() {
 	var db *config.Database
 	db, err = config.NewDatabase(cfg.Database)
 	if err != nil {
-		log.Printf("Warning: failed to connect to database, using mock service: %v", err)
+		slog.Warn("failed to connect to database, using mock service", "error", err)
 		tenantSvc = &mockTenantService{}
 		templateSvc = &mockTemplateService{}
 		taskSvc = &mockTaskService{}
@@ -46,7 +51,7 @@ func main() {
 		monitoringSvc = &mockMonitoringService{}
 	} else {
 		if err := db.AutoMigrate(&model.Tenant{}, &model.Template{}, &model.Task{}, &model.Provider{}, &model.Capability{}, &model.Intervention{}); err != nil {
-			log.Printf("Warning: failed to auto-migrate: %v", err)
+			slog.Warn("failed to auto-migrate", "error", err)
 		}
 		tenantRepo := repository.NewTenantRepository(db.DB)
 		tenantSvc = service.NewTenantService(tenantRepo)
@@ -80,9 +85,10 @@ func main() {
 	r := router.Setup(tenantSvc, templateSvc, taskSvc, providerSvc, capabilitySvc, monitoringSvc, monitoringHub, interventionSvc, db)
 
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
-	log.Printf("Starting control-plane server on %s (env=%s)", addr, env)
+	slog.Info("starting server", "addr", addr, "env", env)
 	if err := r.Run(addr); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+		slog.Error("failed to start server", "error", err)
+		os.Exit(1)
 	}
 }
 
