@@ -18,3 +18,9 @@ redis:
 log:
   level: debug
   format: text
+  outputs: both
+  file:
+    dir: logs
+    max_size_mb: 100
+    max_backups: 7
+    max_age_days: 30
