@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"time"
 
 	"github.com/example/agent-infra/internal/monitoring"
@@ -47,6 +48,14 @@ func (s *monitoringService) RecordTaskStatusChange(ctx context.Context, taskID, 
 	data, _ := json.Marshal(msg)
 	s.hub.Broadcast(tenantID, data)
 
+	slog.Info("task status changed",
+		"component", "business",
+		"task_id", taskID,
+		"tenant_id", tenantID,
+		"old_status", oldStatus,
+		"new_status", newStatus,
+	)
+
 	// Write to SLS
 	entry := &sls.LogEntry{
 		TaskID:    taskID,
@@ -73,6 +82,15 @@ func (s *monitoringService) RecordLogEntry(ctx context.Context, taskID, tenantID
 		Content:   toMap(content),
 		Source:    "control-plane",
 	}
+
+	slog.Info("log entry recorded",
+		"component", "business",
+		"task_id", taskID,
+		"tenant_id", tenantID,
+		"event_type", string(eventType),
+		"event_name", eventName,
+	)
+
 	return s.sls.RecordEvent(ctx, entry)
 }
 
@@ -104,6 +122,13 @@ func (s *monitoringService) BroadcastTaskCompletion(ctx context.Context, taskID,
 	}
 	data, _ := json.Marshal(msg)
 	s.hub.Broadcast(tenantID, data)
+
+	slog.Info("task completed",
+		"component", "business",
+		"task_id", taskID,
+		"tenant_id", tenantID,
+	)
+
 	return nil
 }
 
