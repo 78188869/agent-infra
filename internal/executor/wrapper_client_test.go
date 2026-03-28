@@ -190,7 +190,7 @@ func TestWrapperClient_Inject(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"success":true,"message":"Instruction injected successfully"}`))
+		w.Write([]byte(`{"status":"injected"}`))
 	}))
 	defer testServer.Close()
 

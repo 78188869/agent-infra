@@ -252,3 +252,7 @@ func (m *mockInterventionService) Inject(ctx context.Context, req *service.Injec
 func (m *mockInterventionService) ListInterventions(ctx context.Context, taskID string, filter *service.InterventionFilter) ([]*model.Intervention, int64, error) {
 	return []*model.Intervention{}, 0, nil
 }
+
+func (m *mockInterventionService) HandleWrapperEvent(ctx context.Context, taskID string, eventType string, payload map[string]interface{}) error {
+	return nil
+}

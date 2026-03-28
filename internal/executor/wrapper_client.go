@@ -84,14 +84,13 @@ type ResumeResponse struct {
 
 // InjectRequest represents a request to inject instructions.
 type InjectRequest struct {
-	Content   string `json:"content"`
-	Timestamp int64  `json:"timestamp"`
+	Prompt string `json:"prompt"`
 }
 
 // InjectResponse represents the response from inject operation.
 type InjectResponse struct {
-	Success bool   `json:"success"`
-	Message string `json:"message"`
+	Status  string `json:"status"`
+	Success bool   `json:"success,omitempty"`
 }
 
 // Health checks the health of the Wrapper.
@@ -208,8 +207,7 @@ func (c *WrapperClient) Inject(ctx context.Context, address string, content stri
 		return fmt.Errorf("invalid runtime address: %s", address)
 	}
 	req := &InjectRequest{
-		Content:   content,
-		Timestamp: time.Now().Unix(),
+		Prompt: content,
 	}
 
 	body, err := json.Marshal(req)
@@ -233,8 +231,8 @@ func (c *WrapperClient) Inject(ctx context.Context, address string, content stri
 		return fmt.Errorf("failed to decode inject response: %w", err)
 	}
 
-	if !injectResp.Success {
-		return fmt.Errorf("inject failed: %s", injectResp.Message)
+	if injectResp.Status != "injected" {
+		return fmt.Errorf("inject failed: unexpected status %s", injectResp.Status)
 	}
 
 	return nil

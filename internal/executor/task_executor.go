@@ -638,6 +638,18 @@ func (e *TaskExecutor) HandleTaskEvent(ctx context.Context, taskID string, event
 				return fmt.Errorf("OnTaskFailed callback failed for task %s: %w", taskID, err)
 			}
 		}
+
+	case "progress":
+		e.logger.Info("Task progress",
+			"task_id", taskID,
+			"text", payload["text"],
+		)
+
+	case "tool_call":
+		e.logger.Info("Task tool call",
+			"task_id", taskID,
+			"tool_name", payload["tool_name"],
+		)
 	}
 
 	return nil

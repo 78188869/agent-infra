@@ -25,7 +25,7 @@ class StateMachine:
         "idle": {"starting"},
         "starting": {"streaming", "failed"},
         "streaming": {"interrupted", "completed", "failed"},
-        "interrupted": {"streaming", "failed"},
+        "interrupted": {"streaming", "completed", "failed"},
         "completed": set(),  # Terminal state
         "failed": set(),  # Terminal state
     }
@@ -84,26 +84,13 @@ class StateMachine:
             self._state = new_state
 
     async def force_transition(self, new_state: str) -> None:
-        """Force transition to a new state without precondition checks.
+        """Force transition to a new state without validation.
 
         Used for error recovery and cleanup scenarios where the normal
-        transition rules should be bypassed. Still validates that the
-        transition is allowed by the state machine.
+        transition rules should be bypassed (e.g., completed -> failed).
 
         Args:
             new_state: Target state to transition to.
-
-        Raises:
-            StateError: If transition is invalid according to state machine.
         """
         async with self._lock:
-            # Validate transition is allowed
-            allowed = self.TRANSITIONS.get(self._state, set())
-            if new_state not in allowed:
-                raise StateError(
-                    f"Invalid state transition: {self._state} -> {new_state}. "
-                    f"Allowed transitions from {self._state}: {allowed}"
-                )
-
-            # Perform transition
             self._state = new_state
