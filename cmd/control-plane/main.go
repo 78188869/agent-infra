@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/example/agent-infra/internal/api/router"
 	"github.com/example/agent-infra/internal/config"
@@ -14,52 +13,20 @@ import (
 	"github.com/example/agent-infra/internal/service"
 	"github.com/example/agent-infra/pkg/aliyun/sls"
 	"github.com/gin-gonic/gin"
-	"gopkg.in/yaml.v3"
 )
 
-type Config struct {
-	Server struct {
-		Port int    `yaml:"port"`
-		Mode string `yaml:"mode"`
-	} `yaml:"server"`
-	Database struct {
-		Host     string `yaml:"host"`
-		Port     int    `yaml:"port"`
-		Name     string `yaml:"name"`
-		User     string `yaml:"user"`
-		Password string `yaml:"password"`
-	} `yaml:"database"`
-}
-
-// ToDatabaseConfig converts Config database settings to config.DatabaseConfig.
-func (c *Config) ToDatabaseConfig() config.DatabaseConfig {
-	return config.DatabaseConfig{
-		Host:     c.Database.Host,
-		Port:     c.Database.Port,
-		Database: c.Database.Name,
-		Username: c.Database.User,
-		Password: c.Database.Password,
-	}
-}
-
 func main() {
-	// Load configuration
-	cfg, err := loadConfig("cmd/control-plane/config.yaml")
+	cfg, err := config.Load("configs/config.yaml")
 	if err != nil {
-		log.Printf("Warning: failed to load config, using defaults: %v", err)
-		cfg = &Config{}
-		cfg.Server.Port = 8080
-		cfg.Server.Mode = "debug"
-		cfg.Database.Host = "localhost"
-		cfg.Database.Port = 3306
-		cfg.Database.Name = "agent_infra"
-		cfg.Database.User = "root"
+		log.Fatalf("Failed to load config: %v", err)
 	}
+	cfg.ApplyDefaults()
 
-	// Set gin mode
+	env := cfg.GetEnvironment()
+	log.Printf("Starting control-plane in %q environment", env)
+
 	gin.SetMode(cfg.Server.Mode)
 
-	// Initialize database (optional - will use mock if not available)
 	var tenantSvc service.TenantService
 	var templateSvc service.TemplateService
 	var taskSvc service.TaskService
@@ -68,7 +35,7 @@ func main() {
 	var interventionSvc service.InterventionService
 	var monitoringSvc service.MonitoringService
 	var db *config.Database
-	db, err = config.NewDatabase(cfg.ToDatabaseConfig())
+	db, err = config.NewDatabase(cfg.Database)
 	if err != nil {
 		log.Printf("Warning: failed to connect to database, using mock service: %v", err)
 		tenantSvc = &mockTenantService{}
@@ -79,11 +46,9 @@ func main() {
 		interventionSvc = &mockInterventionService{}
 		monitoringSvc = &mockMonitoringService{}
 	} else {
-		// Auto-migrate models
 		if err := db.AutoMigrate(&model.Tenant{}, &model.Template{}, &model.Task{}, &model.Provider{}, &model.Capability{}, &model.Intervention{}); err != nil {
 			log.Printf("Warning: failed to auto-migrate: %v", err)
 		}
-		// Create real services with repositories
 		tenantRepo := repository.NewTenantRepository(db.DB)
 		tenantSvc = service.NewTenantService(tenantRepo)
 
@@ -103,23 +68,20 @@ func main() {
 		interventionSvc = service.NewInterventionService(taskRepo, interventionRepo)
 	}
 
-	// Initialize monitoring (Phase 8 - MVP Monitoring & Logging)
 	monitoringHub := monitoring.NewHub()
 	slsClient := monitoring.NewSLSClient(sls.Config{
-		Endpoint:        os.Getenv("SLS_ENDPOINT"),
-		AccessKeyID:     os.Getenv("ALIBABA_CLOUD_ACCESS_KEY_ID"),
-		AccessKeySecret: os.Getenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET"),
-		Project:         os.Getenv("SLS_PROJECT"),
-		LogStore:        "execution-logs",
+		Endpoint:        cfg.SLS.Endpoint,
+		AccessKeyID:     cfg.SLS.AccessKey,
+		AccessKeySecret: cfg.SLS.AccessSecret,
+		Project:         cfg.SLS.Project,
+		LogStore:        cfg.SLS.Logstore,
 	})
 	monitoringSvc = service.NewMonitoringService(monitoringHub, slsClient)
 
-	// Setup router (pass db for health checks - can be nil if not available)
 	r := router.Setup(tenantSvc, templateSvc, taskSvc, providerSvc, capabilitySvc, monitoringSvc, monitoringHub, interventionSvc, db)
 
-	// Start server
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
-	log.Printf("Starting control-plane server on %s", addr)
+	log.Printf("Starting control-plane server on %s (env=%s)", addr, env)
 	if err := r.Run(addr); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
@@ -304,18 +266,4 @@ func (m *mockMonitoringService) RecordTaskProgress(ctx context.Context, taskID, 
 
 func (m *mockMonitoringService) BroadcastTaskCompletion(ctx context.Context, taskID, tenantID string) error {
 	return nil
-}
-
-func loadConfig(path string) (*Config, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("read config file: %w", err)
-	}
-
-	var cfg Config
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return nil, fmt.Errorf("parse config: %w", err)
-	}
-
-	return &cfg, nil
 }
