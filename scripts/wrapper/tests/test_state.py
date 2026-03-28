@@ -16,7 +16,7 @@ def test_initial_state_is_idle():
 async def test_valid_transition_idle_to_starting():
     """Transition from idle to starting should succeed."""
     sm = StateMachine()
-    await sm.transition("starting", precondition=True)
+    await sm.transition("starting")
     assert sm.current == "starting"
 
 
@@ -24,7 +24,7 @@ async def test_valid_transition_idle_to_starting():
 async def test_valid_transition_starting_to_streaming():
     """Transition from starting to streaming should succeed."""
     sm = StateMachine(initial_state="starting")
-    await sm.transition("streaming", precondition=True)
+    await sm.transition("streaming")
     assert sm.current == "streaming"
 
 
@@ -32,7 +32,7 @@ async def test_valid_transition_starting_to_streaming():
 async def test_valid_transition_streaming_to_interrupted():
     """Transition from streaming to interrupted should succeed."""
     sm = StateMachine(initial_state="streaming")
-    await sm.transition("interrupted", precondition=True)
+    await sm.transition("interrupted")
     assert sm.current == "interrupted"
 
 
@@ -40,7 +40,7 @@ async def test_valid_transition_streaming_to_interrupted():
 async def test_valid_transition_interrupted_to_streaming():
     """Transition from interrupted back to streaming (inject flow) should succeed."""
     sm = StateMachine(initial_state="interrupted")
-    await sm.transition("streaming", precondition=True)
+    await sm.transition("streaming")
     assert sm.current == "streaming"
 
 
@@ -48,7 +48,7 @@ async def test_valid_transition_interrupted_to_streaming():
 async def test_valid_transition_streaming_to_completed():
     """Transition from streaming to completed should succeed."""
     sm = StateMachine(initial_state="streaming")
-    await sm.transition("completed", precondition=True)
+    await sm.transition("completed")
     assert sm.current == "completed"
 
 
@@ -56,7 +56,7 @@ async def test_valid_transition_streaming_to_completed():
 async def test_valid_transition_streaming_to_failed():
     """Transition from streaming to failed should succeed."""
     sm = StateMachine(initial_state="streaming")
-    await sm.transition("failed", precondition=True)
+    await sm.transition("failed")
     assert sm.current == "failed"
 
 
@@ -65,7 +65,7 @@ async def test_invalid_transition_raises():
     """Transitioning to a state not in the allowed set should raise StateError."""
     sm = StateMachine()
     with pytest.raises(StateError, match="Invalid state transition"):
-        await sm.transition("streaming", precondition=True)
+        await sm.transition("streaming")
     assert sm.current == "idle"  # State should remain unchanged
 
 
@@ -80,7 +80,7 @@ async def test_concurrent_transitions_only_one_succeeds():
 
     async def try_transition(target: str):
         try:
-            await sm.transition(target, precondition=True)
+            await sm.transition(target)
             results.append(target)
         except StateError:
             results.append("error")

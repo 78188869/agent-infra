@@ -16,6 +16,7 @@ def mock_agent():
     """Create a mocked AgentClient with async method stubs."""
     agent = MagicMock()
     agent.state = AgentState.idle
+    agent._task_id = "test-task-123"
     agent.get_status.return_value = {"state": AgentState.idle, "error": None}
     agent.start = AsyncMock()
     agent.interrupt = AsyncMock()
@@ -33,21 +34,28 @@ def client(mock_agent):
     return TestClient(app)
 
 
-def test_health(client):
-    """GET /health returns 200 with status ok and agent state."""
+def test_health(client, mock_agent):
+    """GET /health returns 200 with status, agent_state, task_id, uptime, version."""
     resp = client.get("/health")
     assert resp.status_code == 200
     body = resp.json()
     assert body["status"] == "ok"
     assert body["agent_state"] == AgentState.idle
+    assert body["task_id"] == "test-task-123"
+    assert body["uptime"] >= 0
+    assert body["version"] == "1.0.0"
 
 
 def test_get_status(client):
-    """GET /status returns 200 with agent state and no error."""
+    """GET /status returns 200 with status field (Go-compatible) and no error."""
     resp = client.get("/status")
     assert resp.status_code == 200
     body = resp.json()
-    assert body["state"] == AgentState.idle
+    assert body["status"] == AgentState.idle
+    assert body["progress"] == 0
+    assert body["stage"] == ""
+    assert "timestamp" in body
+    assert body["message"] == ""
     assert body["error"] is None
 
 

@@ -4,7 +4,7 @@ The state machine enforces valid transitions and prevents race conditions
 during concurrent state changes.
 """
 import asyncio
-from typing import Dict, List, Set, Optional
+from typing import Dict, Set
 
 
 class StateError(Exception):
@@ -48,29 +48,19 @@ class StateMachine:
         """
         return self._state
 
-    async def transition(
-        self, new_state: str, precondition: Optional[bool] = None
-    ) -> None:
+    async def transition(self, new_state: str) -> None:
         """Transition to a new state with validation.
 
-        Validates both the precondition (if provided) and that the transition
-        is allowed according to the state machine rules.
+        Validates that the transition is allowed according to the state
+        machine rules defined in TRANSITIONS.
 
         Args:
             new_state: Target state to transition to.
-            precondition: Optional boolean condition that must be True.
-                         If False or None, the transition is rejected.
 
         Raises:
-            StateError: If precondition fails or transition is invalid.
+            StateError: If transition is invalid.
         """
         async with self._lock:
-            # Check precondition if provided
-            if precondition is not None and not precondition:
-                raise StateError(
-                    f"Precondition failed for transition {self._state} -> {new_state}"
-                )
-
             # Validate transition is allowed
             allowed = self.TRANSITIONS.get(self._state, set())
             if new_state not in allowed:
@@ -80,7 +70,6 @@ class StateMachine:
                 )
 
             # Perform transition
-            old_state = self._state
             self._state = new_state
 
     async def force_transition(self, new_state: str) -> None:

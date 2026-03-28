@@ -30,15 +30,27 @@ class InjectRequest(BaseModel):
 
 
 class StatusResponse(BaseModel):
-    """Response reporting the current agent status."""
+    """Response reporting the current agent status.
 
-    state: AgentState = Field(..., description="Current agent state")
-    session_id: Optional[str] = Field(None, description="Active session ID if any")
+    Fields match Go's WrapperStatus struct for protocol compatibility.
+    """
+
+    status: str = Field(..., description="Current agent state as string")
+    progress: int = Field(0, description="Task progress percentage")
+    stage: str = Field("", description="Current execution stage")
+    timestamp: float = Field(0.0, description="Unix timestamp of status")
+    message: str = Field("", description="Status message")
     error: Optional[str] = Field(None, description="Error message if in failed state")
 
 
 class HealthResponse(BaseModel):
-    """Health check response."""
+    """Health check response.
+
+    Fields match Go's WrapperHealth struct for protocol compatibility.
+    """
 
     status: str = Field(..., description="Overall service health status")
     agent_state: AgentState = Field(..., description="Current agent state")
+    task_id: str = Field("", description="Task ID assigned to this wrapper")
+    uptime: float = Field(0.0, description="Seconds since wrapper started")
+    version: str = Field("1.0.0", description="Wrapper version")

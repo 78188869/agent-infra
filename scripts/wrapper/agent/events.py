@@ -4,6 +4,7 @@ The EventReporter sends task lifecycle events to the control plane via HTTP.
 When the control plane is unreachable, events are persisted to a local JSONL
 file so that no event data is lost.
 """
+import asyncio
 import json
 import os
 from datetime import datetime, timezone
@@ -40,6 +41,27 @@ class EventReporter:
         self._url = f"{self._control_plane_url}/internal/tasks/{task_id}/events"
         self._fallback_path = Path(os.getenv("FALLBACK_DIR", _FALLBACK_DIR)) / _FALLBACK_FILE
 
+        # Build headers for internal API authentication
+        self._headers = {}
+        internal_token = os.environ.get("INTERNAL_TOKEN", "")
+        if internal_token:
+            self._headers["X-Internal-Token"] = internal_token
+
+        # Reusable HTTP client (created lazily)
+        self._client: Optional[httpx.AsyncClient] = None
+
+    async def _get_client(self) -> httpx.AsyncClient:
+        """Get or create the reusable HTTP client.
+
+        Returns:
+            A reusable httpx.AsyncClient instance.
+        """
+        if self._client is None or self._client.is_closed:
+            self._client = httpx.AsyncClient(
+                timeout=self.TIMEOUT_SECONDS, headers=self._headers
+            )
+        return self._client
+
     async def _post_event(self, event_type: str, payload: Dict[str, Any]) -> None:
         """Send an event to the control plane via HTTP POST.
 
@@ -55,9 +77,18 @@ class EventReporter:
             "payload": payload,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
-        async with httpx.AsyncClient(timeout=self.TIMEOUT_SECONDS) as client:
-            response = await client.post(self._url, json=body)
-            response.raise_for_status()
+        client = await self._get_client()
+        response = await client.post(self._url, json=body)
+        response.raise_for_status()
+
+    async def close(self) -> None:
+        """Close the reusable HTTP client.
+
+        Should be called during shutdown to release connections.
+        """
+        if self._client and not self._client.is_closed:
+            await self._client.aclose()
+            self._client = None
 
     async def _fallback_write(self, event_type: str, payload: Dict[str, Any]) -> None:
         """Write an event to the local fallback JSONL file.
@@ -97,8 +128,6 @@ class EventReporter:
                 last_error = exc
                 # Exponential backoff: 1s, 2s, 4s
                 backoff = 2 ** attempt
-                import asyncio
-
                 await asyncio.sleep(backoff)
 
         # All retries exhausted, fall back to local file

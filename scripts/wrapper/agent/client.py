@@ -47,6 +47,7 @@ class AgentClient:
         self._timeout_task: Optional[asyncio.Task] = None
         self._reporter = EventReporter(task_id, control_plane_url)
         self._sdk_error: Optional[Exception] = None
+        self._failed_reported: bool = False
 
     @property
     def state(self) -> str:
@@ -96,11 +97,12 @@ class AgentClient:
             StateError: If the current state does not allow starting.
             Exception: If the SDK client fails to connect.
         """
-        await self._state.transition(AgentState.starting, precondition=True)
+        await self._state.transition(AgentState.starting)
+        self._failed_reported = False
         self._sdk_client = ClaudeSDKClient(options=self._build_options(options))
         try:
             await self._sdk_client.connect(prompt)
-            await self._state.transition(AgentState.streaming, precondition=True)
+            await self._state.transition(AgentState.streaming)
             self._consumer_task = asyncio.create_task(self._consume_messages())
             self._watchdog_task = asyncio.create_task(self._watchdog_monitor())
             self._timeout_task = asyncio.create_task(self._timeout_watcher())
@@ -119,7 +121,7 @@ class AgentClient:
         Raises:
             StateError: If not in STREAMING state.
         """
-        await self._state.transition(AgentState.interrupted, precondition=True)
+        await self._state.transition(AgentState.interrupted)
         if self._sdk_client:
             await self._sdk_client.interrupt()
 
@@ -135,18 +137,23 @@ class AgentClient:
         Raises:
             StateError: If not in INTERRUPTED state.
         """
-        await self._state.transition(AgentState.streaming, precondition=True)
-        if self._sdk_client:
-            await self._sdk_client.query(prompt)
-            if self._consumer_task and not self._consumer_task.done():
-                self._consumer_task.cancel()
-            self._consumer_task = asyncio.create_task(self._consume_messages())
+        await self._state.transition(AgentState.streaming)
+        try:
+            if self._sdk_client:
+                await self._sdk_client.query(prompt)
+                if self._consumer_task and not self._consumer_task.done():
+                    self._consumer_task.cancel()
+                self._consumer_task = asyncio.create_task(self._consume_messages())
+        except Exception:
+            # Revert state on failure so it doesn't get stuck in streaming
+            await self._state.force_transition(AgentState.interrupted)
+            raise
 
     async def stop(self) -> None:
         """Stop all background tasks and disconnect the SDK client.
 
         Cancels consumer, watchdog, and timeout tasks, then disconnects
-        the SDK client. Safe to call multiple times.
+        the SDK client and closes the event reporter. Safe to call multiple times.
         """
         for task in (self._consumer_task, self._watchdog_task, self._timeout_task):
             if task and not task.done():
@@ -156,6 +163,7 @@ class AgentClient:
                 await self._sdk_client.disconnect()
             except Exception as e:
                 logger.warning("Error disconnecting SDK client: %s", e)
+        await self._reporter.close()
 
     async def _consume_messages(self) -> None:
         """Consume messages from the SDK client and report events.
@@ -178,27 +186,27 @@ class AgentClient:
                             )
                 elif isinstance(message, ResultMessage):
                     if message.subtype == "success":
-                        await self._state.transition(
-                            AgentState.completed, precondition=True
-                        )
+                        await self._state.transition(AgentState.completed)
                         await self._reporter.report_complete(
                             cost=getattr(message, "total_cost_usd", 0.0) or 0.0,
                             duration=0.0,
                         )
                     else:
-                        await self._state.transition(
-                            AgentState.failed, precondition=True
-                        )
-                        await self._reporter.report_failed(
-                            getattr(message, "error", "unknown error")
-                        )
+                        if not self._failed_reported:
+                            self._failed_reported = True
+                            await self._state.transition(AgentState.failed)
+                            await self._reporter.report_failed(
+                                getattr(message, "error", "unknown error")
+                            )
                     return
         except asyncio.CancelledError:
             logger.info("Consumer task cancelled")
         except Exception as e:
             self._sdk_error = e
-            await self._state.force_transition(AgentState.failed)
-            await self._reporter.report_failed(str(e))
+            if not self._failed_reported:
+                self._failed_reported = True
+                await self._state.force_transition(AgentState.failed)
+                await self._reporter.report_failed(str(e))
 
     async def _watchdog_monitor(self) -> None:
         """Monitor SDK process health periodically.
@@ -216,12 +224,16 @@ class AgentClient:
                     try:
                         info = await self._sdk_client.get_server_info()
                         if info is None:
-                            await self._state.force_transition(AgentState.failed)
-                            await self._reporter.report_failed("sdk_process_dead")
+                            if not self._failed_reported:
+                                self._failed_reported = True
+                                await self._state.force_transition(AgentState.failed)
+                                await self._reporter.report_failed("sdk_process_dead")
                             return
                     except Exception:
-                        await self._state.force_transition(AgentState.failed)
-                        await self._reporter.report_failed("sdk_process_dead")
+                        if not self._failed_reported:
+                            self._failed_reported = True
+                            await self._state.force_transition(AgentState.failed)
+                            await self._reporter.report_failed("sdk_process_dead")
                         return
         except asyncio.CancelledError:
             pass

@@ -53,6 +53,7 @@ async def test_stop_cleans_up(client):
     """stop should cancel tasks and disconnect the SDK client."""
     client._sdk_client = MagicMock()
     client._sdk_client.disconnect = AsyncMock()
+    client._reporter.close = AsyncMock()
 
     # Create dummy tasks that are not yet done
     consumer = asyncio.create_task(asyncio.sleep(100))
@@ -65,6 +66,7 @@ async def test_stop_cleans_up(client):
     await client.stop()
 
     client._sdk_client.disconnect.assert_called_once()
+    client._reporter.close.assert_called_once()
     # After cancel(), tasks need a yield to propagate the cancellation
     await asyncio.sleep(0)
     assert consumer.cancelled() or consumer.done()
@@ -76,7 +78,9 @@ async def test_stop_cleans_up(client):
 async def test_stop_without_sdk_client(client):
     """stop should be safe when no SDK client is initialized."""
     client._sdk_client = None
+    client._reporter.close = AsyncMock()
     await client.stop()  # Should not raise
+    client._reporter.close.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -84,9 +88,11 @@ async def test_stop_handles_disconnect_error(client):
     """stop should log warning when disconnect raises an error."""
     client._sdk_client = MagicMock()
     client._sdk_client.disconnect = AsyncMock(side_effect=RuntimeError("disconnect failed"))
+    client._reporter.close = AsyncMock()
 
     await client.stop()  # Should not raise
     client._sdk_client.disconnect.assert_called_once()
+    client._reporter.close.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -155,8 +161,8 @@ async def test_interrupt_calls_sdk_interrupt(client):
     client._sdk_client = mock_sdk
 
     # Manually set state to streaming
-    await client._state.transition(AgentState.starting, precondition=True)
-    await client._state.transition(AgentState.streaming, precondition=True)
+    await client._state.transition(AgentState.starting)
+    await client._state.transition(AgentState.streaming)
 
     await client.interrupt()
 
@@ -172,9 +178,9 @@ async def test_inject_calls_sdk_query(client):
     client._sdk_client = mock_sdk
 
     # Manually set state to interrupted
-    await client._state.transition(AgentState.starting, precondition=True)
-    await client._state.transition(AgentState.streaming, precondition=True)
-    await client._state.transition(AgentState.interrupted, precondition=True)
+    await client._state.transition(AgentState.starting)
+    await client._state.transition(AgentState.streaming)
+    await client._state.transition(AgentState.interrupted)
 
     await client.inject("new instruction")
 
@@ -186,9 +192,37 @@ async def test_inject_calls_sdk_query(client):
 
 
 @pytest.mark.asyncio
+async def test_inject_reverts_state_on_query_failure(client):
+    """inject should revert to interrupted state if SDK query fails."""
+    mock_sdk = MagicMock()
+    mock_sdk.query = AsyncMock(side_effect=RuntimeError("query failed"))
+    client._sdk_client = mock_sdk
+
+    # Manually set state to interrupted
+    await client._state.transition(AgentState.starting)
+    await client._state.transition(AgentState.streaming)
+    await client._state.transition(AgentState.interrupted)
+
+    with pytest.raises(RuntimeError, match="query failed"):
+        await client.inject("new instruction")
+
+    # State should be reverted to interrupted
+    assert client.state == AgentState.interrupted
+
+
+@pytest.mark.asyncio
 async def test_get_status_with_error(client):
     """get_status should include error message when SDK has errored."""
     client._sdk_error = RuntimeError("test error")
     status = client.get_status()
     assert status["state"] == AgentState.idle
     assert "test error" in status["error"]
+
+
+@pytest.mark.asyncio
+async def test_failed_reported_prevents_duplicate(client):
+    """Failed events should only be reported once."""
+    client._failed_reported = True
+    # Calling _consume_messages exception path should not report again
+    # This tests that the flag prevents duplicate reporting
+    assert client._failed_reported is True

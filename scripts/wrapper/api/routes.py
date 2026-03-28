@@ -4,7 +4,8 @@ Uses factory pattern: create_app(agent_client) returns a configured FastAPI
 application with all routes bound to the provided agent client instance.
 """
 import logging
-from typing import Any, Dict
+import time
+from typing import Any, Dict, Optional
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
@@ -14,32 +15,51 @@ from models.schemas import (
     HealthResponse,
     InjectRequest,
     StartRequest,
+    StatusResponse,
 )
 
 logger = logging.getLogger(__name__)
 
 
-def create_app(agent_client: Any) -> FastAPI:
+def create_app(agent_client: Any, start_time: Optional[float] = None) -> FastAPI:
     """Create and configure a FastAPI application bound to the given agent client.
 
     Args:
         agent_client: An AgentClient instance with start/interrupt/inject/stop
                       methods and a `state` property.
+        start_time: Optional monotonic start time for uptime calculation.
+                    Defaults to current time.
 
     Returns:
         Configured FastAPI application.
     """
+    _start_time = start_time or time.time()
+
     app = FastAPI(title="Agent Wrapper", version="0.1.0")
 
     @app.get("/health", response_model=HealthResponse)
     async def health() -> HealthResponse:
         """Health check endpoint returning service and agent state."""
-        return HealthResponse(status="ok", agent_state=agent_client.state)
+        return HealthResponse(
+            status="ok",
+            agent_state=agent_client.state,
+            task_id=agent_client._task_id,
+            uptime=time.time() - _start_time,
+            version="1.0.0",
+        )
 
-    @app.get("/status")
-    async def get_status() -> Dict[str, Any]:
+    @app.get("/status", response_model=StatusResponse)
+    async def get_status() -> StatusResponse:
         """Return the current agent status including state and error info."""
-        return agent_client.get_status()
+        status_data = agent_client.get_status()
+        return StatusResponse(
+            status=status_data.get("state", "idle"),
+            progress=status_data.get("progress", 0),
+            stage=status_data.get("stage", ""),
+            timestamp=time.time(),
+            message=status_data.get("message", ""),
+            error=status_data.get("error"),
+        )
 
     @app.post("/start")
     async def start_task(req: StartRequest) -> JSONResponse:
