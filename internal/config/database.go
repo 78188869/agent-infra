@@ -11,14 +11,14 @@ import (
 
 // DatabaseConfig holds database connection configuration.
 type DatabaseConfig struct {
-	Host            string
-	Port            int
-	Username        string
-	Password        string
-	Database        string
-	MaxIdleConns    int
-	MaxOpenConns    int
-	ConnMaxLifetime time.Duration
+	Host            string        `yaml:"host"`
+	Port            int           `yaml:"port"`
+	Username        string        `yaml:"user"`
+	Password        string        `yaml:"password"`
+	Database        string        `yaml:"name"`
+	MaxIdleConns    int           `yaml:"max_idle_conns"`
+	MaxOpenConns    int           `yaml:"max_connections"`
+	ConnMaxLifetime time.Duration `yaml:"conn_max_lifetime"`
 }
 
 // Database wraps GORM DB with configuration.
