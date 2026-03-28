@@ -3,6 +3,7 @@ package executor
 import (
 	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 )
@@ -114,4 +115,98 @@ func containsSubstring(s, substr string) bool {
 		}
 	}
 	return false
+}
+
+func TestComposeManager_Up_Down(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping docker compose integration test in short mode")
+	}
+	if _, err := exec.LookPath("docker"); err != nil {
+		t.Skip("docker not available")
+	}
+
+	tmpDir := t.TempDir()
+	cfg := DefaultDockerConfig()
+	cfg.ComposeDir = tmpDir
+	cfg.CLIRunnerImage = "alpine:3.19"
+	cfg.WrapperImage = "alpine:3.19"
+
+	cm, _ := NewComposeManager(cfg)
+	taskID := "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+	// Write a simple compose that exits immediately for testing
+	taskDir := filepath.Join(tmpDir, "task-"+taskID)
+	if err := os.MkdirAll(taskDir, 0755); err != nil {
+		t.Fatalf("failed to create task dir: %v", err)
+	}
+	err := os.WriteFile(filepath.Join(taskDir, "docker-compose.yml"), []byte(`services:
+  cli-runner:
+    image: alpine:3.19
+    command: ["echo", "hello"]
+  wrapper:
+    image: alpine:3.19
+    command: ["sleep", "30"]
+    ports:
+      - "9090"
+    depends_on:
+      - cli-runner
+`), 0644)
+	if err != nil {
+		t.Fatalf("failed to write compose file: %v", err)
+	}
+
+	ctx := context.Background()
+
+	// Up
+	if err := cm.Up(ctx, taskID); err != nil {
+		t.Fatalf("Up() error = %v", err)
+	}
+	// Ensure cleanup
+	defer cm.Down(context.Background(), taskID)
+
+	// GetStatus
+	statuses, err := cm.GetStatus(ctx, taskID)
+	if err != nil {
+		t.Fatalf("GetStatus() error = %v", err)
+	}
+	if len(statuses) == 0 {
+		t.Error("GetStatus() returned empty statuses")
+	}
+
+	// Down
+	if err := cm.Down(ctx, taskID); err != nil {
+		t.Fatalf("Down() error = %v", err)
+	}
+}
+
+func TestComposeManager_GetStatus_NotFound(t *testing.T) {
+	cfg := DefaultDockerConfig()
+	cfg.ComposeDir = t.TempDir()
+
+	cm, _ := NewComposeManager(cfg)
+	taskID := "nonexistent-task-id"
+
+	// GetStatus on non-existent task should error
+	_, err := cm.GetStatus(context.Background(), taskID)
+	if err == nil {
+		t.Error("expected error for non-existent task")
+	}
+}
+
+func TestSplitLines(t *testing.T) {
+	tests := []struct {
+		input string
+		want  int
+	}{
+		{"line1\nline2\nline3", 3},
+		{"line1\n\nline3", 2},
+		{"", 0},
+		{"single", 1},
+	}
+	for _, tt := range tests {
+		got := splitLines(tt.input)
+		if len(got) != tt.want {
+			t.Errorf("splitLines(%q) returned %d lines, want %d", tt.input, len(got), tt.want)
+		}
+	}
 }
