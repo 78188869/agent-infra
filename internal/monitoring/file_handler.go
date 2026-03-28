@@ -215,9 +215,84 @@ func (h *MultiOutputHandler) Handle(_ context.Context, r slog.Record) error {
 	return nil
 }
 
-// WithAttrs returns the handler itself (attrs are handled inline).
+// multiOutputChild is a child handler that carries extra attributes
+// from logger.With() calls. It delegates core logic to the parent MultiOutputHandler.
+type multiOutputChild struct {
+	parent *MultiOutputHandler
+	attrs  []slog.Attr
+}
+
+// Enabled delegates to parent.
+func (c *multiOutputChild) Enabled(ctx context.Context, level slog.Level) bool {
+	return c.parent.Enabled(ctx, level)
+}
+
+// Handle processes a slog.Record by merging the child's pre-bound attrs
+// and delegating to the parent's stdout + file routing logic.
+func (c *multiOutputChild) Handle(ctx context.Context, r slog.Record) error {
+	// Build a combined record with both child attrs and record attrs
+	entry := make(map[string]interface{})
+	entry["level"] = r.Level.String()
+	entry["msg"] = r.Message
+	entry["time"] = r.Time.Format(time.RFC3339Nano)
+
+	var component string
+
+	// First add pre-bound attrs
+	for _, a := range c.attrs {
+		entry[a.Key] = a.Value.Any()
+		if a.Key == "component" {
+			component = a.Value.String()
+		}
+	}
+
+	// Then add record-level attrs (may override pre-bound ones)
+	r.Attrs(func(a slog.Attr) bool {
+		entry[a.Key] = a.Value.Any()
+		if a.Key == "component" {
+			component = a.Value.String()
+		}
+		return true
+	})
+
+	data, err := json.Marshal(entry)
+	if err != nil {
+		return fmt.Errorf("json marshal: %w", err)
+	}
+	line := append(data, '\n')
+
+	c.parent.stdout.Write(line)
+
+	if component != "" {
+		c.parent.mu.Lock()
+		defer c.parent.mu.Unlock()
+		for key, fw := range c.parent.files {
+			if component == key || strings.HasPrefix(component, key+".") {
+				fw.write(line)
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// WithAttrs returns a new child handler with additional pre-bound attributes.
+func (c *multiOutputChild) WithAttrs(attrs []slog.Attr) slog.Handler {
+	merged := make([]slog.Attr, len(c.attrs), len(c.attrs)+len(attrs))
+	copy(merged, c.attrs)
+	merged = append(merged, attrs...)
+	return &multiOutputChild{parent: c.parent, attrs: merged}
+}
+
+// WithGroup returns the child itself (groups not supported).
+func (c *multiOutputChild) WithGroup(name string) slog.Handler {
+	return c
+}
+
+// WithAttrs returns a child handler that carries the given attributes.
 func (h *MultiOutputHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	return h
+	return &multiOutputChild{parent: h, attrs: attrs}
 }
 
 // WithGroup returns the handler itself (groups not supported).
