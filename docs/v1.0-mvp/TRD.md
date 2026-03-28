@@ -1268,6 +1268,41 @@ secrets:
 | Sidecar 模式 | CLI 执行与监控干预分离到不同容器 |
 | 共享 PID Namespace | 允许 wrapper 容器向 cli-runner 发送信号 |
 | 声明式状态 | 通过共享 Volume 传递状态，避免复杂 IPC |
+| 容器运行时抽象 | 通过 `ContainerRuntime` 接口支持 K8s（生产）和 Docker Compose（本地开发），对上层透明 |
+
+> **扩展**：新增 Docker Compose 作为本地开发容器运行时，详见 [ADR-001](./decisions/adr-001-docker-compose-local-runtime.md)。
+
+**ContainerRuntime 接口与运行时选择**：
+
+```
+                    ┌─────────────────────────┐
+                    │      TaskExecutor       │
+                    └───────────┬─────────────┘
+                                │ ContainerRuntime 接口
+                    ┌───────────┴───────────┐
+                    │                       │
+            ┌───────▼───────┐       ┌───────▼───────┐
+            │  K8sRuntime   │       │ DockerRuntime │
+            │  (生产环境)    │       │  (本地开发)    │
+            └───────────────┘       └───────┬───────┘
+                                            │
+                                    ┌───────▼───────┐
+                                    │ ComposeManager│
+                                    │ 生成/管理      │
+                                    │ compose YAML  │
+                                    └───────────────┘
+```
+
+**运行时对比**：
+
+| 维度 | K8s（生产） | Docker Compose（本地） |
+|------|------------|---------------------|
+| 编排 | K8s Job | docker compose YAML |
+| 容器组 | Pod: cli-runner + wrapper + log-agent | compose stack: cli-runner + wrapper |
+| 工作区 | emptyDir | 宿主机 bind mount |
+| 日志 | log-agent → SLS | 文件日志 |
+| 状态查询 | K8s API | docker compose ps |
+| 配置 | `runtime_type: k8s` | `runtime_type: docker` |
 
 ### 5.2 Task-Job 绑定设计
 

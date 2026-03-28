@@ -1,6 +1,6 @@
 # Executor Knowledge
 
-> **Last Updated**: 2026-03-23
+> **Last Updated**: 2026-03-28
 > **PRD Version**: v0.7-draft
 > **TRD Version**: v2.4
 
@@ -9,14 +9,14 @@
 Executor 模块负责沙箱 Job 的生命周期管理和状态同步。
 
 **模块职责**：
-- K8s Job 创建与销毁
-- Pod 状态监控
+- 容器运行时管理（K8s / Docker）
+- Job 生命周期管理（创建、监控、销毁）
 - 心跳检测与超时处理
 - 状态上报与同步
 
 **核心概念**：
-- **Job**: K8s Job 资源，封装沙箱执行环境
-- **Pod**: K8s Pod，包含 cli-runner 和 wrapper 容器
+- **ContainerRuntime**: 容器运行时抽象接口，支持 K8s 和 Docker 两种实现
+- **Job**: 执行环境实例，K8s 中为 Job 资源，Docker 中为 compose stack
 - **Wrapper**: Sidecar 容器，负责状态上报和干预处理
 
 ## 2. Product Requirements (from PRD)
@@ -122,7 +122,62 @@ failed     ◀──────────────  Failed    ◀───
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### 3.4 核心接口
+### 3.4 容器运行时抽象
+
+> **设计决策**：通过 `ContainerRuntime` 接口抽象容器运行时，支持 K8s 和 Docker 两种实现。详见 [ADR-001](../current/decisions/adr-001-docker-compose-local-runtime.md)。
+
+```
+                    ┌─────────────────────────┐
+                    │      TaskExecutor       │
+                    └───────────┬─────────────┘
+                                │ ContainerRuntime 接口
+                    ┌───────────┴───────────┐
+                    │                       │
+            ┌───────▼───────┐       ┌───────▼───────┐
+            │  K8sRuntime   │       │ DockerRuntime │
+            │  (生产环境)    │       │  (本地开发)    │
+            └───────────────┘       └───────┬───────┘
+                                            │
+                                    ┌───────▼───────┐
+                                    │ ComposeManager│
+                                    └───────────────┘
+```
+
+**ContainerRuntime 接口**：
+
+```go
+type ContainerRuntime interface {
+    Create(ctx context.Context, task *model.Task) (*RuntimeInfo, error)
+    GetStatus(ctx context.Context, taskID string) (*RuntimeStatus, error)
+    Delete(ctx context.Context, taskID string) error
+    GetAddress(ctx context.Context, taskID string) (string, error)
+}
+```
+
+**运行时选择配置**：
+
+```yaml
+executor:
+  runtime_type: docker  # "docker" 或 "k8s"
+  docker:
+    workspace_dir: ./workspace
+    compose_dir: /tmp/agent-infra/compose
+    cli_runner_image: cli-runner:latest
+    wrapper_image: agent-wrapper:latest
+```
+
+**Docker Compose 模式**（本地开发）：
+
+| 维度 | K8s 模式 | Docker Compose 模式 |
+|------|---------|-------------------|
+| 编排方式 | K8s Job | docker compose YAML |
+| 容器结构 | Pod: cli-runner + wrapper + log-agent | compose stack: cli-runner + wrapper |
+| 工作区共享 | emptyDir | 宿主机 bind mount |
+| 日志采集 | log-agent → SLS | 文件日志（跳过 log-agent） |
+| 状态查询 | K8s API | docker compose ps |
+| 端口暴露 | Pod IP + ClusterIP | 动态端口映射 |
+
+### 3.5 核心接口
 
 ```go
 // Executor 执行器接口
@@ -164,14 +219,19 @@ type JobStatus struct {
 }
 ```
 
-### 3.5 模块结构
+### 3.6 模块结构
 
 ```
 internal/executor/
-├── executor.go        # 执行管理器主逻辑
-├── job_manager.go     # K8s Job 生命周期管理
-├── wrapper_client.go  # Wrapper HTTP 客户端
-└── heartbeat.go       # 心跳检测
+├── executor.go           # 执行管理器主逻辑，运行时选择
+├── runtime.go            # ContainerRuntime 接口定义 + 常量
+├── task_executor.go      # TaskExecutor 实现
+├── k8s_runtime.go        # K8sRuntime 实现（生产环境）
+├── docker_runtime.go     # DockerRuntime 实现（本地开发）
+├── compose_manager.go    # Docker Compose YAML 生成与管理
+├── job_manager.go        # K8s Job 生命周期管理
+├── wrapper_client.go     # Wrapper HTTP 客户端
+└── heartbeat.go          # 心跳检测
 ```
 
 ## 4. Implementation Notes
@@ -226,4 +286,5 @@ Wrapper 暴露的 HTTP 接口：
 
 | Date | Version | Issue | PRD Ref | TRD Ref | Changes |
 |------|---------|-------|---------|---------|---------|
+| 2026-03-28 | v1.1 | #35 | §4.2 | §5.1, §5.2, §5.3 | 新增 §3.4 容器运行时抽象（Docker Compose 方案） |
 | 2026-03-23 | v1.0 | - | §4.2 | §5.1, §5.2, §5.3 | 初始定义：执行引擎设计 |
