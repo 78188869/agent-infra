@@ -210,3 +210,110 @@ func TestSplitLines(t *testing.T) {
 		}
 	}
 }
+
+func TestComposeManager_GenerateSingleContainerConfig(t *testing.T) {
+	tmpDir := t.TempDir()
+	cfg := DefaultDockerConfig()
+	cfg.ComposeDir = tmpDir
+
+	cm, err := NewComposeManager(cfg)
+	if err != nil {
+		t.Fatalf("NewComposeManager() error = %v", err)
+	}
+
+	taskID := "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+	data := &SingleContainerTemplateData{
+		TaskID:          taskID,
+		WrapperImage:    "agent-infra/wrapper:latest",
+		WorkspaceDir:    "./workspace",
+		ControlPlaneURL: "http://localhost:8080",
+		AnthropicAPIKey: "sk-test-key",
+		TaskPrompt:      "Fix the bug in auth module",
+		MaxTimeout:      "3600",
+		GitRepo:         "https://github.com/example/repo.git",
+		GitBranch:       "main",
+		ClaudeMdContent: "Follow project conventions",
+		AllowedTools:    "Bash,Read,Write",
+	}
+
+	err = cm.GenerateSingleContainerConfig(context.Background(), data)
+	if err != nil {
+		t.Fatalf("GenerateSingleContainerConfig() error = %v", err)
+	}
+
+	// Verify compose file was created.
+	composeFile := filepath.Join(tmpDir, "task-"+taskID, "docker-compose.yml")
+	if _, err := os.Stat(composeFile); os.IsNotExist(err) {
+		t.Fatal("compose file was not created")
+	}
+
+	contentBytes, err := os.ReadFile(composeFile)
+	if err != nil {
+		t.Fatalf("failed to read compose file: %v", err)
+	}
+	content := string(contentBytes)
+
+	// Verify single service (no cli-runner).
+	if containsSubstring(content, "cli-runner") {
+		t.Error("single-container compose should not contain cli-runner service")
+	}
+	if !containsSubstring(content, "wrapper:") {
+		t.Error("compose file missing wrapper service")
+	}
+	// Verify environment variables.
+	if !containsSubstring(content, "TASK_ID="+taskID) {
+		t.Error("compose file missing TASK_ID")
+	}
+	if !containsSubstring(content, "CONTROL_PLANE_URL=http://localhost:8080") {
+		t.Error("compose file missing CONTROL_PLANE_URL")
+	}
+	if !containsSubstring(content, "ANTHROPIC_API_KEY=sk-test-key") {
+		t.Error("compose file missing ANTHROPIC_API_KEY")
+	}
+	if !containsSubstring(content, "TASK_PROMPT=Fix the bug in auth module") {
+		t.Error("compose file missing TASK_PROMPT")
+	}
+	if !containsSubstring(content, "MAX_TIMEOUT=3600") {
+		t.Error("compose file missing MAX_TIMEOUT")
+	}
+	if !containsSubstring(content, "GIT_REPO=https://github.com/example/repo.git") {
+		t.Error("compose file missing GIT_REPO")
+	}
+	if !containsSubstring(content, "GIT_BRANCH=main") {
+		t.Error("compose file missing GIT_BRANCH")
+	}
+	if !containsSubstring(content, "CLAUDE_MD_CONTENT=Follow project conventions") {
+		t.Error("compose file missing CLAUDE_MD_CONTENT")
+	}
+	if !containsSubstring(content, "ALLOWED_TOOLS=Bash,Read,Write") {
+		t.Error("compose file missing ALLOWED_TOOLS")
+	}
+	// Verify image.
+	if !containsSubstring(content, "agent-infra/wrapper:latest") {
+		t.Error("compose file missing wrapper image")
+	}
+	// Verify volume mount.
+	if !containsSubstring(content, "./workspace/"+taskID+":/workspace") {
+		t.Error("compose file missing workspace volume mount")
+	}
+	// Verify port.
+	if !containsSubstring(content, "9090") {
+		t.Error("compose file missing port 9090")
+	}
+}
+
+func TestComposeManager_GenerateSingleContainerConfig_NilData(t *testing.T) {
+	tmpDir := t.TempDir()
+	cfg := DefaultDockerConfig()
+	cfg.ComposeDir = tmpDir
+
+	cm, err := NewComposeManager(cfg)
+	if err != nil {
+		t.Fatalf("NewComposeManager() error = %v", err)
+	}
+
+	err = cm.GenerateSingleContainerConfig(context.Background(), nil)
+	if err == nil {
+		t.Error("expected error for nil template data")
+	}
+}

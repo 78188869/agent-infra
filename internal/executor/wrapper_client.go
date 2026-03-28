@@ -171,6 +171,10 @@ func (c *WrapperClient) Pause(ctx context.Context, address string) error {
 }
 
 // Resume sends a resume request to the Wrapper.
+//
+// Deprecated: For Agent SDK wrapper, use InjectInstruction instead of
+// Pause/Resume, as the SDK does not support pause semantics. Resume is
+// retained for backward compatibility with the CLI runner wrapper.
 func (c *WrapperClient) Resume(ctx context.Context, address string) error {
 	if !isValidAddress(address) {
 		return fmt.Errorf("invalid runtime address: %s", address)
@@ -231,6 +235,42 @@ func (c *WrapperClient) Inject(ctx context.Context, address string, content stri
 
 	if !injectResp.Success {
 		return fmt.Errorf("inject failed: %s", injectResp.Message)
+	}
+
+	return nil
+}
+
+// InterruptResponse represents the response from interrupt operation.
+type InterruptResponse struct {
+	Status  string `json:"status"`
+	Message string `json:"message,omitempty"`
+}
+
+// Interrupt sends an interrupt request to the Wrapper, signaling it to stop
+// the current execution gracefully. This is used with the single-container
+// Agent SDK wrapper where Pause/Resume is not applicable.
+func (c *WrapperClient) Interrupt(ctx context.Context, address string) error {
+	if !isValidAddress(address) {
+		return fmt.Errorf("invalid runtime address: %s", address)
+	}
+	url := fmt.Sprintf("http://%s:%d/interrupt", address, c.port)
+	resp, err := c.doRequest(ctx, "POST", url, nil)
+	if err != nil {
+		return fmt.Errorf("interrupt request failed: %w", err)
+	}
+	defer drainAndClose(resp.Body, "Interrupt")
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("interrupt returned status %d", resp.StatusCode)
+	}
+
+	var interruptResp InterruptResponse
+	if err := json.NewDecoder(resp.Body).Decode(&interruptResp); err != nil {
+		return fmt.Errorf("failed to decode interrupt response: %w", err)
+	}
+
+	if interruptResp.Status != "interrupted" {
+		return fmt.Errorf("interrupt failed: %s", interruptResp.Message)
 	}
 
 	return nil
