@@ -186,6 +186,32 @@ func DefaultJobConfig() *JobConfig {
 	}
 }
 
+// RuntimeType constants for container runtime selection.
+const (
+	RuntimeTypeK8s    = "k8s"
+	RuntimeTypeDocker = "docker"
+)
+
+// DockerConfig holds configuration for Docker-based container runtime.
+type DockerConfig struct {
+	WorkspaceDir   string `yaml:"workspace_dir"`
+	ComposeDir     string `yaml:"compose_dir"`
+	CLIRunnerImage string `yaml:"cli_runner_image"`
+	WrapperImage   string `yaml:"wrapper_image"`
+	WrapperPort    int    `yaml:"wrapper_port"`
+}
+
+// DefaultDockerConfig returns a DockerConfig with default values.
+func DefaultDockerConfig() *DockerConfig {
+	return &DockerConfig{
+		WorkspaceDir:   "./workspace",
+		ComposeDir:     "/tmp/agent-infra/compose",
+		CLIRunnerImage: "agent-infra/cli-runner:latest",
+		WrapperImage:   "agent-infra/wrapper:latest",
+		WrapperPort:    9090,
+	}
+}
+
 // MetricsRecorder defines the interface for recording metrics.
 type MetricsRecorder interface {
 	RecordTaskExecution(taskID string, status string)
