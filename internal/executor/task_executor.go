@@ -152,8 +152,8 @@ func (e *TaskExecutor) Execute(ctx context.Context, task *model.Task) (*JobInfo,
 	}
 
 	// Register for heartbeat monitoring
-	podIP := "" // Will be set when Pod starts
-	e.heartbeat.Register(taskID, podIP)
+	address := "" // Will be resolved when runtime starts
+	e.heartbeat.Register(taskID, address)
 
 	// Update task status to running
 	if e.config.UpdateTaskStatus != nil {

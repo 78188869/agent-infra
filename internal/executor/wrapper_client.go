@@ -95,11 +95,11 @@ type InjectResponse struct {
 }
 
 // Health checks the health of the Wrapper.
-func (c *WrapperClient) Health(ctx context.Context, podIP string) (*WrapperHealth, error) {
-	if !isValidAddress(podIP) {
-		return nil, fmt.Errorf("invalid runtime address: %s", podIP)
+func (c *WrapperClient) Health(ctx context.Context, address string) (*WrapperHealth, error) {
+	if !isValidAddress(address) {
+		return nil, fmt.Errorf("invalid runtime address: %s", address)
 	}
-	url := fmt.Sprintf("http://%s:%d/health", podIP, c.port)
+	url := fmt.Sprintf("http://%s:%d/health", address, c.port)
 	resp, err := c.doRequest(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("health check failed: %w", err)
@@ -119,11 +119,11 @@ func (c *WrapperClient) Health(ctx context.Context, podIP string) (*WrapperHealt
 }
 
 // GetStatus gets the current status from Wrapper.
-func (c *WrapperClient) GetStatus(ctx context.Context, podIP string) (*WrapperStatus, error) {
-	if !isValidAddress(podIP) {
-		return nil, fmt.Errorf("invalid runtime address: %s", podIP)
+func (c *WrapperClient) GetStatus(ctx context.Context, address string) (*WrapperStatus, error) {
+	if !isValidAddress(address) {
+		return nil, fmt.Errorf("invalid runtime address: %s", address)
 	}
-	url := fmt.Sprintf("http://%s:%d/status", podIP, c.port)
+	url := fmt.Sprintf("http://%s:%d/status", address, c.port)
 	resp, err := c.doRequest(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("get status failed: %w", err)
@@ -143,11 +143,11 @@ func (c *WrapperClient) GetStatus(ctx context.Context, podIP string) (*WrapperSt
 }
 
 // Pause sends a pause request to the Wrapper.
-func (c *WrapperClient) Pause(ctx context.Context, podIP string) error {
-	if !isValidAddress(podIP) {
-		return fmt.Errorf("invalid runtime address: %s", podIP)
+func (c *WrapperClient) Pause(ctx context.Context, address string) error {
+	if !isValidAddress(address) {
+		return fmt.Errorf("invalid runtime address: %s", address)
 	}
-	url := fmt.Sprintf("http://%s:%d/pause", podIP, c.port)
+	url := fmt.Sprintf("http://%s:%d/pause", address, c.port)
 	resp, err := c.doRequest(ctx, "POST", url, nil)
 	if err != nil {
 		return fmt.Errorf("pause request failed: %w", err)
@@ -171,11 +171,11 @@ func (c *WrapperClient) Pause(ctx context.Context, podIP string) error {
 }
 
 // Resume sends a resume request to the Wrapper.
-func (c *WrapperClient) Resume(ctx context.Context, podIP string) error {
-	if !isValidAddress(podIP) {
-		return fmt.Errorf("invalid runtime address: %s", podIP)
+func (c *WrapperClient) Resume(ctx context.Context, address string) error {
+	if !isValidAddress(address) {
+		return fmt.Errorf("invalid runtime address: %s", address)
 	}
-	url := fmt.Sprintf("http://%s:%d/resume", podIP, c.port)
+	url := fmt.Sprintf("http://%s:%d/resume", address, c.port)
 	resp, err := c.doRequest(ctx, "POST", url, nil)
 	if err != nil {
 		return fmt.Errorf("resume request failed: %w", err)
@@ -199,9 +199,9 @@ func (c *WrapperClient) Resume(ctx context.Context, podIP string) error {
 }
 
 // Inject sends an instruction injection request to the Wrapper.
-func (c *WrapperClient) Inject(ctx context.Context, podIP string, content string) error {
-	if !isValidAddress(podIP) {
-		return fmt.Errorf("invalid runtime address: %s", podIP)
+func (c *WrapperClient) Inject(ctx context.Context, address string, content string) error {
+	if !isValidAddress(address) {
+		return fmt.Errorf("invalid runtime address: %s", address)
 	}
 	req := &InjectRequest{
 		Content:   content,
@@ -213,7 +213,7 @@ func (c *WrapperClient) Inject(ctx context.Context, podIP string, content string
 		return fmt.Errorf("failed to marshal inject request: %w", err)
 	}
 
-	url := fmt.Sprintf("http://%s:%d/inject", podIP, c.port)
+	url := fmt.Sprintf("http://%s:%d/inject", address, c.port)
 	resp, err := c.doRequest(ctx, "POST", url, body)
 	if err != nil {
 		return fmt.Errorf("inject request failed: %w", err)
