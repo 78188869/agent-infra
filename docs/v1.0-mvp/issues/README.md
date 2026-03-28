@@ -62,5 +62,6 @@ issue-{number}-summary.md
 | #9 | MVP Phase 5 - Provider Management | completed | provider |
 | #10 | MVP Phase 6 - Capability Management | completed | capability |
 | #11 | MVP Phase 7 - Human Intervention Mechanism | in_progress | intervention |
+| #28 | README.md Optimization | completed | agent-md-guide |
 
 > 注：MVP 开发开始后，在此列出所有 Issue 摘要。
