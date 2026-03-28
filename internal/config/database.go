@@ -6,11 +6,13 @@ import (
 	"time"
 
 	"gorm.io/driver/mysql"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 // DatabaseConfig holds database connection configuration.
 type DatabaseConfig struct {
+	Driver          string        `yaml:"driver"`
 	Host            string        `yaml:"host"`
 	Port            int           `yaml:"port"`
 	Username        string        `yaml:"user"`
@@ -30,6 +32,7 @@ type Database struct {
 // DefaultDatabaseConfig returns the default database configuration.
 func DefaultDatabaseConfig() DatabaseConfig {
 	return DatabaseConfig{
+		Driver:          "mysql",
 		Host:            "localhost",
 		Port:            3306,
 		MaxIdleConns:    10,
@@ -38,8 +41,22 @@ func DefaultDatabaseConfig() DatabaseConfig {
 	}
 }
 
-// DSN returns the MySQL-compatible DSN string (works with OceanBase).
+// IsSQLite returns true if the configured driver is SQLite.
+func (c DatabaseConfig) IsSQLite() bool {
+	return c.Driver == "sqlite"
+}
+
+// DSN returns the database DSN string.
+// For MySQL: user:pass@tcp(host:port)/db?params
+// For SQLite: file path (e.g., "agent_infra.db")
 func (c DatabaseConfig) DSN() string {
+	if c.IsSQLite() {
+		db := c.Database
+		if db == "" {
+			db = "agent_infra.db"
+		}
+		return db
+	}
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		c.Username,
 		c.Password,
@@ -51,7 +68,14 @@ func (c DatabaseConfig) DSN() string {
 
 // NewDatabase creates a new database connection with the given configuration.
 func NewDatabase(cfg DatabaseConfig) (*Database, error) {
-	db, err := gorm.Open(mysql.Open(cfg.DSN()), &gorm.Config{})
+	var dialector gorm.Dialector
+	if cfg.IsSQLite() {
+		dialector = sqlite.Open(cfg.DSN())
+	} else {
+		dialector = mysql.Open(cfg.DSN())
+	}
+
+	db, err := gorm.Open(dialector, &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
@@ -61,7 +85,8 @@ func NewDatabase(cfg DatabaseConfig) (*Database, error) {
 		return nil, fmt.Errorf("failed to get underlying sql.DB: %w", err)
 	}
 
-	// Configure connection pool
+	// Configure connection pool (not applicable for SQLite in-memory/file mode,
+	// but harmless to set)
 	sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
 	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
 	sqlDB.SetConnMaxLifetime(cfg.ConnMaxLifetime)
