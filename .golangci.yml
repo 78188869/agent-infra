@@ -1,0 +1,41 @@
+version: "2"
+
+issues:
+  max-issues-per-linter: 50
+  max-same-issues: 10
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+
+  settings:
+    staticcheck:
+      checks:
+        - all
+        # Exclude style diagnostics that are not bugs
+        - "-QF1008"  # could remove embedded field from selector
+        - "-QF1011"  # could omit type from declaration
+        - "-SA9003"  # empty branch
+
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      # Relax checks in test files
+      - linters:
+          - errcheck
+          - staticcheck
+        path: _test\.go
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

@@ -222,8 +222,46 @@ indexes:
 | 实时推送 | WebSocket | 低延迟、双向通信 |
 | 通知渠道 | 钉钉 + 短信 | 企业常用、覆盖面广 |
 
+### 4.5 Local Persistent Logging
+
+本地开发环境下（`APP_ENV=local`），日志持久化到本地 JSONL 文件。
+
+**配置项**（`config.local.yaml`）：
+
+```yaml
+log:
+  outputs: both        # stdout | file | both
+  file:
+    dir: logs          # 日志目录
+    max_size_mb: 100
+    max_backups: 7
+    max_age_days: 30
+```
+
+**文件命名**：
+- `logs/business-YYYY-MM-DD.jsonl` — 业务执行日志（状态变更、工具调用、错误）
+- `logs/http-YYYY-MM-DD.jsonl` — HTTP 请求/响应日志
+
+**环境切换**：
+- 本地开发：`outputs: both`，同时输出到 stdout + 文件
+- 生产环境：`outputs: stdout`（默认），仅输出到终端，SLS 负责持久化
+
+**查询示例**：
+
+```bash
+# 查询所有业务错误
+cat logs/business-*.jsonl | jq 'select(.level=="ERROR")'
+
+# 查询指定任务的日志
+grep "task-123" logs/business-*.jsonl
+
+# 查询 HTTP 4xx/5xx 请求
+cat logs/http-*.jsonl | jq 'select(.status >= 400)'
+```
+
 ## 5. Change History
 
 | Date | Version | Issue | PRD Ref | TRD Ref | Changes |
 |------|---------|-------|---------|---------|---------|
 | 2026-03-23 | v1.0 | - | §4.9, §6.1 | §9 | 初始定义：监控告警设计 |
+| 2026-03-28 | v1.1 | #33 | - | §9 | 新增本地持久化日志支持 |

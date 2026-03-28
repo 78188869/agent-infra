@@ -38,3 +38,21 @@ Pending → Scheduled → Running → Succeeded
 | `scheduler:global:quota` | Global concurrency quota |
 | `scheduler:task:{id}:state` | Preempted task state (JSON, 24h TTL) |
 | `scheduler:preempted:tasks` | Set of preempted task IDs |
+
+---
+
+## Log Configuration
+
+| Config | Values | Default (prod) | Default (local) |
+|--------|--------|----------------|-----------------|
+| `log.outputs` | stdout / file / both | stdout | both |
+| `log.file.dir` | path | - | logs |
+| `log.file.max_age_days` | int | 30 | 30 |
+| `log.file.max_backups` | int | 7 | 7 |
+
+**Log Files**:
+
+| File | Content |
+|------|---------|
+| `logs/business-YYYY-MM-DD.jsonl` | 业务执行日志 |
+| `logs/http-YYYY-MM-DD.jsonl` | HTTP 请求日志 |
