@@ -1,7 +1,7 @@
 # TRD：Agentic Coding Platform MVP 技术设计文档
 
-> **版本**：v2.4
-> **日期**：2026-03-22
+> **版本**：v2.5
+> **日期**：2026-03-28
 > **状态**：草稿
 > **关联文档**：[PRD.md](../PRD.md) | [BRD.md](../BRD.md) | [技术决策记录](./2026-03-21-mvp-technical-decisions.md) | [v1-draft参考](./2026-03-21-mvp-trd-v1-draft.md)
 
@@ -17,6 +17,7 @@
 | v2.2 | 2026-03-22 | 添加 Provider 机制：支持多模型/Agent运行时切换（类似 cc switch）；完善网络策略 | - |
 | v2.3 | 2026-03-22 | Provider 三层作用域（系统/租户/用户）；用户个人 Provider 配置；Provider 选择优先级 | - |
 | v2.4 | 2026-03-22 | 根据审查报告修复：补充 US-D06/US-A04 用户故事覆盖；明确 inject 机制采用 HTTP 轮询方式；添加错误码定义表 | - |
+| v2.5 | 2026-03-28 | 补充模板配置注入机制：新增 TemplateSpec/ResolvedSpec 结构体定义、YAML Schema 规范、Spec 解析渲染架构（Parser→Resolver→Renderer）；更新环境变量映射表（移除 MAX_TOKENS，新增 MAX_TURNS/APPEND_SYSTEM_PROMPT 等）；新增 settings.json 注入机制（hooks + highest permission）；更新 cli-runner.sh 对齐 Claude Code CLI 原生参数 | - |
 
 ---
 
@@ -761,6 +762,65 @@ type TemplateService interface {
 }
 ```
 
+**TemplateSpec / ResolvedSpec 结构体定义**：
+
+```go
+// TemplateSpec — 从模板 YAML spec 字段解析的结构体
+// YAML Schema 详见 §5.8
+type TemplateSpec struct {
+    // 任务定义（spec.*）
+    Goal               string      `yaml:"goal"`               // 必填，任务目标
+    ClaudeMd           string      `yaml:"claudeMd"`           // 选填，替换项目 CLAUDE.md
+    AppendSystemPrompt string      `yaml:"appendSystemPrompt"` // 选填，追加到默认系统提示
+    Repo               *RepoConfig `yaml:"repo"`               // 选填，代码仓库配置
+
+    // 执行配置（execution.*）
+    AllowedTools string       `yaml:"allowedTools"` // 选填，工具白名单
+    MaxTurns     int          `yaml:"maxTurns"`     // 选填，最大执行轮次
+    Hooks        []HookConfig `yaml:"hooks"`        // 选填，Claude Code 原生 Hooks
+    OutputFormat string       `yaml:"outputFormat"` // 选填，默认 stream-json
+}
+
+type RepoConfig struct {
+    URL    string `yaml:"url"`    // 代码仓库地址
+    Branch string `yaml:"branch"` // 分支名
+}
+
+type HookConfig struct {
+    Event   string `yaml:"event"`   // Hook 事件：PreToolUse, PostToolUse, Stop, SessionStart 等
+    Matcher string `yaml:"matcher"` // 可选，工具名过滤
+    Type    string `yaml:"type"`    // Hook 类型：command
+    Command string `yaml:"command"` // 执行的命令
+    Timeout int    `yaml:"timeout"` // 超时时间（秒）
+}
+
+// ResolvedSpec — 解析渲染后的最终执行配置
+// 由 SpecResolver 将 TemplateSpec + Provider 配置合并生成
+type ResolvedSpec struct {
+    // CLI 参数
+    TaskPrompt         string // spec.goal 渲染后的任务提示
+    AppendSystemPrompt string // 系统提示追加
+    AllowedTools       string // 工具白名单
+    MaxTurns           int    // 最大轮次
+    OutputFormat       string // 输出格式，默认 stream-json
+
+    // 文件注入
+    ClaudeMdContent string // CLAUDE.md 文件内容
+    SettingsJSON    string // .claude/settings.json 内容（hooks 配置）
+
+    // Git 配置
+    GitRepoURL  string // 代码仓库地址
+    GitBranch   string // 分支名
+
+    // Provider 配置
+    Model      string // 模型名称
+    APIKey     string // API 密钥（从 K8s Secret 读取）
+    APIBaseURL string // API 端点地址
+}
+```
+
+> **字段 MVP 标记**：所有字段均为 MVP 支持。v1.1+ 计划扩展：`MaxBudgetUsd`、`Permissions`（自定义权限规则）、`SuccessMetrics`（验收标准）。
+
 **TenantSvc 接口**：
 
 ```go
@@ -1361,6 +1421,7 @@ spec:
 ```bash
 #!/bin/bash
 # /scripts/cli-runner.sh
+# 环境变量由 Job Manager 从 ResolvedSpec 注入
 
 set -e
 
@@ -1377,21 +1438,32 @@ cleanup() {
 }
 trap cleanup SIGTERM SIGINT
 
-# 1. 克隆代码仓库
-git clone "${GIT_REPO_URL}" /workspace/src
-cd /workspace/src
-git checkout "${GIT_BRANCH}"
+# 1. 克隆代码仓库（选填）
+if [ -n "${GIT_REPO_URL}" ]; then
+    git clone "${GIT_REPO_URL}" /workspace/src
+    cd /workspace/src
+    [ -n "${GIT_BRANCH}" ] && git checkout "${GIT_BRANCH}"
+fi
 
-# 2. 生成 CLAUDE.md
-cat > /workspace/CLAUDE.md <<EOF
+# 2. 注入 CLAUDE.md（选填，替换模式）
+if [ -n "${CLAUDE_MD_CONTENT}" ]; then
+    cat > /workspace/CLAUDE.md <<EOF
 ${CLAUDE_MD_CONTENT}
 EOF
+fi
 
-# 3. 启动 CLI 并捕获输出
-claude -p "${TASK_PROMPT}" \
-       --max-tokens ${MAX_TOKENS} \
-       --allowedTools "${ALLOWED_TOOLS}" \
-       --output-format stream-json 2>&1 | while read line; do
+# 3. 构造 CLI 参数
+CLI_ARGS="-p \"${TASK_PROMPT}\""
+CLI_ARGS="${CLI_ARGS} --output-format ${OUTPUT_FORMAT:-stream-json}"
+
+[ -n "${CLAUDE_MODEL}" ]            && CLI_ARGS="${CLI_ARGS} --model ${CLAUDE_MODEL}"
+[ -n "${ALLOWED_TOOLS}" ]           && CLI_ARGS="${CLI_ARGS} --allowedTools \"${ALLOWED_TOOLS}\""
+[ -n "${MAX_TURNS}" ] && [ "${MAX_TURNS}" -gt 0 ] && CLI_ARGS="${CLI_ARGS} --max-turns ${MAX_TURNS}"
+[ -n "${APPEND_SYSTEM_PROMPT}" ]    && CLI_ARGS="${CLI_ARGS} --append-system-prompt \"${APPEND_SYSTEM_PROMPT}\""
+
+# 4. 启动 CLI 并捕获输出
+mkdir -p /workspace/.agent-state
+eval claude ${CLI_ARGS} 2>&1 | while read line; do
     echo "$line" >> /workspace/.agent-state/events.jsonl
     # 提取关键状态写入 status.json
     echo "$line" | jq -r 'select(.type == "status")' > /workspace/.agent-state/status.json
@@ -1401,7 +1473,7 @@ CLI_PID=$!
 wait $CLI_PID
 EXIT_CODE=$?
 
-# 4. 写入最终状态
+# 5. 写入最终状态
 echo "{\"status\": \"completed\", \"exit_code\": $EXIT_CODE, \"timestamp\": $(date +%s)}" > /workspace/.agent-state/status.json
 
 exit $EXIT_CODE
@@ -1659,17 +1731,143 @@ func (w *Wrapper) Cancel() error {
    c. 退出
 ```
 
+### 5.8 模板 YAML Schema 与解析渲染
+
+#### 5.8.1 YAML Schema 规范
+
+MVP 模板 YAML 由 `spec`（任务定义）和 `execution`（执行配置）两部分组成：
+
+```yaml
+# 任务定义（spec）
+spec:
+  goal: "Review code changes in {{.branch}} and provide feedback"
+  claudeMd: |
+    # Code Review Guidelines
+    - Focus on security, performance, and readability
+    - Use Chinese for comments
+    - Follow Google Go Style Guide
+  appendSystemPrompt: "Always provide actionable suggestions"
+  repo:
+    url: "{{.repoUrl}}"
+    branch: "{{.branch}}"
+
+# 执行配置（execution）
+execution:
+  allowedTools: "Read,Grep,Glob,Bash(git *)"
+  maxTurns: 50
+  hooks:
+    - event: Stop
+      type: command
+      command: "./scripts/notify.sh"
+  outputFormat: "stream-json"
+```
+
+**字段说明**：
+
+| 字段 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| `spec.goal` | string | 是 | — | 任务目标，支持 Go template 语法渲染参数 |
+| `spec.claudeMd` | string | 否 | — | 初始上下文，替换项目中的 CLAUDE.md |
+| `spec.appendSystemPrompt` | string | 否 | "" | 追加到 Claude Code 默认系统提示 |
+| `spec.repo.url` | string | 否 | — | 代码仓库地址 |
+| `spec.repo.branch` | string | 否 | "main" | 代码分支 |
+| `execution.allowedTools` | string | 否 | — | 工具白名单，逗号分隔 |
+| `execution.maxTurns` | int | 否 | 0（不限制） | 最大执行轮次 |
+| `execution.hooks` | array | 否 | [] | Claude Code 原生 Hooks 配置 |
+| `execution.hooks[].event` | string | 是 | — | 事件名：PreToolUse / PostToolUse / Stop / SessionStart 等 |
+| `execution.hooks[].matcher` | string | 否 | "" | 工具名过滤（如 "Bash"） |
+| `execution.hooks[].type` | string | 是 | — | Hook 类型，MVP 仅支持 "command" |
+| `execution.hooks[].command` | string | 是 | — | 执行的命令 |
+| `execution.hooks[].timeout` | int | 否 | 30 | 超时时间（秒） |
+| `execution.outputFormat` | string | 否 | "stream-json" | 输出格式 |
+
+> **v1.1+ 扩展字段**：`execution.maxBudgetUsd`（费用上限）、`execution.permissions`（自定义权限规则）、`spec.successMetrics`（验收标准）。
+
+#### 5.8.2 Spec 解析渲染架构
+
+模板配置从 YAML 到注入沙箱经历三个阶段：
+
+```
+Template.Spec (YAML string)
+       │
+  ┌────▼─────┐
+  │ Parser   │  YAML 反序列化 → TemplateSpec struct
+  │          │  Schema 校验（必填字段、类型、枚举值）
+  └────┬─────┘
+       │ TemplateSpec
+  ┌────▼─────┐
+  │ Resolver │  1. Go template 渲染：将 spec.goal 中的 {{.param}} 替换为用户参数
+  │          │  2. 合并 Provider 配置：从 ProviderID 解析 APIKey/BaseURL/Model
+  │          │  3. 应用默认值：outputFormat 默认 stream-json 等
+  └────┬─────┘
+       │ ResolvedSpec
+  ┌────▼─────┐
+  │ Renderer │  生成四种注入产物：
+  │          │  1. 环境变量列表（TASK_PROMPT, ALLOWED_TOOLS, ...）
+  │          │  2. CLAUDE.md 文件内容（spec.claudeMd → /workspace/CLAUDE.md）
+  │          │  3. settings.json（hooks → /workspace/.claude/settings.json）
+  │          │  4. CLI 参数拼接（传给 cli-runner.sh）
+  └────┬─────┘
+       │
+  Job Manager（创建 K8s Job 时注入环境变量和 ConfigMap）
+```
+
+**各阶段职责**：
+
+| 阶段 | 输入 | 输出 | 核心逻辑 |
+|------|------|------|---------|
+| **Parser** | YAML string | TemplateSpec | YAML 反序列化 + schema 校验（必填字段、合法枚举值） |
+| **Resolver** | TemplateSpec + TaskParams + Provider | ResolvedSpec | Go template 渲染参数、合并 Provider、填充默认值 |
+| **Renderer** | ResolvedSpec | 环境变量 + 文件内容 | 生成 K8s EnvVar 列表、ConfigMap 数据 |
+
+**Parser 代码位置**：`internal/service/spec_parser.go`
+**Resolver 代码位置**：`internal/service/spec_resolver.go`
+**Renderer 代码位置**：`internal/executor/spec_renderer.go`
+
+#### 5.8.3 settings.json 注入机制
+
+Claude Code 通过 `.claude/settings.json` 加载项目级配置。MVP 利用此机制注入 hooks：
+
+```json
+{
+  "permissions": {
+    "allow": ["*"]
+  },
+  "hooks": {
+    "Stop": [{
+      "hooks": [{
+        "type": "command",
+        "command": "./scripts/notify.sh"
+      }]
+    }]
+  }
+}
+```
+
+**注入流程**：
+1. Renderer 将 `execution.hooks` 序列化为 settings.json 的 hooks 部分
+2. MVP 默认 `permissions.allow: ["*"]`（highest permission）
+3. Job Manager 通过 Init Container 或 ConfigMap 将 settings.json 写入 `/workspace/.claude/settings.json`
+4. Claude Code 启动时自动加载此文件
+
 ### 5.9 模板参数 → CLI参数映射
 
-| 模板配置 | 环境变量 | CLI参数 |
-|---------|---------|---------|
-| `spec.goal` | `TASK_PROMPT` | `-p "${TASK_PROMPT}"` |
-| `spec.context.initialContext` | `CLAUDE_MD_CONTENT` | 注入到 CLAUDE.md |
-| `execution.resources.tokenLimit` | `MAX_TOKENS` | `--max-tokens` |
-| `execution.capabilities.tools` | `ALLOWED_TOOLS` | `--allowedTools` |
-| `execution.timeout` | `TASK_TIMEOUT` | 脚本控制超时 |
-| `spec.context.repo` | `GIT_REPO_URL` | git clone |
-| `spec.context.branch` | `GIT_BRANCH` | git checkout |
+| 模板字段 | 环境变量 | CLI 参数 / 注入方式 | MVP |
+|---------|---------|-------------------|-----|
+| `spec.goal` | `TASK_PROMPT` | `-p "${TASK_PROMPT}"` | ✓ |
+| `spec.claudeMd` | `CLAUDE_MD_CONTENT` | 写入 `/workspace/CLAUDE.md`（替换） | ✓ |
+| `spec.appendSystemPrompt` | `APPEND_SYSTEM_PROMPT` | `--append-system-prompt` | ✓ |
+| `spec.repo.url` | `GIT_REPO_URL` | git clone | ✓ |
+| `spec.repo.branch` | `GIT_BRANCH` | git checkout | ✓ |
+| `execution.allowedTools` | `ALLOWED_TOOLS` | `--allowedTools` | ✓ |
+| `execution.maxTurns` | `MAX_TURNS` | `--max-turns` | ✓ |
+| `execution.hooks` | — | 写入 `.claude/settings.json` | ✓ |
+| `execution.outputFormat` | `OUTPUT_FORMAT` | `--output-format`（默认 stream-json） | ✓ |
+| Provider 配置 | `ANTHROPIC_API_KEY` | API 密钥（K8s Secret） | ✓ |
+| Provider 配置 | `ANTHROPIC_BASE_URL` | API 端点 | ✓ |
+| Provider 配置 | `CLAUDE_MODEL` | `--model` | ✓ |
+| `execution.maxBudgetUsd` | `MAX_BUDGET_USD` | `--max-budget-usd` | v1.1+ |
+| `execution.permissions` | — | settings.json permissions | v1.1+ |
 
 ### 5.10 镜像规划
 
