@@ -117,7 +117,9 @@ func (cm *ComposeManager) GetServicePort(ctx context.Context, taskID string, ser
 	}
 	// Output format: "0.0.0.0:32768" or "[::]:32768"
 	var hostPort int
-	fmt.Sscanf(out, "%*s:%d", &hostPort)
+	if _, err := fmt.Sscanf(out, "%*s:%d", &hostPort); err != nil {
+		return 0, fmt.Errorf("failed to parse port from %q: %w", out, err)
+	}
 	if hostPort == 0 {
 		return 0, fmt.Errorf("no port mapping found for %s:%d", service, port)
 	}
