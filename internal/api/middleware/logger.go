@@ -1,13 +1,13 @@
 package middleware
 
 import (
-	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
-// Logger returns a gin middleware for request logging
+// Logger returns a gin middleware for structured request logging via slog.
 func Logger() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
@@ -19,15 +19,13 @@ func Logger() gin.HandlerFunc {
 		latency := time.Since(start)
 		status := c.Writer.Status()
 
-		// Simple structured logging
-		// TODO: replace with proper structured logger (zap/zerolog)
-		logMsg := fmt.Sprintf("[GIN] %s | %s %s | %v | %d\n",
-			start.Format(time.RFC3339),
-			method,
-			path,
-			latency,
-			status,
+		slog.Info("http request",
+			"component", "http",
+			"method", method,
+			"path", path,
+			"status", status,
+			"latency", latency.String(),
+			"client_ip", c.ClientIP(),
 		)
-		_, _ = gin.DefaultWriter.Write([]byte(logMsg))
 	}
 }
