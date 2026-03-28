@@ -8,6 +8,19 @@ import (
 	"testing"
 )
 
+// pullImageIfMissing pulls a Docker image if it's not available locally.
+// This ensures integration tests work offline after the first pull.
+func pullImageIfMissing(image string) error {
+	// Check if image exists locally
+	cmd := exec.Command("docker", "image", "inspect", image)
+	if err := cmd.Run(); err == nil {
+		return nil // image already exists
+	}
+	// Pull with retry
+	cmd = exec.Command("docker", "pull", image)
+	return cmd.Run()
+}
+
 func TestDockerConfigDefaults(t *testing.T) {
 	cfg := DefaultDockerConfig()
 
@@ -125,11 +138,17 @@ func TestComposeManager_Up_Down(t *testing.T) {
 		t.Skip("docker not available")
 	}
 
+	// Pull test image locally to avoid Docker Hub network issues
+	testImage := "alpine:3.19"
+	if err := pullImageIfMissing(testImage); err != nil {
+		t.Skipf("skipping: failed to pull test image %s: %v", testImage, err)
+	}
+
 	tmpDir := t.TempDir()
 	cfg := DefaultDockerConfig()
 	cfg.ComposeDir = tmpDir
-	cfg.CLIRunnerImage = "alpine:3.19"
-	cfg.WrapperImage = "alpine:3.19"
+	cfg.CLIRunnerImage = testImage
+	cfg.WrapperImage = testImage
 
 	cm, _ := NewComposeManager(cfg)
 	taskID := "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
@@ -141,10 +160,10 @@ func TestComposeManager_Up_Down(t *testing.T) {
 	}
 	err := os.WriteFile(filepath.Join(taskDir, "docker-compose.yml"), []byte(`services:
   cli-runner:
-    image: alpine:3.19
+    image: `+testImage+`
     command: ["echo", "hello"]
   wrapper:
-    image: alpine:3.19
+    image: `+testImage+`
     command: ["sleep", "30"]
     ports:
       - "9090"
