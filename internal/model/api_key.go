@@ -28,12 +28,12 @@ type APIKey struct {
 	Description string       `gorm:"type:varchar(256)" json:"description"`
 
 	// Validity and Usage
-	ExpiresAt   *time.Time `gorm:"type:timestamp" json:"expires_at"`
-	LastUsedAt  *time.Time `gorm:"type:timestamp" json:"last_used_at"`
+	ExpiresAt   *time.Time `json:"expires_at"`
+	LastUsedAt  *time.Time `json:"last_used_at"`
 	UsageCount  int64      `gorm:"default:0" json:"usage_count"`
 
 	// Status
-	Status APIKeyStatus `gorm:"type:enum('active','revoked');default:'active';index" json:"status"`
+	Status APIKeyStatus `gorm:"type:varchar(20);default:'active';index" json:"status"`
 
 	// Timestamps
 	CreatedAt time.Time `gorm:"autoCreateTime" json:"created_at"`

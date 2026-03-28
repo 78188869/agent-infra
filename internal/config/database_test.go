@@ -14,6 +14,7 @@ func TestDatabaseConfig_DSN(t *testing.T) {
 		{
 			name: "basic DSN",
 			config: DatabaseConfig{
+				Driver:   "mysql",
 				Host:     "localhost",
 				Port:     3306,
 				Username: "root",
@@ -25,6 +26,7 @@ func TestDatabaseConfig_DSN(t *testing.T) {
 		{
 			name: "DSN with custom port",
 			config: DatabaseConfig{
+				Driver:   "mysql",
 				Host:     "db.example.com",
 				Port:     3307,
 				Username: "admin",
@@ -36,6 +38,7 @@ func TestDatabaseConfig_DSN(t *testing.T) {
 		{
 			name: "DSN with empty password",
 			config: DatabaseConfig{
+				Driver:   "mysql",
 				Host:     "127.0.0.1",
 				Port:     3306,
 				Username: "user",
@@ -96,5 +99,63 @@ func TestDatabaseConfig_ConnectionPoolSettings(t *testing.T) {
 	}
 	if cfg.ConnMaxLifetime != 30*time.Minute {
 		t.Errorf("ConnMaxLifetime = %v, want 30 minutes", cfg.ConnMaxLifetime)
+	}
+}
+
+func TestDatabaseConfig_Driver(t *testing.T) {
+	cfg := DatabaseConfig{Driver: "sqlite"}
+	if cfg.Driver != "sqlite" {
+		t.Errorf("Driver = %v, want sqlite", cfg.Driver)
+	}
+}
+
+func TestDatabaseConfig_SQLiteDSN(t *testing.T) {
+	cfg := DatabaseConfig{
+		Driver:   "sqlite",
+		Database: "test.db",
+	}
+	got := cfg.DSN()
+	if got != "test.db" {
+		t.Errorf("SQLite DSN() = %v, want test.db", got)
+	}
+}
+
+func TestDatabaseConfig_MySQLDSN(t *testing.T) {
+	cfg := DatabaseConfig{
+		Driver:   "mysql",
+		Host:     "localhost",
+		Port:     3306,
+		Username: "root",
+		Password: "password",
+		Database: "testdb",
+	}
+	got := cfg.DSN()
+	expected := "root:password@tcp(localhost:3306)/testdb?charset=utf8mb4&parseTime=True&loc=Local"
+	if got != expected {
+		t.Errorf("MySQL DSN() = %v, want %v", got, expected)
+	}
+}
+
+func TestDatabaseConfig_DefaultDriver(t *testing.T) {
+	cfg := DatabaseConfig{}
+	if cfg.Driver != "" {
+		t.Errorf("Default Driver = %v, want empty (defaults to mysql)", cfg.Driver)
+	}
+}
+
+func TestDatabaseConfig_IsSQLite(t *testing.T) {
+	tests := []struct {
+		driver string
+		want   bool
+	}{
+		{"sqlite", true},
+		{"mysql", false},
+		{"", false},
+	}
+	for _, tt := range tests {
+		cfg := DatabaseConfig{Driver: tt.driver}
+		if got := cfg.IsSQLite(); got != tt.want {
+			t.Errorf("IsSQLite(%q) = %v, want %v", tt.driver, got, tt.want)
+		}
 	}
 }

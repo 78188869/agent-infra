@@ -5,6 +5,7 @@ server:
   port: ${SERVER_PORT:8080}
   mode: ${GIN_MODE:release}
 database:
+  driver: ${DB_DRIVER:mysql}
   host: ${DB_HOST:localhost}
   port: ${DB_PORT:2881}
   name: ${DB_NAME:agent_infra}

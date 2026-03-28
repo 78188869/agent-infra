@@ -58,6 +58,22 @@ Tenant（租户）
 | 数据库 | OceanBase | 4.x | MySQL 兼容、分布式能力 |
 | ORM | GORM | 1.25.x | Go 主流 ORM 库 |
 | 连接池 | GORM 内置 | - | 配置化连接池参数 |
+| 本地数据库 | SQLite | 3.x | 零进程嵌入式，仅用于本地开发 |
+
+### 3.1.1 本地开发支持（SQLite）
+
+通过环境变量 `DB_DRIVER=sqlite` 切换到 SQLite 后端，消除本地开发对外部数据库服务的依赖。
+
+- `DB_NAME` 指定文件路径（默认 `agent_infra.db`）
+- Model 使用 `varchar` 替代 `enum`，应用层通过常量校验合法性
+- 使用 `text` 替代 `mediumtext`，SQLite 只有 TEXT 类型
+
+```yaml
+# SQLite (local development)
+database:
+  driver: sqlite
+  name: agent_infra.db
+```
 
 ### 3.2 核心表结构
 

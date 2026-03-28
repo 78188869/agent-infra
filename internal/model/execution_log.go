@@ -31,7 +31,7 @@ type ExecutionLog struct {
 	TaskID  string      `gorm:"type:varchar(36);not null;index:idx_task_time;index:idx_task_event" json:"task_id"`
 
 	// Event Information
-	EventType EventType     `gorm:"type:enum('status_change','tool_call','tool_result','llm_input','llm_output','error','heartbeat','intervention','metric','checkpoint');not null;index:idx_task_event" json:"event_type"`
+	EventType EventType     `gorm:"type:varchar(32);not null;index:idx_task_event" json:"event_type"`
 	EventName string        `gorm:"type:varchar(64)" json:"event_name"`
 	Content   datatypes.JSON `gorm:"type:json" json:"content"`
 
@@ -39,7 +39,7 @@ type ExecutionLog struct {
 	ParentEventID *int64 `gorm:"index" json:"parent_event_id"`
 
 	// Timestamp (millisecond precision)
-	Timestamp time.Time `gorm:"type:timestamp(3);default:CURRENT_TIMESTAMP(3);index:idx_task_time" json:"timestamp"`
+	Timestamp time.Time `gorm:"index:idx_task_time" json:"timestamp"`
 
 	// Relations
 	Task *Task `gorm:"foreignKey:TaskID" json:"task,omitempty"`

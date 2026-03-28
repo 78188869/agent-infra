@@ -51,13 +51,13 @@ type Provider struct {
 	ID string `gorm:"type:varchar(36);primaryKey" json:"id"`
 
 	// Scope (three-tier: system/tenant/user)
-	Scope   ProviderScope `gorm:"type:enum('system','tenant','user');not null;default:'system';uniqueIndex:uk_scope_name;index:idx_scope_tenant;index:idx_scope_user" json:"scope"`
+	Scope   ProviderScope `gorm:"type:varchar(20);not null;default:'system';uniqueIndex:uk_scope_name;index:idx_scope_tenant;index:idx_scope_user" json:"scope"`
 	TenantID *string       `gorm:"type:varchar(36);uniqueIndex:uk_scope_name;index:idx_scope_tenant" json:"tenant_id"`
 	UserID   *string       `gorm:"type:varchar(36);uniqueIndex:uk_scope_name;index:idx_scope_user" json:"user_id"`
 
 	// Basic Information
 	Name        string       `gorm:"type:varchar(64);not null;uniqueIndex:uk_scope_name" json:"name"`
-	Type        ProviderType `gorm:"type:enum('claude_code','anthropic_compatible','openai_compatible','custom');not null;index:idx_type_status" json:"type"`
+	Type        ProviderType `gorm:"type:varchar(32);not null;index:idx_type_status" json:"type"`
 	Description string       `gorm:"type:text" json:"description"`
 
 	// API Configuration
@@ -69,7 +69,7 @@ type Provider struct {
 	// Example: {"default": "glm-5", "opus": "glm-5", "sonnet": "glm-4.7", "haiku": "glm-4.5-air"}
 
 	// Runtime Configuration
-	RuntimeType    RuntimeType    `gorm:"type:enum('cli','api','sdk');default:'cli'" json:"runtime_type"`
+	RuntimeType    RuntimeType    `gorm:"type:varchar(20);default:'cli'" json:"runtime_type"`
 	RuntimeImage   string         `gorm:"type:varchar(256)" json:"runtime_image"`
 	RuntimeCommand datatypes.JSON `gorm:"type:json" json:"runtime_command"`
 
@@ -82,7 +82,7 @@ type Provider struct {
 	ExtraParams datatypes.JSON `gorm:"type:json" json:"extra_params"`
 
 	// Status
-	Status ProviderStatus `gorm:"type:enum('active','inactive','deprecated');default:'active';index:idx_type_status" json:"status"`
+	Status ProviderStatus `gorm:"type:varchar(20);default:'active';index:idx_type_status" json:"status"`
 
 	// Timestamps
 	CreatedAt time.Time      `gorm:"autoCreateTime" json:"created_at"`

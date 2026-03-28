@@ -14,7 +14,7 @@ type Tenant struct {
 	QuotaMemory      int64  `gorm:"default:16" json:"quota_memory"`       // GB
 	QuotaConcurrency int    `gorm:"default:10" json:"quota_concurrency"`  // concurrent tasks
 	QuotaDailyTasks  int    `gorm:"default:100" json:"quota_daily_tasks"` // daily task limit
-	Status           string `gorm:"type:enum('active','suspended');default:'active'" json:"status"`
+	Status           string `gorm:"type:varchar(20);default:'active'" json:"status"`
 }
 
 // TableName returns the table name for the Tenant model.
