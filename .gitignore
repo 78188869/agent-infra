@@ -86,3 +86,6 @@ configs/local.yml
 
 # Claude Code personal preferences (project-level are shared)
 CLAUDE.local.md
+
+# Claude Code worktrees
+.claude/worktrees/
