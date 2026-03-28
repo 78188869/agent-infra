@@ -219,3 +219,36 @@ func TestWrapperClient_ErrorHandling(t *testing.T) {
 		t.Error("expected error for 500 status")
 	}
 }
+
+func TestWrapperClient_Health_WithHostname(t *testing.T) {
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"healthy","task_id":"test-123","uptime":100,"version":"1.0.0"}`))
+	}))
+	defer testServer.Close()
+
+	host, port := parseTestServer(testServer)
+	client := NewWrapperClient(&WrapperClientConfig{
+		Port:    port,
+		Timeout: 5 * time.Second,
+	})
+	client.httpClient = testServer.Client()
+
+	health, err := client.Health(context.Background(), host)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if health.Status != "healthy" {
+		t.Errorf("expected status 'healthy', got %s", health.Status)
+	}
+}
+
+func TestWrapperClient_InvalidAddress(t *testing.T) {
+	client := NewWrapperClient(nil)
+
+	_, err := client.Health(context.Background(), "")
+	if err == nil {
+		t.Error("expected error for empty address")
+	}
+}

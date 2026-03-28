@@ -81,14 +81,14 @@ func TestJobStatus(t *testing.T) {
 
 func TestExecutorConfig(t *testing.T) {
 	cfg := &ExecutorConfig{
-		JobConfig: DefaultJobConfig(),
+		WrapperPort: 9090,
 		UpdateTaskStatus: func(ctx context.Context, taskID string, status string, message string) error {
 			return nil
 		},
 	}
 
-	if cfg.JobConfig == nil {
-		t.Error("JobConfig should not be nil")
+	if cfg.WrapperPort != 9090 {
+		t.Errorf("expected WrapperPort 9090, got %d", cfg.WrapperPort)
 	}
 	if cfg.UpdateTaskStatus == nil {
 		t.Error("UpdateTaskStatus should not be nil")

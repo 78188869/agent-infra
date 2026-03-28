@@ -5,17 +5,17 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/example/agent-infra/internal/model"
 )
 
-func TestNewTaskExecutor(t *testing.T) {
-	k8sClient := fake.NewSimpleClientset()
-	mockRedis := NewMockRedisClient()
+func newTestExecutor(cfg *ExecutorConfig) (*TaskExecutor, error) {
+	return NewTaskExecutor(NewMockContainerRuntime(), NewMockRedisClient(), cfg)
+}
 
+func TestNewTaskExecutor(t *testing.T) {
 	t.Run("with nil config", func(t *testing.T) {
-		executor, err := NewTaskExecutor(k8sClient, mockRedis, nil)
+		executor, err := newTestExecutor(nil)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -26,9 +26,9 @@ func TestNewTaskExecutor(t *testing.T) {
 
 	t.Run("with config", func(t *testing.T) {
 		cfg := &ExecutorConfig{
-			JobConfig: DefaultJobConfig(),
+			WrapperPort: 9090,
 		}
-		executor, err := NewTaskExecutor(k8sClient, mockRedis, cfg)
+		executor, err := newTestExecutor(cfg)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -36,13 +36,17 @@ func TestNewTaskExecutor(t *testing.T) {
 			t.Error("config should be set")
 		}
 	})
+
+	t.Run("with nil runtime", func(t *testing.T) {
+		_, err := NewTaskExecutor(nil, NewMockRedisClient(), nil)
+		if err != ErrNilContainerRuntime {
+			t.Errorf("expected ErrNilContainerRuntime, got %v", err)
+		}
+	})
 }
 
 func TestTaskExecutor_Execute_NilTask(t *testing.T) {
-	k8sClient := fake.NewSimpleClientset()
-	mockRedis := NewMockRedisClient()
-
-	executor, err := NewTaskExecutor(k8sClient, mockRedis, nil)
+	executor, err := newTestExecutor(nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -54,9 +58,6 @@ func TestTaskExecutor_Execute_NilTask(t *testing.T) {
 }
 
 func TestTaskExecutor_Execute_ValidTask(t *testing.T) {
-	k8sClient := fake.NewSimpleClientset()
-	mockRedis := NewMockRedisClient()
-
 	taskID := uuid.New()
 	task := &model.Task{
 		BaseModel: model.BaseModel{
@@ -71,14 +72,14 @@ func TestTaskExecutor_Execute_ValidTask(t *testing.T) {
 
 	statusUpdated := false
 	cfg := &ExecutorConfig{
-		JobConfig: DefaultJobConfig(),
+		WrapperPort: 9090,
 		UpdateTaskStatus: func(ctx context.Context, taskID string, status string, message string) error {
 			statusUpdated = true
 			return nil
 		},
 	}
 
-	executor, err := NewTaskExecutor(k8sClient, mockRedis, cfg)
+	executor, err := newTestExecutor(cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -101,10 +102,7 @@ func TestTaskExecutor_Execute_ValidTask(t *testing.T) {
 }
 
 func TestTaskExecutor_canExecute(t *testing.T) {
-	k8sClient := fake.NewSimpleClientset()
-	mockRedis := NewMockRedisClient()
-
-	executor, err := NewTaskExecutor(k8sClient, mockRedis, nil)
+	executor, err := newTestExecutor(nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -135,10 +133,7 @@ func TestTaskExecutor_canExecute(t *testing.T) {
 }
 
 func TestTaskExecutor_StartStop(t *testing.T) {
-	k8sClient := fake.NewSimpleClientset()
-	mockRedis := NewMockRedisClient()
-
-	executor, err := NewTaskExecutor(k8sClient, mockRedis, nil)
+	executor, err := newTestExecutor(nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -176,19 +171,16 @@ func TestTaskExecutor_StartStop(t *testing.T) {
 }
 
 func TestTaskExecutor_HandleTaskEvent(t *testing.T) {
-	k8sClient := fake.NewSimpleClientset()
-	mockRedis := NewMockRedisClient()
-
 	statusUpdated := false
 	cfg := &ExecutorConfig{
-		JobConfig: DefaultJobConfig(),
+		WrapperPort: 9090,
 		UpdateTaskStatus: func(ctx context.Context, taskID string, status string, message string) error {
 			statusUpdated = true
 			return nil
 		},
 	}
 
-	executor, err := NewTaskExecutor(k8sClient, mockRedis, cfg)
+	executor, err := newTestExecutor(cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -216,19 +208,16 @@ func TestTaskExecutor_HandleTaskEvent(t *testing.T) {
 }
 
 func TestTaskExecutor_HandleTaskEvent_Complete(t *testing.T) {
-	k8sClient := fake.NewSimpleClientset()
-	mockRedis := NewMockRedisClient()
-
 	completed := false
 	cfg := &ExecutorConfig{
-		JobConfig: DefaultJobConfig(),
+		WrapperPort: 9090,
 		OnTaskComplete: func(ctx context.Context, taskID string, result map[string]interface{}) error {
 			completed = true
 			return nil
 		},
 	}
 
-	executor, err := NewTaskExecutor(k8sClient, mockRedis, cfg)
+	executor, err := newTestExecutor(cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -262,19 +251,16 @@ func TestTaskExecutor_HandleTaskEvent_Complete(t *testing.T) {
 }
 
 func TestTaskExecutor_HandleTaskEvent_Failed(t *testing.T) {
-	k8sClient := fake.NewSimpleClientset()
-	mockRedis := NewMockRedisClient()
-
 	failed := false
 	cfg := &ExecutorConfig{
-		JobConfig: DefaultJobConfig(),
+		WrapperPort: 9090,
 		OnTaskFailed: func(ctx context.Context, taskID string, err error) error {
 			failed = true
 			return nil
 		},
 	}
 
-	executor, err := NewTaskExecutor(k8sClient, mockRedis, cfg)
+	executor, err := newTestExecutor(cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -304,26 +290,8 @@ func TestTaskExecutor_HandleTaskEvent_Failed(t *testing.T) {
 	}
 }
 
-func TestTaskExecutor_GetJobManager(t *testing.T) {
-	k8sClient := fake.NewSimpleClientset()
-	mockRedis := NewMockRedisClient()
-
-	executor, err := NewTaskExecutor(k8sClient, mockRedis, nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	mgr := executor.GetJobManager()
-	if mgr == nil {
-		t.Error("JobManager should not be nil")
-	}
-}
-
 func TestTaskExecutor_GetHeartbeatManager(t *testing.T) {
-	k8sClient := fake.NewSimpleClientset()
-	mockRedis := NewMockRedisClient()
-
-	executor, err := NewTaskExecutor(k8sClient, mockRedis, nil)
+	executor, err := newTestExecutor(nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -384,10 +352,7 @@ func TestValidateTaskID(t *testing.T) {
 }
 
 func TestTaskExecutor_Execute_InvalidTaskID(t *testing.T) {
-	k8sClient := fake.NewSimpleClientset()
-	mockRedis := NewMockRedisClient()
-
-	executor, err := NewTaskExecutor(k8sClient, mockRedis, nil)
+	executor, err := newTestExecutor(nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -407,10 +372,7 @@ func TestTaskExecutor_Execute_InvalidTaskID(t *testing.T) {
 }
 
 func TestTaskExecutor_GetStatus_InvalidTaskID(t *testing.T) {
-	k8sClient := fake.NewSimpleClientset()
-	mockRedis := NewMockRedisClient()
-
-	executor, err := NewTaskExecutor(k8sClient, mockRedis, nil)
+	executor, err := newTestExecutor(nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -427,10 +389,7 @@ func TestTaskExecutor_GetStatus_InvalidTaskID(t *testing.T) {
 }
 
 func TestTaskExecutor_Pause_InvalidTaskID(t *testing.T) {
-	k8sClient := fake.NewSimpleClientset()
-	mockRedis := NewMockRedisClient()
-
-	executor, err := NewTaskExecutor(k8sClient, mockRedis, nil)
+	executor, err := newTestExecutor(nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -447,10 +406,7 @@ func TestTaskExecutor_Pause_InvalidTaskID(t *testing.T) {
 }
 
 func TestTaskExecutor_Resume_InvalidTaskID(t *testing.T) {
-	k8sClient := fake.NewSimpleClientset()
-	mockRedis := NewMockRedisClient()
-
-	executor, err := NewTaskExecutor(k8sClient, mockRedis, nil)
+	executor, err := newTestExecutor(nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -467,10 +423,7 @@ func TestTaskExecutor_Resume_InvalidTaskID(t *testing.T) {
 }
 
 func TestTaskExecutor_Cancel_InvalidTaskID(t *testing.T) {
-	k8sClient := fake.NewSimpleClientset()
-	mockRedis := NewMockRedisClient()
-
-	executor, err := NewTaskExecutor(k8sClient, mockRedis, nil)
+	executor, err := newTestExecutor(nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -486,31 +439,25 @@ func TestTaskExecutor_Cancel_InvalidTaskID(t *testing.T) {
 	}
 }
 
-func TestTaskExecutor_GetPodAddress_InvalidTaskID(t *testing.T) {
-	k8sClient := fake.NewSimpleClientset()
-	mockRedis := NewMockRedisClient()
-
-	executor, err := NewTaskExecutor(k8sClient, mockRedis, nil)
+func TestTaskExecutor_GetAddress_InvalidTaskID(t *testing.T) {
+	executor, err := newTestExecutor(nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = executor.GetPodAddress(context.Background(), "")
+	_, err = executor.GetAddress(context.Background(), "")
 	if err == nil {
 		t.Error("expected error for empty task ID")
 	}
 
-	_, err = executor.GetPodAddress(context.Background(), "invalid-uuid")
+	_, err = executor.GetAddress(context.Background(), "invalid-uuid")
 	if err == nil {
 		t.Error("expected error for invalid UUID format")
 	}
 }
 
 func TestTaskExecutor_HandleHeartbeat_InvalidTaskID(t *testing.T) {
-	k8sClient := fake.NewSimpleClientset()
-	mockRedis := NewMockRedisClient()
-
-	executor, err := NewTaskExecutor(k8sClient, mockRedis, nil)
+	executor, err := newTestExecutor(nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -527,10 +474,7 @@ func TestTaskExecutor_HandleHeartbeat_InvalidTaskID(t *testing.T) {
 }
 
 func TestTaskExecutor_HandleTaskEvent_InvalidTaskID(t *testing.T) {
-	k8sClient := fake.NewSimpleClientset()
-	mockRedis := NewMockRedisClient()
-
-	executor, err := NewTaskExecutor(k8sClient, mockRedis, nil)
+	executor, err := newTestExecutor(nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -547,10 +491,7 @@ func TestTaskExecutor_HandleTaskEvent_InvalidTaskID(t *testing.T) {
 }
 
 func TestTaskExecutor_InjectInstruction_InvalidTaskID(t *testing.T) {
-	k8sClient := fake.NewSimpleClientset()
-	mockRedis := NewMockRedisClient()
-
-	executor, err := NewTaskExecutor(k8sClient, mockRedis, nil)
+	executor, err := newTestExecutor(nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
