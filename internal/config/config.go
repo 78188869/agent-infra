@@ -37,10 +37,20 @@ type ServerConfig struct {
 	Mode string `yaml:"mode"`
 }
 
+// LogFileConfig holds local file logging configuration.
+type LogFileConfig struct {
+	Dir        string `yaml:"dir"`
+	MaxSizeMB  int    `yaml:"max_size_mb"`
+	MaxBackups int    `yaml:"max_backups"`
+	MaxAgeDays int    `yaml:"max_age_days"`
+}
+
 // LogConfig holds logging configuration.
 type LogConfig struct {
-	Level  string `yaml:"level"`
-	Format string `yaml:"format"`
+	Level   string        `yaml:"level"`
+	Format  string        `yaml:"format"`
+	Outputs string        `yaml:"outputs"` // stdout | file | both
+	File    LogFileConfig `yaml:"file"`
 }
 
 // K8sNamespaceConfig holds Kubernetes namespace configuration.
@@ -139,6 +149,15 @@ func (c *AppConfig) ApplyDefaults() {
 		if c.Log.Format == "" {
 			c.Log.Format = "text"
 		}
+		if c.Log.Outputs == "" {
+			c.Log.Outputs = "both"
+		}
+		if c.Log.File.Dir == "" {
+			c.Log.File.Dir = "logs"
+		}
+		if c.Log.File.MaxAgeDays == 0 {
+			c.Log.File.MaxAgeDays = 30
+		}
 	} else {
 		if c.Server.Port == 0 {
 			c.Server.Port = 8080
@@ -151,6 +170,9 @@ func (c *AppConfig) ApplyDefaults() {
 		}
 		if c.Log.Format == "" {
 			c.Log.Format = "json"
+		}
+		if c.Log.Outputs == "" {
+			c.Log.Outputs = "stdout"
 		}
 	}
 }
