@@ -84,5 +84,5 @@ configs/local.yml
 # Air live reload
 .air/
 
-# Claude Code
-.claude/
+# Claude Code personal preferences (project-level are shared)
+CLAUDE.local.md
