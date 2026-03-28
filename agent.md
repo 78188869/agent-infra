@@ -151,6 +151,8 @@ docs/
 | 12 | 关闭 Issue | `gh issue close {N} --repo {repo}` + 更新 Issue Summary 状态 |
 | 13 | 清理环境 | `git worktree remove .claude/worktrees/issue-{N}` |
 
+> **计划结构要求**：Step 4 的执行计划必须覆盖 Step 5-9（实现、测试、审查、推送、PR），每个 Step 对应一个 Task；Step 0-4 和 Step 10-13 在开发前创建完整的 14 步 TaskCreate 列表跟踪进度。
+
 ### 模块知识选择
 
 | 工作类型 | 加载的知识模块 | 相关 TRD 章节 |
