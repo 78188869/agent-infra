@@ -24,8 +24,8 @@ const (
 )
 
 // Executor defines the interface for task execution operations.
-// The Executor is responsible for managing the lifecycle of K8s Jobs
-// that run tasks in sandbox environments.
+// The Executor is responsible for managing the lifecycle of containerized
+// tasks that run in sandbox environments.
 type Executor interface {
 	// Execute creates and starts a K8s Job for the given task.
 	// It returns JobInfo containing the Job name and initial status.
@@ -43,9 +43,9 @@ type Executor interface {
 	// Cancel cancels a running Job and cleans up resources.
 	Cancel(ctx context.Context, taskID string, reason string) error
 
-	// GetPodAddress returns the Pod IP address for a task's Job.
+	// GetAddress returns the network address for a task's runtime environment.
 	// This is used for intervention operations.
-	GetPodAddress(ctx context.Context, taskID string) (string, error)
+	GetAddress(ctx context.Context, taskID string) (string, error)
 
 	// Start begins the executor's processing loop.
 	Start(ctx context.Context) error
@@ -57,7 +57,7 @@ type Executor interface {
 	IsRunning() bool
 }
 
-// JobInfo contains information about a K8s Job.
+// JobInfo contains information about a task execution job.
 type JobInfo struct {
 	Name      string    `json:"name"`
 	Namespace string    `json:"namespace"`
@@ -66,7 +66,7 @@ type JobInfo struct {
 	CreatedAt int64     `json:"created_at"`
 }
 
-// JobStatus represents the status of a K8s Job.
+// JobStatus represents the status of a task execution job.
 type JobStatus struct {
 	Phase          string `json:"phase"`           // Pending, Running, Succeeded, Failed
 	Message        string `json:"message"`         // Human-readable message
@@ -196,8 +196,8 @@ type MetricsRecorder interface {
 
 // ExecutorConfig holds configuration for the TaskExecutor.
 type ExecutorConfig struct {
-	// JobConfig for creating Jobs
-	JobConfig *JobConfig
+	// WrapperPort is the HTTP port for the wrapper sidecar.
+	WrapperPort int
 
 	// Logger for structured logging
 	Logger *slog.Logger

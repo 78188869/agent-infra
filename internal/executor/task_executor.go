@@ -10,7 +10,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
-	"k8s.io/client-go/kubernetes"
 
 	"github.com/example/agent-infra/internal/model"
 )
@@ -27,7 +26,7 @@ type RedisClient interface {
 
 // TaskExecutor implements the Executor interface using K8s Jobs.
 type TaskExecutor struct {
-	jobManager    *JobManager
+	runtime       ContainerRuntime
 	wrapperClient *WrapperClient
 	heartbeat     *HeartbeatManager
 
@@ -46,16 +45,16 @@ type TaskExecutor struct {
 }
 
 // NewTaskExecutor creates a new TaskExecutor instance.
-func NewTaskExecutor(k8sClient kubernetes.Interface, redisClient RedisClient, cfg *ExecutorConfig) (*TaskExecutor, error) {
+func NewTaskExecutor(runtime ContainerRuntime, redisClient RedisClient, cfg *ExecutorConfig) (*TaskExecutor, error) {
+	if runtime == nil {
+		return nil, ErrNilContainerRuntime
+	}
 	if redisClient == nil {
 		return nil, ErrNilRedisClient
 	}
 
 	if cfg == nil {
 		cfg = &ExecutorConfig{}
-	}
-	if cfg.JobConfig == nil {
-		cfg.JobConfig = DefaultJobConfig()
 	}
 
 	// Initialize logger
@@ -64,9 +63,12 @@ func NewTaskExecutor(k8sClient kubernetes.Interface, redisClient RedisClient, cf
 		logger = slog.Default().With("component", "task_executor")
 	}
 
-	jobManager := NewJobManager(k8sClient, cfg.JobConfig)
+	wrapperPort := cfg.WrapperPort
+	if wrapperPort == 0 {
+		wrapperPort = 9090
+	}
 	wrapperClient := NewWrapperClient(&WrapperClientConfig{
-		Port: cfg.JobConfig.WrapperPort,
+		Port: wrapperPort,
 	})
 
 	heartbeatCfg := &HeartbeatManagerConfig{
@@ -79,7 +81,7 @@ func NewTaskExecutor(k8sClient kubernetes.Interface, redisClient RedisClient, cf
 	}
 
 	return &TaskExecutor{
-		jobManager:    jobManager,
+		runtime:       runtime,
 		wrapperClient: wrapperClient,
 		heartbeat:     heartbeat,
 		config:        cfg,
@@ -129,10 +131,10 @@ func (e *TaskExecutor) Execute(ctx context.Context, task *model.Task) (*JobInfo,
 		"status", task.Status,
 	)
 
-	// Create the K8s Job
-	jobInfo, err := e.jobManager.CreateJob(ctx, task)
+	// Create the runtime environment
+	runtimeInfo, err := e.runtime.Create(ctx, task)
 	if err != nil {
-		e.logger.Error("failed to create K8s job",
+		e.logger.Error("failed to create runtime environment",
 			"task_id", taskID,
 			"tenant_id", task.TenantID,
 			"error", err,
@@ -142,9 +144,16 @@ func (e *TaskExecutor) Execute(ctx context.Context, task *model.Task) (*JobInfo,
 		return nil, fmt.Errorf("failed to create job: %w", err)
 	}
 
+	jobInfo := &JobInfo{
+		Name:      runtimeInfo.Name,
+		Namespace: runtimeInfo.Namespace,
+		Status:    JobStatus{Phase: runtimeInfo.Status.Phase},
+		CreatedAt: runtimeInfo.CreatedAt,
+	}
+
 	// Register for heartbeat monitoring
-	podIP := "" // Will be set when Pod starts
-	e.heartbeat.Register(taskID, podIP)
+	address := "" // Will be resolved when runtime starts
+	e.heartbeat.Register(taskID, address)
 
 	// Update task status to running
 	if e.config.UpdateTaskStatus != nil {
@@ -178,7 +187,18 @@ func (e *TaskExecutor) GetStatus(ctx context.Context, taskID string) (*JobStatus
 		return nil, err
 	}
 
-	return e.jobManager.GetJobStatus(ctx, taskID)
+	runtimeStatus, err := e.runtime.GetStatus(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &JobStatus{
+		Phase:          runtimeStatus.Phase,
+		Message:        runtimeStatus.Message,
+		StartTime:      runtimeStatus.StartTime,
+		CompletionTime: runtimeStatus.CompletionTime,
+		ExitCode:       runtimeStatus.ExitCode,
+	}, nil
 }
 
 // Pause pauses a running Job.
@@ -217,21 +237,21 @@ func (e *TaskExecutor) Pause(ctx context.Context, taskID string) error {
 		}
 	}
 
-	// Get Pod IP
-	podIP, err := e.jobManager.GetPodAddress(ctx, taskID)
+	// Get runtime address
+	address, err := e.runtime.GetAddress(ctx, taskID)
 	if err != nil {
-		e.logger.Error("failed to get pod address for pause",
+		e.logger.Error("failed to get runtime address for pause",
 			"task_id", taskID,
 			"error", err,
 		)
-		return fmt.Errorf("failed to get pod address: %w", err)
+		return fmt.Errorf("failed to get runtime address: %w", err)
 	}
 
 	// Call Wrapper pause API
-	if err := e.wrapperClient.Pause(ctx, podIP); err != nil {
+	if err := e.wrapperClient.Pause(ctx, address); err != nil {
 		e.logger.Error("failed to pause wrapper",
 			"task_id", taskID,
-			"pod_ip", podIP,
+			"address", address,
 			"error", err,
 			"duration_ms", time.Since(startTime).Milliseconds(),
 		)
@@ -294,21 +314,21 @@ func (e *TaskExecutor) Resume(ctx context.Context, taskID string) error {
 		}
 	}
 
-	// Get Pod IP
-	podIP, err := e.jobManager.GetPodAddress(ctx, taskID)
+	// Get runtime address
+	address, err := e.runtime.GetAddress(ctx, taskID)
 	if err != nil {
-		e.logger.Error("failed to get pod address for resume",
+		e.logger.Error("failed to get runtime address for resume",
 			"task_id", taskID,
 			"error", err,
 		)
-		return fmt.Errorf("failed to get pod address: %w", err)
+		return fmt.Errorf("failed to get runtime address: %w", err)
 	}
 
 	// Call Wrapper resume API
-	if err := e.wrapperClient.Resume(ctx, podIP); err != nil {
+	if err := e.wrapperClient.Resume(ctx, address); err != nil {
 		e.logger.Error("failed to resume wrapper",
 			"task_id", taskID,
-			"pod_ip", podIP,
+			"address", address,
 			"error", err,
 			"duration_ms", time.Since(startTime).Milliseconds(),
 		)
@@ -353,9 +373,9 @@ func (e *TaskExecutor) Cancel(ctx context.Context, taskID string, reason string)
 		"reason", reason,
 	)
 
-	// Delete the K8s Job
-	if err := e.jobManager.DeleteJob(ctx, taskID); err != nil {
-		e.logger.Error("failed to delete K8s job during cancel",
+	// Delete the runtime environment
+	if err := e.runtime.Delete(ctx, taskID); err != nil {
+		e.logger.Error("failed to delete runtime during cancel",
 			"task_id", taskID,
 			"error", err,
 		)
@@ -388,14 +408,14 @@ func (e *TaskExecutor) Cancel(ctx context.Context, taskID string, reason string)
 	return nil
 }
 
-// GetPodAddress returns the Pod IP address for a task's Job.
-func (e *TaskExecutor) GetPodAddress(ctx context.Context, taskID string) (string, error) {
+// GetAddress returns the network address for a task's runtime environment.
+func (e *TaskExecutor) GetAddress(ctx context.Context, taskID string) (string, error) {
 	// Validate task ID
 	if err := validateTaskID(taskID); err != nil {
 		return "", err
 	}
 
-	return e.jobManager.GetPodAddress(ctx, taskID)
+	return e.runtime.GetAddress(ctx, taskID)
 }
 
 // Start begins the executor's processing loop.
@@ -623,23 +643,18 @@ func (e *TaskExecutor) InjectInstruction(ctx context.Context, taskID string, con
 		}
 	}
 
-	// Get Pod IP
-	podIP, err := e.jobManager.GetPodAddress(ctx, taskID)
+	// Get runtime address
+	address, err := e.runtime.GetAddress(ctx, taskID)
 	if err != nil {
-		return fmt.Errorf("failed to get pod address: %w", err)
+		return fmt.Errorf("failed to get runtime address: %w", err)
 	}
 
 	// Call Wrapper inject API
-	if err := e.wrapperClient.Inject(ctx, podIP, content); err != nil {
+	if err := e.wrapperClient.Inject(ctx, address, content); err != nil {
 		return fmt.Errorf("failed to inject instruction: %w", err)
 	}
 
 	return nil
-}
-
-// GetJobManager returns the JobManager for direct access.
-func (e *TaskExecutor) GetJobManager() *JobManager {
-	return e.jobManager
 }
 
 // GetHeartbeatManager returns the HeartbeatManager for direct access.

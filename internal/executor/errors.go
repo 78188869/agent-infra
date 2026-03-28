@@ -45,4 +45,7 @@ var (
 
 	// ErrNilRedisClient indicates that a nil RedisClient was provided.
 	ErrNilRedisClient = errors.New("redis client cannot be nil")
+
+	// ErrNilContainerRuntime indicates that a nil ContainerRuntime was provided.
+	ErrNilContainerRuntime = errors.New("container runtime cannot be nil")
 )
