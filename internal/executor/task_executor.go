@@ -248,8 +248,18 @@ func (e *TaskExecutor) Pause(ctx context.Context, taskID string) error {
 		return fmt.Errorf("failed to get runtime address: %w", err)
 	}
 
-	// Call Wrapper pause API
-	if err := e.wrapperClient.Pause(ctx, address); err != nil {
+	// Try Interrupt first (Agent SDK wrapper), fall back to Pause (legacy K8s)
+	err = e.wrapperClient.Interrupt(ctx, address)
+	if err != nil {
+		// Fallback to legacy pause for K8s runtime
+		e.logger.Warn("Interrupt failed, falling back to legacy Pause",
+			"task_id", taskID,
+			"address", address,
+			"error", err,
+		)
+		err = e.wrapperClient.Pause(ctx, address)
+	}
+	if err != nil {
 		e.logger.Error("failed to pause wrapper",
 			"task_id", taskID,
 			"address", address,
@@ -280,6 +290,8 @@ func (e *TaskExecutor) Pause(ctx context.Context, taskID string) error {
 }
 
 // Resume resumes a paused Job.
+// For Agent SDK wrapper, use InjectInstruction to send new instructions to an interrupted agent.
+// This method is kept for backward compatibility with K8s runtime.
 func (e *TaskExecutor) Resume(ctx context.Context, taskID string) error {
 	startTime := time.Now()
 
@@ -544,24 +556,48 @@ func (e *TaskExecutor) HandleTaskEvent(ctx context.Context, taskID string, event
 
 	switch eventType {
 	case "status_change":
-		if status, ok := payload["status"].(string); ok {
-			e.logger.Info("task status change event",
+		status, ok := payload["status"].(string)
+		if !ok || status == "" {
+			e.logger.Warn("invalid status in status_change event",
 				"task_id", taskID,
-				"new_status", status,
+				"payload", payload,
 			)
-			if e.config.UpdateTaskStatus != nil {
-				message := ""
-				if m, ok := payload["message"].(string); ok {
-					message = m
-				}
-				if err := e.config.UpdateTaskStatus(ctx, taskID, status, message); err != nil {
-					e.logger.Error("UpdateTaskStatus callback failed for status_change",
-						"task_id", taskID,
-						"status", status,
-						"error", err,
-					)
-					return fmt.Errorf("UpdateTaskStatus callback failed for task %s: %w", taskID, err)
-				}
+			return nil
+		}
+		validStatuses := map[string]bool{
+			model.TaskStatusPending:         true,
+			model.TaskStatusScheduled:       true,
+			model.TaskStatusRunning:         true,
+			model.TaskStatusPaused:          true,
+			model.TaskStatusWaitingApproval: true,
+			model.TaskStatusRetrying:        true,
+			model.TaskStatusSucceeded:       true,
+			model.TaskStatusFailed:          true,
+			model.TaskStatusCancelled:       true,
+		}
+		if !validStatuses[status] {
+			e.logger.Warn("unknown status in status_change event",
+				"task_id", taskID,
+				"status", status,
+			)
+			return nil
+		}
+		e.logger.Info("task status change event",
+			"task_id", taskID,
+			"new_status", status,
+		)
+		if e.config.UpdateTaskStatus != nil {
+			message := ""
+			if m, ok := payload["message"].(string); ok {
+				message = m
+			}
+			if err := e.config.UpdateTaskStatus(ctx, taskID, status, message); err != nil {
+				e.logger.Error("UpdateTaskStatus callback failed for status_change",
+					"task_id", taskID,
+					"status", status,
+					"error", err,
+				)
+				return fmt.Errorf("UpdateTaskStatus callback failed for task %s: %w", taskID, err)
 			}
 		}
 
@@ -626,6 +662,18 @@ func (e *TaskExecutor) HandleTaskEvent(ctx context.Context, taskID string, event
 				return fmt.Errorf("OnTaskFailed callback failed for task %s: %w", taskID, err)
 			}
 		}
+
+	case "progress":
+		e.logger.Info("Task progress",
+			"task_id", taskID,
+			"text", payload["text"],
+		)
+
+	case "tool_call":
+		e.logger.Info("Task tool call",
+			"task_id", taskID,
+			"tool_name", payload["tool_name"],
+		)
 	}
 
 	return nil

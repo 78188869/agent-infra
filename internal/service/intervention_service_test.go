@@ -1138,3 +1138,135 @@ func containsMiddle(s, substr string) bool {
 	}
 	return false
 }
+
+// mockTaskEventHandler implements TaskEventHandler for testing
+type mockTaskEventHandler struct {
+	handleTaskEventFunc func(ctx context.Context, taskID string, eventType string, payload map[string]interface{}) error
+}
+
+func (m *mockTaskEventHandler) HandleTaskEvent(ctx context.Context, taskID string, eventType string, payload map[string]interface{}) error {
+	if m.handleTaskEventFunc != nil {
+		return m.handleTaskEventFunc(ctx, taskID, eventType, payload)
+	}
+	return nil
+}
+
+func TestInterventionService_HandleWrapperEvent(t *testing.T) {
+	ctx := context.Background()
+	taskID := uuid.New()
+
+	tests := []struct {
+		name        string
+		taskID      string
+		eventType   string
+		payload     map[string]interface{}
+		mockSetup   func(*mockTaskEventHandler)
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name:      "successful heartbeat event",
+			taskID:    taskID.String(),
+			eventType: "heartbeat",
+			payload: map[string]interface{}{
+				"status":   "running",
+				"progress": float64(50),
+			},
+			mockSetup: func(handler *mockTaskEventHandler) {
+				handler.handleTaskEventFunc = func(ctx context.Context, taskID string, eventType string, payload map[string]interface{}) error {
+					return nil
+				}
+			},
+			wantErr: false,
+		},
+		{
+			name:      "successful status_change event",
+			taskID:    taskID.String(),
+			eventType: "status_change",
+			payload: map[string]interface{}{
+				"status":  "running",
+				"message": "task started",
+			},
+			mockSetup: func(handler *mockTaskEventHandler) {
+				handler.handleTaskEventFunc = func(ctx context.Context, taskID string, eventType string, payload map[string]interface{}) error {
+					return nil
+				}
+			},
+			wantErr: false,
+		},
+		{
+			name:        "invalid task ID format",
+			taskID:      "invalid-uuid",
+			eventType:   "heartbeat",
+			payload:     map[string]interface{}{},
+			mockSetup:   func(handler *mockTaskEventHandler) {},
+			wantErr:     true,
+			errContains: "invalid task ID format",
+		},
+		{
+			name:        "empty event type",
+			taskID:      taskID.String(),
+			eventType:   "",
+			payload:     map[string]interface{}{},
+			mockSetup:   func(handler *mockTaskEventHandler) {},
+			wantErr:     true,
+			errContains: "event_type is required",
+		},
+		{
+			name:      "event handler not configured",
+			taskID:    taskID.String(),
+			eventType: "heartbeat",
+			payload:   map[string]interface{}{},
+			mockSetup: func(handler *mockTaskEventHandler) {},
+			wantErr:   true,
+		},
+		{
+			name:      "event handler returns error",
+			taskID:    taskID.String(),
+			eventType: "failed",
+			payload: map[string]interface{}{
+				"error": "something went wrong",
+			},
+			mockSetup: func(handler *mockTaskEventHandler) {
+				handler.handleTaskEventFunc = func(ctx context.Context, taskID string, eventType string, payload map[string]interface{}) error {
+					return errors.NewInternalError("internal error")
+				}
+			},
+			wantErr:     true,
+			errContains: "internal error",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			taskRepo := &mockTaskRepository{}
+			intRepo := &mockInterventionRepository{}
+			eventHandler := &mockTaskEventHandler{}
+			tt.mockSetup(eventHandler)
+
+			svc := NewInterventionService(taskRepo, intRepo).(*interventionService)
+
+			// Only set handler for tests that are not testing "not configured"
+			if tt.name != "event handler not configured" {
+				svc.SetEventHandler(eventHandler)
+			}
+
+			err := svc.HandleWrapperEvent(ctx, tt.taskID, tt.eventType, tt.payload)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("HandleWrapperEvent() expected error, got nil")
+					return
+				}
+				if tt.errContains != "" && !contains(err.Error(), tt.errContains) {
+					t.Errorf("HandleWrapperEvent() error = %v, want error containing %v", err, tt.errContains)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("HandleWrapperEvent() unexpected error = %v", err)
+			}
+		})
+	}
+}

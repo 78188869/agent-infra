@@ -59,6 +59,59 @@ func (cm *ComposeManager) GenerateConfig(ctx context.Context, taskID string, env
 	return nil
 }
 
+// GenerateSingleContainerConfig creates a docker-compose.yml for the
+// single-container Agent SDK wrapper mode. Unlike GenerateConfig, this
+// produces a compose file with only the wrapper service that combines
+// CLI runner and wrapper functionality.
+func (cm *ComposeManager) GenerateSingleContainerConfig(ctx context.Context, data *SingleContainerTemplateData) error {
+	if data == nil {
+		return fmt.Errorf("template data must not be nil")
+	}
+
+	taskDir := filepath.Join(cm.config.ComposeDir, "task-"+data.TaskID)
+	if err := os.MkdirAll(taskDir, 0755); err != nil {
+		return fmt.Errorf("failed to create task compose directory: %w", err)
+	}
+
+	tmpl, err := template.New("single-container-compose").Parse(singleContainerComposeTemplate)
+	if err != nil {
+		return fmt.Errorf("failed to parse single-container compose template: %w", err)
+	}
+
+	// Apply defaults from ComposeManager config.
+	templateData := map[string]string{
+		"TaskID":          data.TaskID,
+		"WrapperImage":    data.WrapperImage,
+		"WorkspaceDir":    data.WorkspaceDir,
+		"ControlPlaneURL": data.ControlPlaneURL,
+		"AnthropicAPIKey": data.AnthropicAPIKey,
+		"TaskPrompt":      data.TaskPrompt,
+		"MaxTimeout":      data.MaxTimeout,
+		"GitRepo":         data.GitRepo,
+		"GitBranch":       data.GitBranch,
+		"ClaudeMdContent": data.ClaudeMdContent,
+		"AllowedTools":    data.AllowedTools,
+	}
+
+	composeFile := filepath.Join(taskDir, "docker-compose.yml")
+	f, err := os.Create(composeFile)
+	if err != nil {
+		return fmt.Errorf("failed to create compose file: %w", err)
+	}
+	defer f.Close()
+
+	if err := tmpl.Execute(f, templateData); err != nil {
+		return fmt.Errorf("failed to execute single-container compose template: %w", err)
+	}
+
+	// Restrict compose file permissions since it contains sensitive data (API key)
+	if err := os.Chmod(composeFile, 0600); err != nil {
+		return fmt.Errorf("failed to set compose file permissions: %w", err)
+	}
+
+	return nil
+}
+
 // TaskDir returns the compose directory path for a task.
 func (cm *ComposeManager) TaskDir(taskID string) string {
 	return filepath.Join(cm.config.ComposeDir, "task-"+taskID)
@@ -189,3 +242,41 @@ const composeTemplate = `services:
     depends_on:
       - cli-runner
 `
+
+// singleContainerComposeTemplate defines a single-container compose config
+// for the Agent SDK wrapper mode where CLI runner and wrapper are combined.
+const singleContainerComposeTemplate = `services:
+  wrapper:
+    image: {{.WrapperImage}}
+    ports:
+      - "9090"
+    volumes:
+      - {{.WorkspaceDir}}/{{.TaskID}}:/workspace
+    environment:
+      - TASK_ID={{.TaskID}}
+      - CONTROL_PLANE_URL={{.ControlPlaneURL}}
+      - ANTHROPIC_API_KEY={{.AnthropicAPIKey}}
+      - TASK_PROMPT={{.TaskPrompt}}
+      - MAX_TIMEOUT={{.MaxTimeout}}
+      - WORKSPACE_DIR=/workspace
+      - GIT_REPO={{.GitRepo}}
+      - GIT_BRANCH={{.GitBranch}}
+      - CLAUDE_MD_CONTENT={{.ClaudeMdContent}}
+      - ALLOWED_TOOLS={{.AllowedTools}}
+`
+
+// SingleContainerTemplateData holds the data for rendering a single-container
+// docker-compose.yml template used by the Agent SDK wrapper mode.
+type SingleContainerTemplateData struct {
+	TaskID          string
+	WrapperImage    string
+	WorkspaceDir    string
+	ControlPlaneURL string
+	AnthropicAPIKey string
+	TaskPrompt      string
+	MaxTimeout      string
+	GitRepo         string
+	GitBranch       string
+	ClaudeMdContent string
+	AllowedTools    string
+}

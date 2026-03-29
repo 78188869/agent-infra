@@ -190,7 +190,7 @@ func TestWrapperClient_Inject(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"success":true,"message":"Instruction injected successfully"}`))
+		w.Write([]byte(`{"status":"injected"}`))
 	}))
 	defer testServer.Close()
 
@@ -248,6 +248,72 @@ func TestWrapperClient_InvalidAddress(t *testing.T) {
 	client := NewWrapperClient(nil)
 
 	_, err := client.Health(context.Background(), "")
+	if err == nil {
+		t.Error("expected error for empty address")
+	}
+}
+
+func TestWrapperClient_Interrupt(t *testing.T) {
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/interrupt" {
+			t.Errorf("expected /interrupt, got %s", r.URL.Path)
+		}
+		if r.Method != "POST" {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"interrupted","message":"Task interrupted successfully"}`))
+	}))
+	defer testServer.Close()
+
+	host, port := parseTestServer(testServer)
+	client := NewWrapperClient(&WrapperClientConfig{Port: port})
+	client.httpClient = testServer.Client()
+
+	err := client.Interrupt(context.Background(), host)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestWrapperClient_Interrupt_Failed(t *testing.T) {
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"error","message":"Cannot interrupt: task not running"}`))
+	}))
+	defer testServer.Close()
+
+	host, port := parseTestServer(testServer)
+	client := NewWrapperClient(&WrapperClientConfig{Port: port})
+	client.httpClient = testServer.Client()
+
+	err := client.Interrupt(context.Background(), host)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestWrapperClient_Interrupt_ServerError(t *testing.T) {
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer testServer.Close()
+
+	host, port := parseTestServer(testServer)
+	client := NewWrapperClient(&WrapperClientConfig{Port: port})
+	client.httpClient = testServer.Client()
+
+	err := client.Interrupt(context.Background(), host)
+	if err == nil {
+		t.Fatal("expected error for 500 status")
+	}
+}
+
+func TestWrapperClient_Interrupt_InvalidAddress(t *testing.T) {
+	client := NewWrapperClient(nil)
+	err := client.Interrupt(context.Background(), "")
 	if err == nil {
 		t.Error("expected error for empty address")
 	}

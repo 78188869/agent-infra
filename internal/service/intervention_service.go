@@ -37,12 +37,20 @@ type InterventionService interface {
 	Cancel(ctx context.Context, taskID, operatorID, reason string) (*model.Intervention, error)
 	Inject(ctx context.Context, req *InjectInterventionRequest) (*model.Intervention, error)
 	ListInterventions(ctx context.Context, taskID string, filter *InterventionFilter) ([]*model.Intervention, int64, error)
+	HandleWrapperEvent(ctx context.Context, taskID string, eventType string, payload map[string]interface{}) error
+}
+
+// TaskEventHandler defines the interface for handling task events from the executor.
+// This decouples the service layer from the executor package.
+type TaskEventHandler interface {
+	HandleTaskEvent(ctx context.Context, taskID string, eventType string, payload map[string]interface{}) error
 }
 
 // interventionService implements InterventionService.
 type interventionService struct {
 	taskRepo         repository.TaskRepository
 	interventionRepo repository.InterventionRepository
+	eventHandler     TaskEventHandler
 }
 
 // NewInterventionService creates a new InterventionService instance.
@@ -54,6 +62,12 @@ func NewInterventionService(
 		taskRepo:         taskRepo,
 		interventionRepo: interventionRepo,
 	}
+}
+
+// SetEventHandler sets the task event handler for the service.
+// This is used to break circular dependencies between service and executor packages.
+func (s *interventionService) SetEventHandler(handler TaskEventHandler) {
+	s.eventHandler = handler
 }
 
 // canPause checks if a task can be paused based on its current status.
@@ -313,6 +327,28 @@ func (s *interventionService) Inject(ctx context.Context, req *InjectInterventio
 		return nil, err
 	}
 
+	// Forward instruction to the task executor via the event handler
+	if s.eventHandler != nil {
+		eventPayload := map[string]interface{}{
+			"instruction": req.Instruction,
+			"context":     req.Context,
+			"task_id":     req.TaskID,
+		}
+		if err := s.eventHandler.HandleTaskEvent(ctx, req.TaskID, "inject_instruction", eventPayload); err != nil {
+			// Update intervention status to failed
+			intervention.Status = model.InterventionStatusFailed
+			failResult := model.InterventionResult{
+				Success:   false,
+				Message:   "Failed to inject instruction: " + err.Error(),
+				Timestamp: time.Now().Unix(),
+			}
+			failResultJSON, _ := json.Marshal(failResult)
+			intervention.Result = datatypes.JSON(failResultJSON)
+			s.interventionRepo.Update(ctx, intervention)
+			return nil, err
+		}
+	}
+
 	// Update intervention status to applied
 	intervention.Status = model.InterventionStatusApplied
 	result := model.InterventionResult{
@@ -354,4 +390,24 @@ func (s *interventionService) ListInterventions(ctx context.Context, taskID stri
 	}
 
 	return interventions, total, nil
+}
+
+// HandleWrapperEvent handles an event pushed from the wrapper sidecar.
+// It delegates to the executor's HandleTaskEvent via the TaskEventHandler interface.
+func (s *interventionService) HandleWrapperEvent(ctx context.Context, taskID string, eventType string, payload map[string]interface{}) error {
+	// Validate task ID
+	_, err := uuid.Parse(taskID)
+	if err != nil {
+		return errors.NewBadRequestError("invalid task ID format")
+	}
+
+	if eventType == "" {
+		return errors.NewBadRequestError("event_type is required")
+	}
+
+	if s.eventHandler == nil {
+		return errors.NewInternalError("event handler not configured")
+	}
+
+	return s.eventHandler.HandleTaskEvent(ctx, taskID, eventType, payload)
 }

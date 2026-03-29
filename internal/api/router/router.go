@@ -1,6 +1,8 @@
 package router
 
 import (
+	"os"
+
 	"github.com/example/agent-infra/internal/api/handler"
 	"github.com/example/agent-infra/internal/api/middleware"
 	"github.com/example/agent-infra/internal/monitoring"
@@ -26,6 +28,10 @@ func Setup(tenantSvc service.TenantService, templateSvc service.TemplateService,
 
 	// API v1 routes
 	v1 := r.Group("/api/v1")
+
+	// Create handlers that are shared between route groups
+	interventionHandler := handler.NewInterventionHandler(interventionSvc)
+
 	{
 		// Tenant routes
 		tenantHandler := handler.NewTenantHandler(tenantSvc)
@@ -61,7 +67,6 @@ func Setup(tenantSvc service.TenantService, templateSvc service.TemplateService,
 		}
 
 		// Intervention routes (nested under tasks)
-		interventionHandler := handler.NewInterventionHandler(interventionSvc)
 		tasks.POST("/:id/pause", interventionHandler.Pause)
 		tasks.POST("/:id/resume", interventionHandler.Resume)
 		tasks.POST("/:id/cancel", interventionHandler.Cancel)
@@ -112,6 +117,13 @@ func Setup(tenantSvc service.TenantService, templateSvc service.TemplateService,
 
 		// Task log routes
 		tasks.GET("/:id/logs", metricsHandler.GetTaskLogs)
+	}
+
+	// Internal routes for wrapper event push (protected with shared-secret auth)
+	internalToken := os.Getenv("INTERNAL_TOKEN")
+	internal := r.Group("/internal", middleware.InternalAuth(internalToken))
+	{
+		internal.POST("/tasks/:id/events", interventionHandler.HandleWrapperEvent)
 	}
 
 	return r

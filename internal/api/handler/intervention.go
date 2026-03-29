@@ -193,3 +193,27 @@ func (h *InterventionHandler) ListInterventions(c *gin.Context) {
 
 	response.Paginated(c, interventions, total, filter.Page, filter.PageSize)
 }
+
+// WrapperEventRequest represents the request body for wrapper event push.
+type WrapperEventRequest struct {
+	EventType string                 `json:"event_type" binding:"required"`
+	Payload   map[string]interface{} `json:"payload"`
+}
+
+// HandleWrapperEvent handles POST /internal/tasks/:id/events - Receive events from wrapper sidecar.
+func (h *InterventionHandler) HandleWrapperEvent(c *gin.Context) {
+	taskID := c.Param("id")
+
+	var req WrapperEventRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "invalid request body: "+err.Error())
+		return
+	}
+
+	if err := h.service.HandleWrapperEvent(c.Request.Context(), taskID, req.EventType, req.Payload); err != nil {
+		handleError(c, err)
+		return
+	}
+
+	response.Success(c, nil)
+}

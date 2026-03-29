@@ -59,6 +59,10 @@ func (m *mockInterventionService) ListInterventions(ctx context.Context, taskID 
 	return nil, 0, nil
 }
 
+func (m *mockInterventionService) HandleWrapperEvent(ctx context.Context, taskID string, eventType string, payload map[string]interface{}) error {
+	return nil
+}
+
 func init() {
 	gin.SetMode(gin.TestMode)
 }
