@@ -344,7 +344,7 @@ func (s *interventionService) Inject(ctx context.Context, req *InjectInterventio
 			}
 			failResultJSON, _ := json.Marshal(failResult)
 			intervention.Result = datatypes.JSON(failResultJSON)
-			s.interventionRepo.Update(ctx, intervention)
+			_ = s.interventionRepo.Update(ctx, intervention)
 			return nil, err
 		}
 	}
