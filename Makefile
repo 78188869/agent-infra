@@ -1,5 +1,5 @@
 .PHONY: all build run clean test lint fmt vet deps
-.PHONY: docker-build-all docker-push docker-build-control-plane docker-build-frontend docker-build-cli-runner docker-build-wrapper
+.PHONY: docker-build-all docker-push docker-build-control-plane docker-build-frontend docker-build-sandbox
 .PHONY: k8s-apply k8s-delete k8s-logs k8s-status
 .PHONY: db-migrate db-rollback
 
@@ -94,13 +94,12 @@ dev: run
 # Docker targets
 # =============================================================================
 
-docker-build-all: docker-build-control-plane docker-build-frontend docker-build-cli-runner docker-build-wrapper
+docker-build-all: docker-build-control-plane docker-build-frontend docker-build-sandbox
 
 docker-push:
 	docker push $(REGISTRY)/control-plane:$(VERSION)
 	docker push $(REGISTRY)/frontend:$(VERSION)
-	docker push $(REGISTRY)/cli-runner:$(VERSION)
-	docker push $(REGISTRY)/agent-wrapper:$(VERSION)
+	docker push $(REGISTRY)/sandbox:$(VERSION)
 
 docker-build-control-plane:
 	docker build -f deploy/dockerfiles/Dockerfile.control-plane -t $(REGISTRY)/control-plane:$(VERSION) .
@@ -108,11 +107,8 @@ docker-build-control-plane:
 docker-build-frontend:
 	docker build -f deploy/dockerfiles/Dockerfile.frontend -t $(REGISTRY)/frontend:$(VERSION) ./web
 
-docker-build-cli-runner:
-	docker build -f deploy/dockerfiles/Dockerfile.cli-runner -t $(REGISTRY)/cli-runner:$(VERSION) .
-
-docker-build-wrapper:
-	docker build -f deploy/dockerfiles/Dockerfile.agent-wrapper -t $(REGISTRY)/agent-wrapper:$(VERSION) .
+docker-build-sandbox:
+	docker build -f scripts/wrapper/Dockerfile -t $(REGISTRY)/sandbox:$(VERSION) .
 
 # =============================================================================
 # Kubernetes targets
