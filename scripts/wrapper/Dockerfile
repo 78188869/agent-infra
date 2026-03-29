@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Go (parameterized version)
 ARG GO_VERSION=1.22.0
 RUN ARCH=$(dpkg --print-architecture) && \
-    curl -fSL --retry 3 --retry-delay 5 "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz" -o /tmp/go.tar.gz && \
+    curl -fSL --retry 3 --retry-delay 5 "https://mirrors.aliyun.com/golang/go${GO_VERSION}.linux-${ARCH}.tar.gz" -o /tmp/go.tar.gz && \
     tar -C /usr/local -xzf /tmp/go.tar.gz && \
     rm /tmp/go.tar.gz
 ENV PATH="/usr/local/go/bin:${PATH}"
@@ -36,10 +36,11 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
 
 # Node.js toolchain + Claude Code CLI from builder
 COPY --from=node-builder /usr/local/bin/node /usr/local/bin/
-COPY --from=node-builder /usr/local/bin/npm /usr/local/bin/
-COPY --from=node-builder /usr/local/bin/npx /usr/local/bin/
-COPY --from=node-builder /usr/local/bin/claude /usr/local/bin/
 COPY --from=node-builder /usr/local/lib/node_modules /usr/local/lib/node_modules
+# Recreate symlinks (COPY --from converts symlinks to files, breaking relative requires)
+RUN ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -sf /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
+    && ln -sf /usr/local/lib/node_modules/@anthropic-ai/claude-code/cli.js /usr/local/bin/claude
 
 # Python dependencies from builder
 COPY --from=py-builder /install /usr/local
