@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"text/template"
 )
 
@@ -148,7 +149,18 @@ func (cm *ComposeManager) GetStatus(ctx context.Context, taskID string) ([]Docke
 		return nil, fmt.Errorf("failed to get compose status: %w", err)
 	}
 
+	trimmed := strings.TrimSpace(out)
+	if trimmed == "" {
+		return nil, nil
+	}
+
+	// Docker Compose v2 returns a JSON array; try array parse first.
 	var statuses []DockerServiceStatus
+	if err := json.Unmarshal([]byte(trimmed), &statuses); err == nil {
+		return statuses, nil
+	}
+
+	// Fallback: JSON Lines (one object per line) for older versions.
 	for _, line := range splitLines(out) {
 		if line == "" {
 			continue

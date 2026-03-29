@@ -161,7 +161,7 @@ func TestComposeManager_Up_Down(t *testing.T) {
 	err := os.WriteFile(filepath.Join(taskDir, "docker-compose.yml"), []byte(`services:
   cli-runner:
     image: `+testImage+`
-    command: ["echo", "hello"]
+    command: ["sleep", "30"]
   wrapper:
     image: `+testImage+`
     command: ["sleep", "30"]
