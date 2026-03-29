@@ -1151,6 +1151,133 @@ func (m *mockTaskEventHandler) HandleTaskEvent(ctx context.Context, taskID strin
 	return nil
 }
 
+// mockInstructionInjector implements InstructionInjector for testing
+type mockInstructionInjector struct {
+	injectFunc func(ctx context.Context, taskID string, content string) error
+}
+
+func (m *mockInstructionInjector) InjectInstruction(ctx context.Context, taskID string, content string) error {
+	if m.injectFunc != nil {
+		return m.injectFunc(ctx, taskID, content)
+	}
+	return nil
+}
+
+func TestSetInterventionEventHandler(t *testing.T) {
+	taskRepo := &mockTaskRepository{}
+	interventionRepo := &mockInterventionRepository{}
+
+	svc := NewInterventionService(taskRepo, interventionRepo)
+	handler := &mockTaskEventHandler{}
+
+	// Should not panic when called with concrete type
+	SetInterventionEventHandler(svc, handler)
+
+	// Verify the handler is wired by calling HandleWrapperEvent
+	ctx := context.Background()
+	taskID := uuid.New()
+
+	handler.handleTaskEventFunc = func(ctx context.Context, tid string, eventType string, payload map[string]interface{}) error {
+		if eventType != "heartbeat" {
+			t.Errorf("expected eventType heartbeat, got %s", eventType)
+		}
+		return nil
+	}
+
+	err := svc.HandleWrapperEvent(ctx, taskID.String(), "heartbeat", map[string]interface{}{"status": "running"})
+	if err != nil {
+		t.Errorf("HandleWrapperEvent() unexpected error = %v", err)
+	}
+}
+
+func TestSetInterventionEventHandler_NilHandler(t *testing.T) {
+	taskRepo := &mockTaskRepository{}
+	interventionRepo := &mockInterventionRepository{}
+
+	svc := NewInterventionService(taskRepo, interventionRepo)
+
+	// Should not panic with nil handler
+	SetInterventionEventHandler(svc, nil)
+}
+
+func TestSetInterventionEventHandler_NonConcreteType(t *testing.T) {
+	// Calling with an interface wrapper should not panic
+	// (it just won't set the handler since the type assertion fails)
+	taskRepo := &mockTaskRepository{}
+	interventionRepo := &mockInterventionRepository{}
+
+	var svc InterventionService = NewInterventionService(taskRepo, interventionRepo)
+	handler := &mockTaskEventHandler{}
+
+	// This should not panic even though we pass the interface
+	SetInterventionEventHandler(svc, handler)
+}
+
+func TestSetInterventionInjector(t *testing.T) {
+	ctx := context.Background()
+	taskRepo := &mockTaskRepository{}
+	interventionRepo := &mockInterventionRepository{}
+
+	svc := NewInterventionService(taskRepo, interventionRepo)
+	injector := &mockInstructionInjector{
+		injectFunc: func(ctx context.Context, taskID string, content string) error {
+			return nil
+		},
+	}
+
+	// Should not panic when called with concrete type
+	SetInterventionInjector(svc, injector)
+
+	// Verify the injector is wired by calling Inject
+	taskID := uuid.New()
+	operatorID := uuid.New()
+
+	taskRepo.getByIDFunc = func(ctx context.Context, id uuid.UUID) (*model.Task, error) {
+		return &model.Task{
+			BaseModel: model.BaseModel{ID: taskID},
+			Status:    model.TaskStatusRunning,
+		}, nil
+	}
+	interventionRepo.createFunc = func(ctx context.Context, intervention *model.Intervention) error {
+		intervention.ID = uuid.New()
+		return nil
+	}
+	interventionRepo.updateFunc = func(ctx context.Context, intervention *model.Intervention) error {
+		return nil
+	}
+
+	injectCalled := false
+	injector.injectFunc = func(ctx context.Context, tid string, content string) error {
+		injectCalled = true
+		if content != "test instruction" {
+			t.Errorf("expected content 'test instruction', got %s", content)
+		}
+		return nil
+	}
+
+	_, err := svc.Inject(ctx, &InjectInterventionRequest{
+		TaskID:      taskID.String(),
+		OperatorID:  operatorID.String(),
+		Instruction: "test instruction",
+	})
+	if err != nil {
+		t.Errorf("Inject() unexpected error = %v", err)
+	}
+	if !injectCalled {
+		t.Error("expected injector.InjectInstruction to be called")
+	}
+}
+
+func TestSetInterventionInjector_NilInjector(t *testing.T) {
+	taskRepo := &mockTaskRepository{}
+	interventionRepo := &mockInterventionRepository{}
+
+	svc := NewInterventionService(taskRepo, interventionRepo)
+
+	// Should not panic with nil injector
+	SetInterventionInjector(svc, nil)
+}
+
 func TestInterventionService_HandleWrapperEvent(t *testing.T) {
 	ctx := context.Background()
 	taskID := uuid.New()

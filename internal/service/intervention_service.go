@@ -46,11 +46,18 @@ type TaskEventHandler interface {
 	HandleTaskEvent(ctx context.Context, taskID string, eventType string, payload map[string]interface{}) error
 }
 
+// InstructionInjector defines the interface for injecting instructions into a running task.
+// This decouples the service layer from the executor's InjectInstruction method.
+type InstructionInjector interface {
+	InjectInstruction(ctx context.Context, taskID string, content string) error
+}
+
 // interventionService implements InterventionService.
 type interventionService struct {
 	taskRepo         repository.TaskRepository
 	interventionRepo repository.InterventionRepository
 	eventHandler     TaskEventHandler
+	injector         InstructionInjector
 }
 
 // NewInterventionService creates a new InterventionService instance.
@@ -68,6 +75,31 @@ func NewInterventionService(
 // This is used to break circular dependencies between service and executor packages.
 func (s *interventionService) SetEventHandler(handler TaskEventHandler) {
 	s.eventHandler = handler
+}
+
+// SetInstructionInjector sets the instruction injector for the service.
+// This allows the Inject method to call executor.InjectInstruction directly
+// instead of routing through HandleTaskEvent.
+func (s *interventionService) SetInstructionInjector(injector InstructionInjector) {
+	s.injector = injector
+}
+
+// SetInterventionEventHandler sets the TaskEventHandler on an InterventionService.
+// This function allows external packages (e.g., main.go) to wire the executor
+// as an event handler without depending on the concrete service type.
+func SetInterventionEventHandler(svc InterventionService, handler TaskEventHandler) {
+	if s, ok := svc.(*interventionService); ok {
+		s.eventHandler = handler
+	}
+}
+
+// SetInterventionInjector sets the InstructionInjector on an InterventionService.
+// This function allows external packages (e.g., main.go) to wire the executor
+// for direct instruction injection without depending on the concrete service type.
+func SetInterventionInjector(svc InterventionService, injector InstructionInjector) {
+	if s, ok := svc.(*interventionService); ok {
+		s.injector = injector
+	}
 }
 
 // canPause checks if a task can be paused based on its current status.
@@ -327,14 +359,9 @@ func (s *interventionService) Inject(ctx context.Context, req *InjectInterventio
 		return nil, err
 	}
 
-	// Forward instruction to the task executor via the event handler
-	if s.eventHandler != nil {
-		eventPayload := map[string]interface{}{
-			"instruction": req.Instruction,
-			"context":     req.Context,
-			"task_id":     req.TaskID,
-		}
-		if err := s.eventHandler.HandleTaskEvent(ctx, req.TaskID, "inject_instruction", eventPayload); err != nil {
+	// Forward instruction to the task executor via the injector
+	if s.injector != nil {
+		if err := s.injector.InjectInstruction(ctx, req.TaskID, req.Instruction); err != nil {
 			// Update intervention status to failed
 			intervention.Status = model.InterventionStatusFailed
 			failResult := model.InterventionResult{

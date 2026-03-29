@@ -160,6 +160,10 @@ func (m *mockTaskService) Delete(ctx context.Context, id string) error {
 	return fmt.Errorf("database not available")
 }
 
+func (m *mockTaskService) UpdateStatus(ctx context.Context, id string, status string, message string) error {
+	return fmt.Errorf("database not available")
+}
+
 // mockProviderService is a fallback service when database is not available.
 type mockProviderService struct{}
 
