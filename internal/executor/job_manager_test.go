@@ -228,7 +228,6 @@ func TestJobManager_CustomSecurityConfig(t *testing.T) {
 	cfg := &JobConfig{
 		NamePrefix:              "sandbox-",
 		Namespace:               "default",
-		CLIRunnerImage:          "test:latest",
 		WrapperImage:            "test:latest",
 		DefaultCPULimit:         "2",
 		DefaultMemoryLimit:      "4Gi",
@@ -297,7 +296,6 @@ func TestJobManager_NilSecurityConfig(t *testing.T) {
 	cfg := &JobConfig{
 		NamePrefix:              "sandbox-",
 		Namespace:               "default",
-		CLIRunnerImage:          "test:latest",
 		WrapperImage:            "test:latest",
 		DefaultCPULimit:         "2",
 		DefaultMemoryLimit:      "4Gi",

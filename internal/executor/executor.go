@@ -106,7 +106,6 @@ type JobConfig struct {
 	Namespace string `yaml:"namespace"` // K8s namespace for Jobs
 
 	// Container images
-	CLIRunnerImage string `yaml:"cli_runner_image"`
 	WrapperImage   string `yaml:"wrapper_image"`
 	LogAgentImage  string `yaml:"log_agent_image"`
 
@@ -166,8 +165,7 @@ func DefaultJobConfig() *JobConfig {
 	return &JobConfig{
 		NamePrefix:              "sandbox-",
 		Namespace:               "sandbox",
-		CLIRunnerImage:          "agent-infra/cli-runner:latest",
-		WrapperImage:            "agent-infra/wrapper:latest",
+		WrapperImage:            "agent-infra/sandbox:latest",
 		LogAgentImage:           "agent-infra/log-agent:latest",
 		DefaultCPULimit:         "2",
 		DefaultMemoryLimit:      "4Gi",
@@ -194,21 +192,19 @@ const (
 
 // DockerConfig holds configuration for Docker-based container runtime.
 type DockerConfig struct {
-	WorkspaceDir   string `yaml:"workspace_dir"`
-	ComposeDir     string `yaml:"compose_dir"`
-	CLIRunnerImage string `yaml:"cli_runner_image"`
-	WrapperImage   string `yaml:"wrapper_image"`
-	WrapperPort    int    `yaml:"wrapper_port"`
+	WorkspaceDir string `yaml:"workspace_dir"`
+	ComposeDir   string `yaml:"compose_dir"`
+	WrapperImage string `yaml:"wrapper_image"`
+	WrapperPort  int    `yaml:"wrapper_port"`
 }
 
 // DefaultDockerConfig returns a DockerConfig with default values.
 func DefaultDockerConfig() *DockerConfig {
 	return &DockerConfig{
-		WorkspaceDir:   "./workspace",
-		ComposeDir:     "/tmp/agent-infra/compose",
-		CLIRunnerImage: "agent-infra/cli-runner:latest",
-		WrapperImage:   "agent-infra/wrapper:latest",
-		WrapperPort:    9090,
+		WorkspaceDir: "./workspace",
+		ComposeDir:   "/tmp/agent-infra/compose",
+		WrapperImage: "agent-infra/sandbox:latest",
+		WrapperPort:  9090,
 	}
 }
 

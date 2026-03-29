@@ -35,11 +35,14 @@ func (r *DockerRuntime) Create(ctx context.Context, task *model.Task) (*RuntimeI
 
 	taskID := task.ID.String()
 
-	envVars := map[string]string{
-		"GIT_REPO_URL": "",
-		"TASK_PROMPT":  "",
+	data := &ComposeTemplateData{
+		TaskID:     taskID,
+		TaskPrompt: "",
+		GitRepo:    "",
+		GitBranch:  "main",
 	}
-	if err := r.compose.GenerateConfig(ctx, taskID, envVars); err != nil {
+
+	if err := r.compose.GenerateConfig(ctx, data); err != nil {
 		return nil, fmt.Errorf("failed to generate compose config: %w", err)
 	}
 
@@ -72,7 +75,11 @@ func (r *DockerRuntime) GetStatus(ctx context.Context, taskID string) (*RuntimeS
 
 	phase := "Running"
 	for _, s := range statuses {
-		p := mapDockerStateToPhase(s.State)
+		var exitCode int
+		if s.State == "exited" {
+			exitCode, _ = r.compose.GetExitCode(ctx, taskID)
+		}
+		p := mapDockerStateToPhase(s.State, exitCode)
 		if p == "Failed" {
 			phase = "Failed"
 			break
@@ -92,22 +99,25 @@ func (r *DockerRuntime) Delete(ctx context.Context, taskID string) error {
 	return r.compose.Down(ctx, taskID)
 }
 
-// GetAddress returns the wrapper HTTP address for the task.
+// GetAddress returns the sandbox HTTP address for the task.
 func (r *DockerRuntime) GetAddress(ctx context.Context, taskID string) (string, error) {
-	port, err := r.compose.GetServicePort(ctx, taskID, "wrapper", 9090)
+	port, err := r.compose.GetServicePort(ctx, taskID, "sandbox", 9090)
 	if err != nil {
-		return "", fmt.Errorf("failed to get wrapper address: %w", err)
+		return "", fmt.Errorf("failed to get sandbox address: %w", err)
 	}
 	return fmt.Sprintf("http://localhost:%d", port), nil
 }
 
 // mapDockerStateToPhase converts a Docker container state to a runtime phase.
-func mapDockerStateToPhase(state string) string {
+func mapDockerStateToPhase(state string, exitCode int) string {
 	switch state {
 	case "running":
 		return "Running"
 	case "exited":
-		return "Succeeded"
+		if exitCode == 0 {
+			return "Succeeded"
+		}
+		return "Failed"
 	case "paused":
 		return "Paused"
 	case "dead", "removing":

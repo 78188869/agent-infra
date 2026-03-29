@@ -16,10 +16,7 @@ func TestDefaultJobConfig(t *testing.T) {
 	if cfg.Namespace != "sandbox" {
 		t.Errorf("expected Namespace 'sandbox', got %s", cfg.Namespace)
 	}
-	if cfg.CLIRunnerImage != "agent-infra/cli-runner:latest" {
-		t.Errorf("unexpected CLIRunnerImage: %s", cfg.CLIRunnerImage)
-	}
-	if cfg.WrapperImage != "agent-infra/wrapper:latest" {
+	if cfg.WrapperImage != "agent-infra/sandbox:latest" {
 		t.Errorf("unexpected WrapperImage: %s", cfg.WrapperImage)
 	}
 	if cfg.WrapperPort != 9090 {
