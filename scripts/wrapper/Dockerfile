@@ -1,7 +1,7 @@
 # Stage 1: Python dependencies (production only)
 FROM python:3.12-slim AS py-builder
 WORKDIR /build
-COPY requirements.txt .
+COPY scripts/wrapper/requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 # Stage 2: Node.js + Claude Code CLI
@@ -21,7 +21,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Go (parameterized version)
 ARG GO_VERSION=1.22.0
 RUN ARCH=$(dpkg --print-architecture) && \
-    curl -sL "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz" | tar -C /usr/local -xz
+    curl -fSL --retry 3 --retry-delay 5 "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz" -o /tmp/go.tar.gz && \
+    tar -C /usr/local -xzf /tmp/go.tar.gz && \
+    rm /tmp/go.tar.gz
 ENV PATH="/usr/local/go/bin:${PATH}"
 
 # GitHub CLI
