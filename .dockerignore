@@ -1,0 +1,29 @@
+# Git
+.git/
+.gitignore
+
+# Claude worktrees and config
+.claude/
+
+# Test files in wrapper
+scripts/wrapper/tests/
+scripts/wrapper/**/__pycache__/
+scripts/wrapper/**/*.pyc
+
+# Documentation
+docs/
+
+# Deployment (not needed in image)
+deploy/
+
+# Web frontend
+web/
+
+# IDE
+.vscode/
+.idea/
+
+# Build artifacts
+bin/
+coverage.out
+coverage.html
