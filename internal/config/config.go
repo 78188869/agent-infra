@@ -177,6 +177,23 @@ func (c *AppConfig) ApplyDefaults() {
 	}
 }
 
+// ResolveConfigPath determines the config file path based on environment.
+// Priority: CONFIG_PATH env var > APP_ENV-based selection > default config.yaml.
+func ResolveConfigPath() string {
+	// Explicit override takes highest priority
+	if path := os.Getenv("CONFIG_PATH"); path != "" {
+		return path
+	}
+
+	// Local/development environments use config.local.yaml
+	env := os.Getenv("APP_ENV")
+	if env == "local" || env == "development" {
+		return "configs/config.local.yaml"
+	}
+
+	return "configs/config.yaml"
+}
+
 // Load reads a YAML configuration file, expands environment variables,
 // and unmarshals it into an AppConfig.
 func Load(path string) (*AppConfig, error) {

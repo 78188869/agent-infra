@@ -361,6 +361,66 @@ func TestAppConfig_ApplyDefaults_Local(t *testing.T) {
 	}
 }
 
+func TestResolveConfigPath(t *testing.T) {
+	// Save and restore env
+	origAPPENV := os.Getenv("APP_ENV")
+	origCFGPATH := os.Getenv("CONFIG_PATH")
+	t.Cleanup(func() {
+		os.Setenv("APP_ENV", origAPPENV)
+		os.Setenv("CONFIG_PATH", origCFGPATH)
+	})
+
+	tests := []struct {
+		name     string
+		appEnv   string
+		cfgPath  string
+		expected string
+	}{
+		{
+			name:     "CONFIG_PATH takes priority",
+			appEnv:   "local",
+			cfgPath:  "/custom/config.yaml",
+			expected: "/custom/config.yaml",
+		},
+		{
+			name:     "APP_ENV=local selects config.local.yaml",
+			appEnv:   "local",
+			cfgPath:  "",
+			expected: "configs/config.local.yaml",
+		},
+		{
+			name:     "APP_ENV=development selects config.local.yaml",
+			appEnv:   "development",
+			cfgPath:  "",
+			expected: "configs/config.local.yaml",
+		},
+		{
+			name:     "APP_ENV=production selects config.yaml",
+			appEnv:   "production",
+			cfgPath:  "",
+			expected: "configs/config.yaml",
+		},
+		{
+			name:     "empty APP_ENV defaults to config.yaml",
+			appEnv:   "",
+			cfgPath:  "",
+			expected: "configs/config.yaml",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			os.Setenv("APP_ENV", tt.appEnv)
+			os.Setenv("CONFIG_PATH", tt.cfgPath)
+
+			got := ResolveConfigPath()
+			if got != tt.expected {
+				t.Errorf("ResolveConfigPath() = %q, want %q", got, tt.expected)
+			}
+		})
+	}
+}
+
 func TestAppConfig_ApplyDefaults_Production(t *testing.T) {
 	cfg := &AppConfig{Env: "production"}
 	cfg.ApplyDefaults()
