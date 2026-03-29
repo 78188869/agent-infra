@@ -26,8 +26,19 @@ func NewComposeManager(cfg *DockerConfig) (*ComposeManager, error) {
 }
 
 // GenerateConfig creates a docker-compose.yml for the given task.
-func (cm *ComposeManager) GenerateConfig(ctx context.Context, taskID string, envVars map[string]string) error {
-	taskDir := filepath.Join(cm.config.ComposeDir, "task-"+taskID)
+func (cm *ComposeManager) GenerateConfig(ctx context.Context, data *ComposeTemplateData) error {
+	if data == nil {
+		return fmt.Errorf("template data must not be nil")
+	}
+
+	if data.WrapperImage == "" {
+		data.WrapperImage = cm.config.WrapperImage
+	}
+	if data.WorkspaceDir == "" {
+		data.WorkspaceDir = cm.config.WorkspaceDir
+	}
+
+	taskDir := filepath.Join(cm.config.ComposeDir, "task-"+data.TaskID)
 	if err := os.MkdirAll(taskDir, 0755); err != nil {
 		return fmt.Errorf("failed to create task compose directory: %w", err)
 	}
@@ -37,60 +48,17 @@ func (cm *ComposeManager) GenerateConfig(ctx context.Context, taskID string, env
 		return fmt.Errorf("failed to parse compose template: %w", err)
 	}
 
-	data := map[string]interface{}{
-		"TaskID":         taskID,
-		"WorkspaceDir":   cm.config.WorkspaceDir,
-		"CLIRunnerImage": cm.config.CLIRunnerImage,
-		"WrapperImage":   cm.config.WrapperImage,
-		"WrapperPort":    cm.config.WrapperPort,
-		"GitRepoURL":     envVars["GIT_REPO_URL"],
-		"TaskPrompt":     envVars["TASK_PROMPT"],
-	}
-
-	f, err := os.Create(filepath.Join(taskDir, "docker-compose.yml"))
-	if err != nil {
-		return fmt.Errorf("failed to create compose file: %w", err)
-	}
-	defer f.Close()
-
-	if err := tmpl.Execute(f, data); err != nil {
-		return fmt.Errorf("failed to execute compose template: %w", err)
-	}
-
-	return nil
-}
-
-// GenerateSingleContainerConfig creates a docker-compose.yml for the
-// single-container Agent SDK wrapper mode. Unlike GenerateConfig, this
-// produces a compose file with only the wrapper service that combines
-// CLI runner and wrapper functionality.
-func (cm *ComposeManager) GenerateSingleContainerConfig(ctx context.Context, data *SingleContainerTemplateData) error {
-	if data == nil {
-		return fmt.Errorf("template data must not be nil")
-	}
-
-	taskDir := filepath.Join(cm.config.ComposeDir, "task-"+data.TaskID)
-	if err := os.MkdirAll(taskDir, 0755); err != nil {
-		return fmt.Errorf("failed to create task compose directory: %w", err)
-	}
-
-	tmpl, err := template.New("single-container-compose").Parse(singleContainerComposeTemplate)
-	if err != nil {
-		return fmt.Errorf("failed to parse single-container compose template: %w", err)
-	}
-
-	// Apply defaults from ComposeManager config.
 	templateData := map[string]string{
 		"TaskID":          data.TaskID,
 		"WrapperImage":    data.WrapperImage,
 		"WorkspaceDir":    data.WorkspaceDir,
 		"ControlPlaneURL": data.ControlPlaneURL,
 		"AnthropicAPIKey": data.AnthropicAPIKey,
-		"TaskPrompt":      data.TaskPrompt,
+		"TaskPrompt":      yamlQuote(data.TaskPrompt),
 		"MaxTimeout":      data.MaxTimeout,
 		"GitRepo":         data.GitRepo,
 		"GitBranch":       data.GitBranch,
-		"ClaudeMdContent": data.ClaudeMdContent,
+		"ClaudeMdContent": yamlQuote(data.ClaudeMdContent),
 		"AllowedTools":    data.AllowedTools,
 	}
 
@@ -102,10 +70,9 @@ func (cm *ComposeManager) GenerateSingleContainerConfig(ctx context.Context, dat
 	defer f.Close()
 
 	if err := tmpl.Execute(f, templateData); err != nil {
-		return fmt.Errorf("failed to execute single-container compose template: %w", err)
+		return fmt.Errorf("failed to execute compose template: %w", err)
 	}
 
-	// Restrict compose file permissions since it contains sensitive data (API key)
 	if err := os.Chmod(composeFile, 0600); err != nil {
 		return fmt.Errorf("failed to set compose file permissions: %w", err)
 	}
@@ -191,6 +158,35 @@ func (cm *ComposeManager) GetServicePort(ctx context.Context, taskID string, ser
 	return hostPort, nil
 }
 
+// GetExitCode returns the exit code of the first exited container for the task.
+// Returns 0 if containers are still running or exit code is unavailable.
+func (cm *ComposeManager) GetExitCode(ctx context.Context, taskID string) (int, error) {
+	statuses, err := cm.GetStatus(ctx, taskID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get status for exit code: %w", err)
+	}
+	for _, s := range statuses {
+		if s.State == "exited" {
+			cmd := exec.CommandContext(ctx, "docker", "inspect",
+				"--format", "{{.State.ExitCode}}", s.ID)
+			out, err := cmd.Output()
+			if err != nil {
+				return 1, nil
+			}
+			code := strings.TrimSpace(string(out))
+			if code == "0" {
+				return 0, nil
+			}
+			var exitCode int
+			if _, err := fmt.Sscanf(code, "%d", &exitCode); err == nil && exitCode != 0 {
+				return exitCode, nil
+			}
+			return 1, nil
+		}
+	}
+	return 0, nil
+}
+
 // composeCommand runs a docker compose command in the task's directory.
 func (cm *ComposeManager) composeCommand(ctx context.Context, taskID string, args ...string) error {
 	cmd := cm.buildComposeCmd(ctx, taskID, args...)
@@ -231,34 +227,13 @@ func splitLines(s string) []string {
 	return lines
 }
 
+// yamlQuote wraps a string in single quotes for safe YAML embedding.
+func yamlQuote(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", "''") + "'"
+}
+
 const composeTemplate = `services:
-  cli-runner:
-    image: {{.CLIRunnerImage}}
-    volumes:
-      - {{.WorkspaceDir}}/{{.TaskID}}:/workspace
-    environment:
-      - TASK_ID={{.TaskID}}
-      - GIT_REPO_URL={{.GitRepoURL}}
-      - TASK_PROMPT={{.TaskPrompt}}
-      - AGENT_STATE_DIR=/workspace/.agent-state
-
-  wrapper:
-    image: {{.WrapperImage}}
-    ports:
-      - "{{.WrapperPort}}"
-    volumes:
-      - {{.WorkspaceDir}}/{{.TaskID}}:/workspace
-    environment:
-      - TASK_ID={{.TaskID}}
-      - SHARED_STATE_DIR=/workspace/.agent-state
-    depends_on:
-      - cli-runner
-`
-
-// singleContainerComposeTemplate defines a single-container compose config
-// for the Agent SDK wrapper mode where CLI runner and wrapper are combined.
-const singleContainerComposeTemplate = `services:
-  wrapper:
+  sandbox:
     image: {{.WrapperImage}}
     ports:
       - "9090"
@@ -277,9 +252,8 @@ const singleContainerComposeTemplate = `services:
       - ALLOWED_TOOLS={{.AllowedTools}}
 `
 
-// SingleContainerTemplateData holds the data for rendering a single-container
-// docker-compose.yml template used by the Agent SDK wrapper mode.
-type SingleContainerTemplateData struct {
+// ComposeTemplateData holds the data for rendering a docker-compose.yml template.
+type ComposeTemplateData struct {
 	TaskID          string
 	WrapperImage    string
 	WorkspaceDir    string

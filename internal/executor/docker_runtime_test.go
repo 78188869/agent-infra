@@ -80,9 +80,29 @@ func TestMapDockerStateToPhase(t *testing.T) {
 		{"unknown-state", "Unknown"},
 	}
 	for _, tt := range tests {
-		got := mapDockerStateToPhase(tt.dockerState)
+		got := mapDockerStateToPhase(tt.dockerState, 0)
 		if got != tt.want {
-			t.Errorf("mapDockerStateToPhase(%q) = %q, want %q", tt.dockerState, got, tt.want)
+			t.Errorf("mapDockerStateToPhase(%q, 0) = %q, want %q", tt.dockerState, got, tt.want)
+		}
+	}
+}
+
+func TestMapDockerStateToPhase_WithExitCode(t *testing.T) {
+	tests := []struct {
+		dockerState string
+		exitCode    int
+		want        string
+	}{
+		{"exited", 0, "Succeeded"},
+		{"exited", 1, "Failed"},
+		{"exited", 137, "Failed"},
+		{"running", 0, "Running"},
+		{"running", 1, "Running"},
+	}
+	for _, tt := range tests {
+		got := mapDockerStateToPhase(tt.dockerState, tt.exitCode)
+		if got != tt.want {
+			t.Errorf("mapDockerStateToPhase(%q, %d) = %q, want %q", tt.dockerState, tt.exitCode, got, tt.want)
 		}
 	}
 }
@@ -100,7 +120,6 @@ func TestDockerRuntime_Integration(t *testing.T) {
 
 	cfg := DefaultDockerConfig()
 	cfg.ComposeDir = t.TempDir()
-	cfg.CLIRunnerImage = "alpine:3.19"
 	cfg.WrapperImage = "alpine:3.19"
 
 	rt, err := NewDockerRuntime(cfg)

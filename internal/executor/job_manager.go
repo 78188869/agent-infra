@@ -238,7 +238,7 @@ func (m *JobManager) buildCLIRunnerContainer(task *model.Task) corev1.Container 
 	taskID := task.ID.String()
 	return corev1.Container{
 		Name:            "cli-runner",
-		Image:           m.config.CLIRunnerImage,
+		Image:           m.config.WrapperImage,
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		SecurityContext: m.buildContainerSecurityContext(),
 		Resources: corev1.ResourceRequirements{
