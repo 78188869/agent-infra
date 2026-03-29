@@ -1,4 +1,4 @@
-.PHONY: all build run clean test lint fmt vet deps
+.PHONY: all build run clean test lint fmt vet deps local
 .PHONY: docker-build-all docker-push docker-build-control-plane docker-build-frontend docker-build-sandbox
 .PHONY: k8s-apply k8s-delete k8s-logs k8s-status
 .PHONY: db-migrate db-rollback
@@ -89,6 +89,11 @@ clean:
 
 # Development targets
 dev: run
+
+# Local development (SQLite + miniredis, no external deps)
+local:
+	@mkdir -p data logs
+	APP_ENV=local go run ./cmd/control-plane
 
 # =============================================================================
 # Docker targets
