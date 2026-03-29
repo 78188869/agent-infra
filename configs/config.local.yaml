@@ -1,16 +1,13 @@
 # Local Development Configuration
-# Usage: APP_ENV=local
-# No external dependencies needed — mock services fallback automatically
+# Usage: APP_ENV=local make local
+# No external dependencies needed — SQLite + miniredis (in-memory Redis)
 env: local
 server:
   port: 8080
   mode: debug
 database:
-  host: localhost
-  port: 3306
-  name: agent_infra
-  user: root
-  password: ""
+  driver: sqlite
+  name: data/agent_infra.db
 redis:
   host: localhost
   port: 6379
