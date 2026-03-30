@@ -60,6 +60,10 @@ func (m *mockTaskService) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
+func (m *mockTaskService) UpdateStatus(ctx context.Context, id string, status string, message string) error {
+	return nil
+}
+
 func init() {
 	gin.SetMode(gin.TestMode)
 }

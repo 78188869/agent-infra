@@ -60,6 +60,7 @@ type TaskService interface {
 	List(ctx context.Context, filter *TaskFilter) ([]*model.Task, int64, error)
 	Update(ctx context.Context, id string, req *UpdateTaskRequest) error
 	Delete(ctx context.Context, id string) error
+	UpdateStatus(ctx context.Context, id string, status string, message string) error
 }
 
 // taskService implements TaskService.
@@ -240,6 +241,19 @@ func (s *taskService) Delete(ctx context.Context, id string) error {
 
 	// Call repository
 	return s.repo.Delete(ctx, taskID)
+}
+
+// UpdateStatus updates the status of a task directly, bypassing status transition validation.
+// This is used by the executor and scheduler for internal status updates.
+func (s *taskService) UpdateStatus(ctx context.Context, id string, status string, message string) error {
+	// Parse and validate ID
+	taskID, err := uuid.Parse(id)
+	if err != nil {
+		return errors.NewBadRequestError("invalid task ID format")
+	}
+
+	// Call repository directly
+	return s.repo.UpdateStatus(ctx, taskID, status, message)
 }
 
 // isValidStatusTransition checks if a status transition is valid.

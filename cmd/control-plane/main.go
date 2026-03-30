@@ -4,73 +4,118 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
+	"os/signal"
+	"path/filepath"
+	"syscall"
+	"time"
+
+	"github.com/alicebob/miniredis/v2"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/example/agent-infra/internal/api/router"
 	"github.com/example/agent-infra/internal/config"
-	"github.com/example/agent-infra/internal/monitoring"
+	"github.com/example/agent-infra/internal/executor"
+	"github.com/example/agent-infra/internal/migration"
 	"github.com/example/agent-infra/internal/model"
+	"github.com/example/agent-infra/internal/monitoring"
 	"github.com/example/agent-infra/internal/repository"
+	"github.com/example/agent-infra/internal/scheduler"
+	"github.com/example/agent-infra/internal/seed"
 	"github.com/example/agent-infra/internal/service"
 	"github.com/example/agent-infra/pkg/aliyun/sls"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	cfg, err := config.Load("configs/config.yaml")
+	// 1. Load config (respects APP_ENV=local for config.local.yaml)
+	configPath := config.ResolveConfigPath()
+	cfg, err := config.Load(configPath)
 	if err != nil {
 		slog.Error("failed to load config", "error", err)
 		os.Exit(1)
 	}
 
 	env := cfg.GetEnvironment()
-	// Initialize structured logger (file output in local env, stdout in production)
 	logger := monitoring.NewLogger(cfg)
 	slog.SetDefault(logger)
-	slog.Info("starting control-plane", "env", env)
-
+	slog.Info("starting control-plane", "env", env, "config", configPath)
 	gin.SetMode(cfg.Server.Mode)
 
-	var tenantSvc service.TenantService
-	var templateSvc service.TemplateService
-	var taskSvc service.TaskService
-	var providerSvc service.ProviderService
-	var capabilitySvc service.CapabilityService
-	var interventionSvc service.InterventionService
-	var monitoringSvc service.MonitoringService
-	var db *config.Database
-	db, err = config.NewDatabase(cfg.Database)
-	if err != nil {
-		slog.Warn("failed to connect to database, using mock service", "error", err)
-		tenantSvc = &mockTenantService{}
-		templateSvc = &mockTemplateService{}
-		taskSvc = &mockTaskService{}
-		providerSvc = &mockProviderService{}
-		capabilitySvc = &mockCapabilityService{}
-		interventionSvc = &mockInterventionService{}
-	} else {
-		if err := db.AutoMigrate(&model.Tenant{}, &model.Template{}, &model.Task{}, &model.Provider{}, &model.Capability{}, &model.Intervention{}); err != nil {
-			slog.Warn("failed to auto-migrate", "error", err)
+	// 2. Ensure data directory exists for SQLite
+	if cfg.Database.IsSQLite() {
+		dbName := cfg.Database.Database
+		if dbName == "" {
+			dbName = "agent_infra.db"
 		}
-		tenantRepo := repository.NewTenantRepository(db.DB)
-		tenantSvc = service.NewTenantService(tenantRepo)
-
-		templateRepo := repository.NewTemplateRepository(db.DB)
-		templateSvc = service.NewTemplateService(templateRepo)
-
-		taskRepo := repository.NewTaskRepository(db.DB)
-		taskSvc = service.NewTaskService(taskRepo)
-
-		providerRepo := repository.NewProviderRepository(db.DB)
-		providerSvc = service.NewProviderService(providerRepo)
-
-		capabilityRepo := repository.NewCapabilityRepository(db.DB)
-		capabilitySvc = service.NewCapabilityService(capabilityRepo)
-
-		interventionRepo := repository.NewInterventionRepository(db.DB)
-		interventionSvc = service.NewInterventionService(taskRepo, interventionRepo)
+		dir := filepath.Dir(dbName)
+		if dir != "." && dir != "" {
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				slog.Error("failed to create data directory", "dir", dir, "error", err)
+				os.Exit(1)
+			}
+		}
 	}
 
+	// 3. Database
+	db, err := config.NewDatabase(cfg.Database)
+	if err != nil {
+		slog.Error("failed to connect to database", "error", err)
+		os.Exit(1)
+	}
+	defer func() {
+		if err := db.Close(); err != nil {
+			slog.Warn("error closing database", "error", err)
+		}
+	}()
+
+	// 4. Migrations + seed
+	m := migration.NewMigrator(db.DB)
+	if err := m.AutoMigrate(); err != nil {
+		slog.Warn("auto-migrate failed", "error", err)
+	}
+	if cfg.IsLocal() {
+		if err := seed.SeedProviders(db.DB); err != nil {
+			slog.Warn("seed providers failed", "error", err)
+		}
+	}
+
+	// 5. Redis (miniredis for local, real Redis for production)
+	var redisClient *redis.Client
+	var miniRedis *miniredis.Miniredis
+	if cfg.IsLocal() {
+		miniRedis = miniredis.NewMiniRedis()
+		miniRedis.Start()
+		redisClient = redis.NewClient(&redis.Options{Addr: miniRedis.Addr()})
+		slog.Info("using miniredis for local development", "addr", miniRedis.Addr())
+	} else {
+		redisCfg := cfg.Redis.ToRedisConfig()
+		rc, err := config.NewRedisClient(redisCfg)
+		if err != nil {
+			slog.Error("failed to connect to Redis", "error", err)
+			os.Exit(1)
+		}
+		redisClient = rc.Client
+	}
+
+	// 6. Repositories
+	tenantRepo := repository.NewTenantRepository(db.DB)
+	templateRepo := repository.NewTemplateRepository(db.DB)
+	taskRepo := repository.NewTaskRepository(db.DB)
+	providerRepo := repository.NewProviderRepository(db.DB)
+	capabilityRepo := repository.NewCapabilityRepository(db.DB)
+	interventionRepo := repository.NewInterventionRepository(db.DB)
+
+	// 7. Services (handler -> service -> repository -> model)
+	tenantSvc := service.NewTenantService(tenantRepo)
+	templateSvc := service.NewTemplateService(templateRepo)
+	taskSvc := service.NewTaskService(taskRepo)
+	providerSvc := service.NewProviderService(providerRepo)
+	capabilitySvc := service.NewCapabilityService(capabilityRepo)
+	interventionSvc := service.NewInterventionService(taskRepo, interventionRepo)
+
+	// 8. Monitoring
 	monitoringHub := monitoring.NewHub()
 	slsClient := monitoring.NewSLSClient(sls.Config{
 		Endpoint:        cfg.SLS.Endpoint,
@@ -79,180 +124,120 @@ func main() {
 		Project:         cfg.SLS.Project,
 		LogStore:        cfg.SLS.Logstore,
 	})
-	monitoringSvc = service.NewMonitoringService(monitoringHub, slsClient)
+	monitoringSvc := service.NewMonitoringService(monitoringHub, slsClient)
 
+	// 9. Executor (Docker runtime for local, optional)
+	var taskExec *executor.TaskExecutor
+	if cfg.IsLocal() {
+		dockerRuntime, err := executor.NewDockerRuntime(executor.DefaultDockerConfig())
+		if err != nil {
+			slog.Warn("Docker runtime not available, executor disabled", "error", err)
+		} else {
+			taskExec, err = executor.NewTaskExecutor(dockerRuntime, redisClient, &executor.ExecutorConfig{
+				// IMPORTANT: Use taskSvc.UpdateStatus, NOT taskRepo.UpdateStatus
+				// Architecture constraint: executor -> service -> repo
+				UpdateTaskStatus: func(ctx context.Context, taskID, status, message string) error {
+					return taskSvc.UpdateStatus(ctx, taskID, status, message)
+				},
+				GetTask: func(ctx context.Context, taskID string) (*model.Task, error) {
+					return taskSvc.GetByID(ctx, taskID)
+				},
+				OnTaskComplete: func(ctx context.Context, taskID string, result map[string]interface{}) error {
+					return taskSvc.UpdateStatus(ctx, taskID, model.TaskStatusSucceeded, "task completed")
+				},
+				OnTaskFailed: func(ctx context.Context, taskID string, taskErr error) error {
+					return taskSvc.UpdateStatus(ctx, taskID, model.TaskStatusFailed, taskErr.Error())
+				},
+			})
+			if err != nil {
+				slog.Warn("failed to create task executor", "error", err)
+				taskExec = nil
+			} else {
+				// Wire executor as BOTH event handler AND instruction injector
+				service.SetInterventionEventHandler(interventionSvc, taskExec)
+				service.SetInterventionInjector(interventionSvc, taskExec)
+			}
+		}
+	}
+
+	// 10. Scheduler
+	sched := scheduler.NewTaskScheduler(redisClient, &scheduler.SchedulerConfig{
+		GlobalLimit: 100,
+		GetTenantQuota: func(ctx context.Context, tenantID string) (*scheduler.TenantQuota, error) {
+			tenant, err := tenantSvc.GetByID(ctx, tenantID)
+			if err != nil {
+				return nil, err
+			}
+			return &scheduler.TenantQuota{
+				Concurrency: tenant.QuotaConcurrency,
+				DailyTasks:  tenant.QuotaDailyTasks,
+			}, nil
+		},
+		GetTask: func(ctx context.Context, taskID string) (*model.Task, error) {
+			return taskSvc.GetByID(ctx, taskID)
+		},
+		// IMPORTANT: Use taskSvc.UpdateStatus for architecture compliance
+		UpdateStatus: func(ctx context.Context, taskID, status, message string) error {
+			return taskSvc.UpdateStatus(ctx, taskID, status, message)
+		},
+	})
+
+	// 11. Start executor + scheduler
+	ctx := context.Background()
+	if taskExec != nil {
+		if err := taskExec.Start(ctx); err != nil {
+			slog.Warn("executor start failed", "error", err)
+		}
+	}
+	if err := sched.Start(ctx); err != nil {
+		slog.Warn("scheduler start failed", "error", err)
+	}
+
+	// 12. Router
 	r := router.Setup(tenantSvc, templateSvc, taskSvc, providerSvc, capabilitySvc, monitoringSvc, monitoringHub, interventionSvc, db)
 
+	// 13. HTTP server with graceful shutdown
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
-	slog.Info("starting server", "addr", addr, "env", env)
-	if err := r.Run(addr); err != nil {
-		slog.Error("failed to start server", "error", err)
-		os.Exit(1)
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: r,
 	}
-}
 
-// mockTenantService is a fallback service when database is not available.
-type mockTenantService struct{}
+	go func() {
+		slog.Info("starting HTTP server", "addr", addr, "env", env)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			slog.Error("HTTP server error", "error", err)
+			os.Exit(1)
+		}
+	}()
 
-func (m *mockTenantService) Create(ctx context.Context, req *service.CreateTenantRequest) (*model.Tenant, error) {
-	return &model.Tenant{Name: req.Name, Status: model.TenantStatusActive}, nil
-}
+	// Wait for interrupt signal
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	sig := <-quit
+	slog.Info("shutting down", "signal", sig)
 
-func (m *mockTenantService) GetByID(ctx context.Context, id string) (*model.Tenant, error) {
-	return nil, fmt.Errorf("database not available")
-}
+	// Shutdown in reverse order of startup
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-func (m *mockTenantService) List(ctx context.Context, filter *service.TenantFilter) ([]*model.Tenant, int64, error) {
-	return []*model.Tenant{}, 0, nil
-}
+	if err := sched.Stop(shutdownCtx); err != nil {
+		slog.Warn("scheduler stop error", "error", err)
+	}
+	if taskExec != nil {
+		if err := taskExec.Stop(shutdownCtx); err != nil {
+			slog.Warn("executor stop error", "error", err)
+		}
+	}
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		slog.Warn("HTTP server shutdown error", "error", err)
+	}
+	if miniRedis != nil {
+		miniRedis.Close()
+	}
+	if err := db.Close(); err != nil {
+		slog.Warn("database close error", "error", err)
+	}
 
-func (m *mockTenantService) Update(ctx context.Context, id string, req *service.UpdateTenantRequest) error {
-	return fmt.Errorf("database not available")
-}
-
-func (m *mockTenantService) Delete(ctx context.Context, id string) error {
-	return fmt.Errorf("database not available")
-}
-
-// mockTemplateService is a fallback service when database is not available.
-type mockTemplateService struct{}
-
-func (m *mockTemplateService) Create(ctx context.Context, req *service.CreateTemplateRequest) (*model.Template, error) {
-	return &model.Template{Name: req.Name, Status: model.TemplateStatusDraft}, nil
-}
-
-func (m *mockTemplateService) GetByID(ctx context.Context, id string) (*model.Template, error) {
-	return nil, fmt.Errorf("database not available")
-}
-
-func (m *mockTemplateService) List(ctx context.Context, filter *service.TemplateFilter) ([]*model.Template, int64, error) {
-	return []*model.Template{}, 0, nil
-}
-
-func (m *mockTemplateService) Update(ctx context.Context, id string, req *service.UpdateTemplateRequest) error {
-	return fmt.Errorf("database not available")
-}
-
-func (m *mockTemplateService) Delete(ctx context.Context, id string) error {
-	return fmt.Errorf("database not available")
-}
-
-// mockTaskService is a fallback service when database is not available.
-type mockTaskService struct{}
-
-func (m *mockTaskService) Create(ctx context.Context, req *service.CreateTaskRequest) (*model.Task, error) {
-	return &model.Task{Name: req.Name, Status: model.TaskStatusPending}, nil
-}
-
-func (m *mockTaskService) GetByID(ctx context.Context, id string) (*model.Task, error) {
-	return nil, fmt.Errorf("database not available")
-}
-
-func (m *mockTaskService) List(ctx context.Context, filter *service.TaskFilter) ([]*model.Task, int64, error) {
-	return []*model.Task{}, 0, nil
-}
-
-func (m *mockTaskService) Update(ctx context.Context, id string, req *service.UpdateTaskRequest) error {
-	return fmt.Errorf("database not available")
-}
-
-func (m *mockTaskService) Delete(ctx context.Context, id string) error {
-	return fmt.Errorf("database not available")
-}
-
-// mockProviderService is a fallback service when database is not available.
-type mockProviderService struct{}
-
-func (m *mockProviderService) Create(ctx context.Context, req *service.CreateProviderRequest) (*model.Provider, error) {
-	return &model.Provider{Name: req.Name, Status: model.ProviderStatusActive}, nil
-}
-
-func (m *mockProviderService) GetByID(ctx context.Context, id string) (*model.Provider, error) {
-	return nil, fmt.Errorf("database not available")
-}
-
-func (m *mockProviderService) List(ctx context.Context, filter *repository.ProviderFilter) ([]*model.Provider, int64, error) {
-	return []*model.Provider{}, 0, nil
-}
-
-func (m *mockProviderService) Update(ctx context.Context, id string, req *service.UpdateProviderRequest) error {
-	return fmt.Errorf("database not available")
-}
-
-func (m *mockProviderService) Delete(ctx context.Context, id string) error {
-	return fmt.Errorf("database not available")
-}
-
-func (m *mockProviderService) TestConnection(ctx context.Context, id string) (*service.ConnectionTestResult, error) {
-	return &service.ConnectionTestResult{Success: false, Message: "database not available"}, nil
-}
-
-func (m *mockProviderService) GetAvailableProviders(ctx context.Context, tenantID, userID string) ([]*model.Provider, error) {
-	return []*model.Provider{}, nil
-}
-
-func (m *mockProviderService) ResolveProvider(ctx context.Context, specifiedProviderID, tenantID, userID string) (*model.Provider, error) {
-	return nil, fmt.Errorf("database not available")
-}
-
-func (m *mockProviderService) SetDefaultProvider(ctx context.Context, userID, providerID string) error {
-	return fmt.Errorf("database not available")
-}
-
-// mockCapabilityService is a fallback service when database is not available.
-type mockCapabilityService struct{}
-
-func (m *mockCapabilityService) Create(ctx context.Context, req *service.CreateCapabilityRequest) (*model.Capability, error) {
-	return &model.Capability{Name: req.Name, Status: model.CapabilityStatusActive}, nil
-}
-
-func (m *mockCapabilityService) GetByID(ctx context.Context, id string) (*model.Capability, error) {
-	return nil, fmt.Errorf("database not available")
-}
-
-func (m *mockCapabilityService) List(ctx context.Context, filter *service.CapabilityFilter) ([]*model.Capability, int64, error) {
-	return []*model.Capability{}, 0, nil
-}
-
-func (m *mockCapabilityService) Update(ctx context.Context, id string, req *service.UpdateCapabilityRequest) error {
-	return fmt.Errorf("database not available")
-}
-
-func (m *mockCapabilityService) Delete(ctx context.Context, id string) error {
-	return fmt.Errorf("database not available")
-}
-
-func (m *mockCapabilityService) Activate(ctx context.Context, id string) error {
-	return fmt.Errorf("database not available")
-}
-
-func (m *mockCapabilityService) Deactivate(ctx context.Context, id string) error {
-	return fmt.Errorf("database not available")
-}
-
-// mockInterventionService is a fallback service when database is not available.
-type mockInterventionService struct{}
-
-func (m *mockInterventionService) Pause(ctx context.Context, taskID, operatorID, reason string) (*model.Intervention, error) {
-	return nil, fmt.Errorf("database not available")
-}
-
-func (m *mockInterventionService) Resume(ctx context.Context, taskID, operatorID, reason string) (*model.Intervention, error) {
-	return nil, fmt.Errorf("database not available")
-}
-
-func (m *mockInterventionService) Cancel(ctx context.Context, taskID, operatorID, reason string) (*model.Intervention, error) {
-	return nil, fmt.Errorf("database not available")
-}
-
-func (m *mockInterventionService) Inject(ctx context.Context, req *service.InjectInterventionRequest) (*model.Intervention, error) {
-	return nil, fmt.Errorf("database not available")
-}
-
-func (m *mockInterventionService) ListInterventions(ctx context.Context, taskID string, filter *service.InterventionFilter) ([]*model.Intervention, int64, error) {
-	return []*model.Intervention{}, 0, nil
-}
-
-func (m *mockInterventionService) HandleWrapperEvent(ctx context.Context, taskID string, eventType string, payload map[string]interface{}) error {
-	return nil
+	slog.Info("server exited")
 }
