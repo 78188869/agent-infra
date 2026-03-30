@@ -145,11 +145,11 @@ docs/
 | 5 | 开发实现 (TDD) | 按 Plan 逐步实现，编写测试用例，覆盖率 > 80% |
 | 6 | 测试验证 | `make test && make lint && go test -cover ./internal/...` |
 | 7 | 代码审查 | 验证所有测试通过，修复发现的问题 |
-| 8 | 提交推送 | `git commit -m "feat(scope): description" && git push -u origin <branch>` |
+| 8 | 提交推送 | 更新 Issue Summary（勾选 scope/acceptance checkbox）→ commit & push |
 | 9 | 创建 PR | `gh pr create --base main --title "feat: description"` |
 | 10 | 等待合并（人工） | 等待人工审核并合并 PR |
 | 11 | 拉取合并代码 | `git checkout main && git pull origin main` |
-| 12 | 关闭 Issue | `gh issue close {N} --repo {repo}` + 更新 Issue Summary 状态 |
+| 12 | 关闭 Issue | `gh issue close {N}` → 补 Issue Summary 元数据（status=closed, closed=日期, PR=#N）→ commit & push |
 | 13 | 清理环境 | `git worktree remove .claude/worktrees/issue-{N}` |
 
 > **计划结构要求**：Step 4 的执行计划必须覆盖 Step 5-9（实现、测试、审查、推送、PR），每个 Step 对应一个 Task；Step 0-4 和 Step 10-13 在开发前创建完整的 15 步 TaskCreate 列表跟踪进度。
