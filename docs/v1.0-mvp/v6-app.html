@@ -1,0 +1,1485 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentOps V6 - Agentic Coding Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* === Reset & Base === */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  height: 100%; overflow: hidden;
+  font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg-primary); color: var(--text-primary);
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+  font-size: 13px;
+}
+:root {
+  --bg-primary: #272930; --bg-secondary: #2d2f37; --bg-card: #34363f;
+  --bg-elevated: #3c3e48; --bg-tertiary: #3c3e48; --bg-hover: #474952;
+  --border: #52545e; --border-hover: #6a6c74;
+  --text-primary: #ece9e4; --text-secondary: #a09d96; --text-muted: #6e6b64;
+  --accent: #C76A3A; --accent-light: #E08A5A; --accent-bg: rgba(199, 106, 58, 0.13);
+  --success: #2DA06C; --success-bg: rgba(45, 160, 108, 0.12);
+  --warning: #D4A017; --warning-bg: rgba(212, 160, 23, 0.12);
+  --danger: #D94848; --danger-bg: rgba(217, 72, 72, 0.12);
+  --bg-filter: #2a2c35; --bg-input: #34363f; --bg-chip: #2f313a; --border-chip: #52545e;
+  --text-inverse: #ffffff; --text-bright: #f0ede8; --text-card-desc: #93908a;
+  --text-placeholder: #6e6b64; --text-queue: #8a8780; --text-meta: #7a7770;
+  --text-time: #8a8780; --text-dim: #5e5b54; --text-link: #C76A3A;
+  --scrollbar-thumb: rgba(255,255,255,0.14); --selection: rgba(199, 106, 58, 0.30);
+  --shadow-card: 0 2px 8px rgba(0,0,0,0.18), 0 0 1px rgba(0,0,0,0.12);
+  --shadow-dropdown: 0 12px 40px rgba(0,0,0,0.40), 0 0 1px rgba(0,0,0,0.12);
+  --shadow-modal: 0 24px 80px rgba(0,0,0,0.45), 0 0 1px rgba(0,0,0,0.12);
+  --overlay-bg: rgba(0,0,0,0.55);
+  --logo-gradient: linear-gradient(135deg, #C76A3A, #D4A060);
+  --progress-gradient: linear-gradient(90deg, #C76A3A, #E08A5A);
+  --accent-glow: rgba(199,106,58,0.25); --accent-glow-strong: rgba(199,106,58,0.55);
+  --bg-log: #22242c; --bg-diff: #22242c; --border-diff: #3c3e48;
+  --text-label: #a09d96; --text-subtle: #7a7770; --text-muted2: #8a8780;
+  --text-faint: #5e5b54; --text-light: #d5d2cc; --text-soft: #b5b2ab;
+  --text-bright2: #dddad5; --text-mid: #bdbab4;
+  --bg-step-idle: #474952; --bg-step-running: rgba(199,106,58,0.08);
+  --bg-intervention: rgba(199,106,58,0.08);
+  --bg-user-bubble: rgba(199,106,58,0.15); --border-user-bubble: rgba(199,106,58,0.30);
+  --bg-badge: #D94848;
+  --bg-ai-avatar: linear-gradient(135deg,#2DA06C,#248F5C);
+  --bg-user-avatar: linear-gradient(135deg,#C76A3A,#E08A5A);
+  --bg-inline-badge: rgba(199,106,58,0.15);
+  --progress-bg: rgba(255,255,255,0.08);
+  --diff-add-bg: rgba(45,160,108,0.08); --diff-del-bg: rgba(217,72,72,0.08);
+  --bg-pause-event: rgba(255,255,255,0.03);
+}
+[data-theme="light"] {
+  --bg-primary: #F5F3F0; --bg-secondary: #FFFFFF; --bg-card: #FFFFFF;
+  --bg-elevated: #EDEAE6; --bg-tertiary: #EDEAE6; --bg-hover: #E5E2DD;
+  --border: #D8D4CE; --border-hover: #B8B4AC;
+  --text-primary: #1C1D23; --text-secondary: #5C5952; --text-muted: #8A8780;
+  --accent-bg: rgba(199, 106, 58, 0.07); --success-bg: rgba(45, 160, 108, 0.08);
+  --warning-bg: rgba(212, 160, 23, 0.08); --danger-bg: rgba(217, 72, 72, 0.08);
+  --bg-filter: #EDEAE6; --bg-input: #EDEAE6; --bg-chip: #E5E2DD; --border-chip: #D0CCC6;
+  --text-inverse: #ffffff; --text-bright: #1C1D23; --text-card-desc: #5C5952;
+  --text-placeholder: #8A8780; --text-queue: #8A8780; --text-meta: #8A8780;
+  --text-time: #8A8780; --text-dim: #A8A5A0; --text-link: #B05A2A;
+  --scrollbar-thumb: rgba(0,0,0,0.10); --selection: rgba(199, 106, 58, 0.16);
+  --shadow-card: 0 8px 24px rgba(0,0,0,0.06); --shadow-dropdown: 0 12px 40px rgba(0,0,0,0.10);
+  --shadow-modal: 0 24px 80px rgba(0,0,0,0.10); --overlay-bg: rgba(0,0,0,0.30);
+  --accent-glow: rgba(199,106,58,0.12); --accent-glow-strong: rgba(199,106,58,0.35);
+  --bg-log: #f0eeeb; --bg-diff: #f5f3f0; --border-diff: #d8d4ce;
+  --text-label: #5C5952; --text-subtle: #8A8780; --text-muted2: #8A8780;
+  --text-faint: #A8A5A0; --text-light: #3a3835; --text-soft: #5c5952;
+  --text-bright2: #2a2925; --text-mid: #4a4740;
+  --bg-step-idle: #e0ddd8; --bg-step-running: rgba(199,106,58,0.06);
+  --bg-intervention: rgba(199,106,58,0.06); --bg-user-bubble: rgba(199,106,58,0.08);
+  --border-user-bubble: rgba(199,106,58,0.18); --bg-badge: #D94848;
+  --bg-ai-avatar: linear-gradient(135deg,#2DA06C,#248F5C);
+  --bg-user-avatar: linear-gradient(135deg,#C76A3A,#E08858);
+  --bg-inline-badge: rgba(199,106,58,0.08); --progress-bg: rgba(0,0,0,0.05);
+  --diff-add-bg: rgba(45,160,108,0.08); --diff-del-bg: rgba(217,72,72,0.08);
+  --bg-pause-event: rgba(0,0,0,0.02);
+}
+::selection { background: var(--selection); }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+.app { display: flex; flex-direction: column; height: 100vh; }
+
+/* === Top Bar === */
+.top-bar {
+  height: 56px; flex-shrink: 0;
+  background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 24px; gap: 12px;
+  position: relative; z-index: 100;
+}
+.logo-area { display: flex; align-items: center; gap: 10px; margin-right: 8px; flex-shrink: 0; cursor: pointer; }
+.logo-icon { width: 30px; height: 30px; border-radius: 8px; background: var(--logo-gradient); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
+.logo-text { font-size: 15px; font-weight: 700; color: var(--text-primary); letter-spacing: 0.3px; }
+.nav-links { display: flex; align-items: center; gap: 2px; margin-right: 20px; flex-shrink: 0; }
+.nav-link { padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; transition: all 0.2s; border: 1px solid transparent; position: relative; user-select: none; }
+.nav-link:hover { color: var(--text-primary); background: var(--bg-hover); }
+.nav-link.active { color: var(--accent-light); background: var(--accent-bg); border-color: rgba(199,106,58,0.20); font-weight: 600; }
+.search-area { flex: 1; display: flex; justify-content: center; max-width: 520px; margin: 0 auto; }
+.search-box { width: 100%; position: relative; }
+.search-box input { width: 100%; padding: 8px 16px 8px 38px; border-radius: 10px; background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-primary); font-size: 13px; outline: none; transition: all 0.2s; font-family: inherit; }
+.search-box input::placeholder { color: var(--text-muted); }
+.search-box input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(199,106,58,0.12); }
+.search-box .s-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-placeholder); pointer-events: none; }
+.search-box .s-shortcut { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-size: 11px; color: var(--text-placeholder); pointer-events: none; }
+.top-bar-right { display: flex; align-items: center; gap: 12px; margin-left: auto; flex-shrink: 0; }
+.icon-btn { width: 36px; height: 36px; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; position: relative; font-size: 15px; }
+.icon-btn:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border); }
+.notif-badge { position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--danger); border: 2px solid var(--bg-secondary); }
+.avatar-btn { width: 32px; height: 32px; border-radius: 8px; border: 2px solid var(--border); background: var(--logo-gradient); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: var(--text-inverse); transition: all 0.15s; }
+.avatar-btn:hover { border-color: var(--accent); }
+.avatar-dropdown { position: absolute; top: calc(100% + 8px); right: 0; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 10px; padding: 6px; min-width: 200px; box-shadow: var(--shadow-dropdown); display: none; z-index: 200; }
+.avatar-dropdown.show { display: block; }
+.avatar-dropdown-header { padding: 12px; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+.avatar-dropdown-header .name { font-weight: 600; font-size: 14px; }
+.avatar-dropdown-header .email { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+.nav-dropdown-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 6px; cursor: pointer; color: var(--text-secondary); font-size: 13px; transition: all 0.15s; white-space: nowrap; }
+.nav-dropdown-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+/* === Page Container === */
+.page-container { flex: 1; overflow-y: auto; overflow-x: hidden; }
+.page-section { display: none; min-height: 100%; }
+.page-section.active { display: flex; flex-direction: column; }
+.page-header { padding: 20px 32px 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.page-header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+.page-header-desc { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+.filter-bar { padding: 16px 32px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.filter-chip { padding: 5px 14px; border-radius: 6px; font-size: 12px; font-weight: 500; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-secondary); cursor: pointer; transition: all 0.15s; user-select: none; }
+.filter-chip:hover { border-color: var(--border-hover); color: var(--text-primary); }
+.filter-chip.active { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-light); }
+.filter-chip-pill { padding: 5px 14px; border-radius: 14px; font-size: 12px; font-weight: 500; background: var(--bg-chip); border: 1px solid var(--border-chip); color: var(--text-secondary); cursor: pointer; transition: all 0.2s; white-space: nowrap; user-select: none; }
+.filter-chip-pill:hover { color: var(--text-primary); border-color: var(--border-hover); background: var(--bg-hover); }
+.filter-chip-pill.active { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-light); font-weight: 600; }
+.view-toggle { display: flex; background: var(--bg-chip); border: 1px solid var(--border-chip); border-radius: 8px; overflow: hidden; margin-left: 8px; }
+.view-btn { width: 32px; height: 30px; border: none; background: transparent; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+.view-btn:hover { color: var(--text-secondary); }
+.view-btn.active { background: rgba(199,106,58,0.15); color: var(--accent-light); }
+.filter-search { position: relative; }
+.filter-search input { padding: 6px 12px 6px 32px; border-radius: 6px; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary); font-size: 12px; font-family: inherit; outline: none; width: 220px; transition: all 0.2s; }
+.filter-search input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(199,106,58,0.12); }
+.filter-search input::placeholder { color: var(--text-placeholder); }
+.filter-search .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-placeholder); pointer-events: none; }
+
+/* === Buttons === */
+.btn { padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; border: 1px solid transparent; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; }
+.btn-primary { background: var(--accent); color: var(--text-inverse); border-color: var(--accent); }
+.btn-primary:hover { background: var(--accent); filter: brightness(0.88); }
+.btn-secondary { background: var(--bg-card); color: var(--text-primary); border-color: var(--border); }
+.btn-secondary:hover { border-color: var(--border-hover); background: var(--bg-hover); }
+.btn-ghost { background: transparent; color: var(--text-secondary); }
+.btn-ghost:hover { background: var(--bg-hover); color: var(--text-primary); }
+.btn-danger { background: var(--danger-bg); color: var(--danger); border-color: rgba(255,107,107,0.2); }
+.btn-danger:hover { background: rgba(255,107,107,0.2); }
+.btn-success { background: var(--success-bg); color: var(--success); border-color: rgba(0,210,160,0.2); }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+.btn-xs { padding: 2px 8px; font-size: 11px; border-radius: 4px; }
+
+/* === Tags === */
+.tag { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; gap: 4px; }
+.tag-purple { background: var(--accent-bg); color: var(--accent-light); }
+.tag-green { background: var(--success-bg); color: var(--success); }
+.tag-yellow { background: var(--warning-bg); color: var(--warning); }
+.tag-red { background: var(--danger-bg); color: var(--danger); }
+.tag-gray { background: var(--bg-elevated); color: var(--text-secondary); }
+
+/* === Slide Panel === */
+.slide-panel-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; opacity: 0; visibility: hidden; transition: all 0.3s; }
+.slide-panel-overlay.show { opacity: 1; visibility: visible; }
+.slide-panel { position: fixed; top: 0; right: 0; bottom: 0; width: 45vw; min-width: 500px; max-width: 800px; background: var(--bg-secondary); border-left: 1px solid var(--border); z-index: 301; transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; }
+.slide-panel.show { transform: translateX(0); }
+.slide-panel-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.slide-panel-header .back-btn { width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.slide-panel-header .back-btn:hover { border-color: var(--border-hover); color: var(--text-primary); }
+.slide-panel-header .sp-title { font-size: 16px; font-weight: 600; flex: 1; }
+.slide-panel-body { flex: 1; overflow-y: auto; padding: 0; }
+.slide-panel-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-shrink: 0; background: var(--bg-secondary); }
+
+/* === Tabs === */
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); padding: 0 24px; flex-shrink: 0; }
+.tab { padding: 10px 16px; font-size: 13px; color: var(--text-secondary); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; font-weight: 500; user-select: none; }
+.tab:hover { color: var(--text-primary); }
+.tab.active { color: var(--accent-light); border-bottom-color: var(--accent); }
+
+/* === Modal === */
+.modal-overlay { position: fixed; inset: 0; background: var(--overlay-bg); z-index: 400; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+.modal-overlay.show { display: flex; }
+.modal { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; min-width: 480px; max-width: 680px; width: 90%; max-height: 85vh; display: flex; flex-direction: column; box-shadow: var(--shadow-modal); animation: modalIn 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+.modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.modal-header h2 { font-size: 16px; font-weight: 600; }
+.modal-close { width: 28px; height: 28px; border-radius: 6px; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.modal-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+.modal-body { flex: 1; overflow-y: auto; padding: 24px; }
+.modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+/* === Form === */
+.form-group { margin-bottom: 20px; }
+.form-label { display: block; font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px; }
+.form-input, .form-select, .form-textarea { width: 100%; padding: 8px 12px; border-radius: 8px; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary); font-size: 13px; font-family: inherit; outline: none; transition: all 0.2s; }
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(199,106,58,0.12); }
+.form-textarea { min-height: 80px; resize: vertical; }
+.form-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+/* === Kanban === */
+.kanban { padding: 16px 32px; display: flex; gap: 16px; overflow-x: auto; height: calc(100vh - 56px - 60px); }
+.kanban-col { min-width: 280px; max-width: 320px; flex: 1; display: flex; flex-direction: column; }
+.kanban-col-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 0 4px; }
+.kanban-col-dot { width: 8px; height: 8px; border-radius: 50%; }
+.kanban-col-title { font-size: 13px; font-weight: 600; }
+.kanban-col-count { font-size: 11px; color: var(--text-muted); background: var(--bg-elevated); padding: 1px 8px; border-radius: 10px; }
+.kanban-cards { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-bottom: 8px; }
+.kanban-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; cursor: pointer; transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1); position: relative; }
+.kanban-card:hover { border-color: var(--border-hover); transform: translateY(-2px); box-shadow: var(--shadow-card); }
+.kanban-card .card-title { font-size: 13px; font-weight: 600; color: var(--text-bright); margin-bottom: 4px; line-height: 1.4; }
+.kanban-card .card-desc { font-size: 12px; color: var(--text-card-desc); margin-bottom: 12px; line-height: 1.5; }
+.kanban-card .card-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 10px; }
+.kanban-card .card-progress { margin-top: 12px; display: flex; align-items: center; gap: 8px; }
+.kanban-card .card-progress-bar { flex: 1; height: 3px; background: var(--progress-bg); border-radius: 2px; overflow: hidden; }
+.kanban-card .card-progress-fill { height: 100%; border-radius: 2px; background: var(--accent); transition: width 0.5s; }
+.kanban-card .card-progress-text { font-size: 10px; color: var(--accent-light); font-weight: 600; white-space: nowrap; }
+.status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-right: 4px; box-shadow: 0 0 6px var(--accent-glow-strong); animation: statusPulse 2s ease-in-out infinite; }
+@keyframes statusPulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+/* List View */
+.list-view { flex: 1; overflow-y: auto; }
+.list-row { display: flex; align-items: center; gap: 12px; padding: 12px 24px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.15s; }
+.list-row:hover { background: var(--bg-hover); }
+.list-row .list-status { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.list-row .list-title { font-size: 13px; font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list-row .list-type { font-size: 11px; color: var(--text-secondary); width: 80px; }
+.list-row .list-provider { font-size: 11px; color: var(--text-muted); width: 100px; }
+.list-row .list-time { font-size: 11px; color: var(--text-muted); width: 80px; text-align: right; }
+
+/* === Template Grid === */
+.template-grid { padding: 0 32px 32px; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.template-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; cursor: pointer; transition: all 0.2s; }
+.template-card:hover { border-color: var(--border-hover); transform: translateY(-2px); box-shadow: var(--shadow-card); }
+.template-card .t-icon { font-size: 28px; margin-bottom: 12px; }
+.template-card .t-name { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+.template-card .t-desc { font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5; min-height: 36px; }
+.template-card .t-footer { display: flex; align-items: center; justify-content: space-between; }
+.template-card .t-meta { font-size: 11px; color: var(--text-muted); }
+
+/* === Wizard Steps === */
+.wizard-steps { display: flex; align-items: center; justify-content: center; gap: 0; margin-bottom: 28px; }
+.wizard-step { display: flex; align-items: center; gap: 8px; }
+.wizard-step-num { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--text-muted); transition: all 0.2s; }
+.wizard-step.active .wizard-step-num { border-color: var(--accent); background: var(--accent); color: var(--text-inverse); }
+.wizard-step.done .wizard-step-num { border-color: var(--success); background: var(--success); color: var(--text-inverse); }
+.wizard-step-label { font-size: 12px; color: var(--text-muted); }
+.wizard-step.active .wizard-step-label { color: var(--text-primary); }
+.wizard-step.done .wizard-step-label { color: var(--success); }
+.wizard-step-line { width: 32px; height: 2px; background: var(--border); margin: 0 4px; }
+.wizard-step-line.done { background: var(--success); }
+
+/* Template chip grid (Create Task) */
+.tpl-chip-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.tpl-chip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; transition: all 0.15s; user-select: none; }
+.tpl-chip:hover { border-color: var(--border-hover); background: var(--bg-hover); }
+.tpl-chip.selected { border-color: var(--accent); background: var(--accent-bg); }
+.tpl-chip-icon { font-size: 16px; line-height: 1; }
+.tpl-chip-name { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.tpl-chip.selected .tpl-chip-name { color: var(--accent-light); }
+.tpl-chip-ver { font-size: 10px; color: var(--text-muted); font-family: monospace; }
+.tpl-chip.selected .tpl-chip-ver { color: var(--accent-light); opacity: 0.7; }
+
+/* Recommend section */
+.recommend-section { margin-bottom: 18px; }
+.recommend-section .recommend-title { font-size: 12px; font-weight: 600; color: var(--accent-light); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.recommend-card { padding: 12px 16px; border-radius: 10px; border: 2px solid var(--accent); background: var(--accent-bg); cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 12px; }
+.recommend-card:hover { box-shadow: 0 2px 8px rgba(199,106,58,0.2); }
+.recommend-card.selected { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(199,106,58,0.15); }
+.recommend-card .rec-icon { font-size: 28px; line-height: 1; }
+.recommend-card .rec-info { flex: 1; }
+.recommend-card .rec-name { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.recommend-card .rec-desc { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+.recommend-card .rec-check { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--accent); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--accent); }
+.recommend-card.selected .rec-check { background: var(--accent); color: var(--text-inverse); }
+.all-templates-toggle { font-size: 12px; color: var(--accent-light); cursor: pointer; display: flex; align-items: center; gap: 4px; margin-bottom: 10px; user-select: none; }
+.all-templates-toggle:hover { text-decoration: underline; }
+
+/* Req context card */
+.req-context-card { background: var(--accent-bg); border: 1px solid rgba(199,106,58,0.2); border-radius: 10px; padding: 14px 16px; margin-bottom: 18px; }
+.req-context-card .req-ctx-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.req-context-card .req-ctx-title { font-size: 14px; font-weight: 600; color: var(--text-primary); flex: 1; }
+.req-context-card .req-ctx-stage { font-size: 11px; font-weight: 500; padding: 2px 10px; border-radius: 12px; background: var(--accent); color: var(--text-inverse); }
+.req-context-card .req-ctx-artifacts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.req-context-card .req-ctx-art { font-size: 11px; color: var(--success); display: flex; align-items: center; gap: 3px; }
+
+/* === Settings Page === */
+.settings-layout { display: flex; flex: 1; overflow: hidden; }
+.settings-sidebar { width: 220px; border-right: 1px solid var(--border); padding: 20px 0; flex-shrink: 0; overflow-y: auto; }
+.settings-nav-item { padding: 10px 24px; font-size: 13px; color: var(--text-secondary); cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 10px; }
+.settings-nav-item:hover { color: var(--text-primary); background: var(--bg-hover); }
+.settings-nav-item.active { color: var(--accent-light); background: var(--accent-bg); font-weight: 600; border-right: 2px solid var(--accent); }
+.settings-content { flex: 1; overflow-y: auto; padding: 24px 32px; }
+.settings-section-title { font-size: 16px; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+.settings-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+.settings-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.settings-card-title { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.settings-card-desc { font-size: 12px; color: var(--text-secondary); margin-top: 4px; line-height: 1.5; }
+.credential-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.credential-row:last-child { border-bottom: none; }
+.credential-label { font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+.credential-value { font-size: 12px; color: var(--text-muted); font-family: "JetBrains Mono", monospace; }
+.api-key-row { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-elevated); border-radius: 8px; margin-bottom: 8px; }
+.api-key-row:last-child { margin-bottom: 0; }
+.api-key-name { font-size: 13px; font-weight: 500; flex: 1; }
+.api-key-masked { font-size: 12px; color: var(--text-muted); font-family: "JetBrains Mono", monospace; }
+.api-key-meta { font-size: 11px; color: var(--text-muted); }
+.provider-setting-card { display: flex; align-items: center; gap: 16px; padding: 16px; background: var(--bg-elevated); border-radius: 10px; margin-bottom: 12px; transition: all 0.2s; }
+.provider-setting-card:last-child { margin-bottom: 0; }
+.provider-setting-card .ps-icon { font-size: 24px; flex-shrink: 0; }
+.provider-setting-card .ps-info { flex: 1; min-width: 0; }
+.provider-setting-card .ps-name { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.provider-setting-card .ps-desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+.provider-setting-card .ps-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.pvd-test-btn { min-width: 80px; justify-content: center; transition: all 0.3s; }
+.pvd-test-btn.testing { background: var(--accent-bg); color: var(--accent-light); border-color: rgba(199,106,58,0.3); }
+.pvd-test-btn.test-ok { background: var(--success-bg); color: var(--success); border-color: rgba(0,210,160,0.3); }
+.pvd-test-btn.test-fail { background: var(--danger-bg); color: var(--danger); border-color: rgba(255,107,107,0.3); }
+
+/* === Req Cards === */
+.req-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 16px; padding: 20px 32px 32px; }
+.req-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; cursor: pointer; transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1); position: relative; display: flex; flex-direction: column; gap: 12px; }
+.req-card:hover { border-color: var(--border-hover); transform: translateY(-2px); box-shadow: var(--shadow-card); }
+.req-card-top { display: flex; align-items: center; justify-content: space-between; }
+.req-priority-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+.req-priority-tag.p1 { background: var(--danger-bg); color: var(--danger); }
+.req-priority-tag.p2 { background: var(--warning-bg); color: var(--warning); }
+.req-priority-tag.p3 { background: var(--success-bg); color: var(--success); }
+.req-card-title { font-size: 14px; font-weight: 600; color: var(--text-bright); line-height: 1.4; }
+.req-stage-progress { display: flex; align-items: center; gap: 0; padding: 4px 0; }
+.req-stage-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; border: 2px solid var(--border); background: transparent; transition: all 0.2s; }
+.req-stage-dot.completed { background: var(--success); border-color: var(--success); }
+.req-stage-dot.current { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); animation: stagePulse 2s ease-in-out infinite; }
+.req-stage-dot.pending { border-color: var(--text-dim); background: transparent; }
+.req-stage-line { width: 24px; height: 2px; flex-shrink: 0; background: var(--border); transition: background 0.2s; }
+.req-stage-line.completed { background: var(--success); }
+.req-stage-line.current { background: linear-gradient(90deg, var(--success), var(--accent)); }
+.req-card-meta { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--text-secondary); flex-wrap: wrap; }
+.req-card-meta .meta-item { display: flex; align-items: center; gap: 4px; }
+.req-card-artifacts { display: flex; gap: 6px; flex-wrap: wrap; }
+.req-artifact-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; background: var(--success-bg); color: var(--success); }
+.req-card-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--border); margin-top: auto; }
+.req-card-source { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; }
+.req-launch-btn { padding: 5px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; background: var(--accent); color: var(--text-inverse); border: none; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 5px; font-family: inherit; }
+.req-launch-btn:hover { filter: brightness(0.9); transform: translateY(-1px); }
+.req-launch-running { background: var(--success); }
+.req-launch-outline { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
+
+/* Req detail slide panel styles */
+.req-detail-section { padding: 20px 24px; border-bottom: 1px solid var(--border); }
+.req-detail-section:last-child { border-bottom: none; }
+.req-section-label { font-size: 11px; font-weight: 600; color: var(--text-label); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.req-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.req-info-item { padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; }
+.req-info-item .info-label { font-size: 10px; color: var(--text-subtle); text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 3px; }
+.req-info-item .info-value { font-size: 13px; color: var(--text-primary); }
+.req-info-item .info-value a { color: var(--text-link); text-decoration: none; }
+.req-info-item .info-value a:hover { text-decoration: underline; }
+.req-desc-text { font-size: 13px; color: var(--text-soft); line-height: 1.7; padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; }
+
+/* Stage timeline */
+.stage-timeline { display: flex; align-items: flex-start; justify-content: center; padding: 16px 0 8px; }
+.stage-node { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 1; min-width: 0; z-index: 1; }
+.stage-node .stage-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; transition: all 0.3s; flex-shrink: 0; }
+.stage-node.completed .stage-dot { background: var(--success); color: #fff; box-shadow: 0 2px 8px rgba(45,160,108,0.25); }
+.stage-node.current .stage-dot { background: var(--accent); color: #fff; box-shadow: 0 2px 8px rgba(199,106,58,0.35); animation: stagePulse 2s ease-in-out infinite; }
+.stage-node.pending .stage-dot { background: transparent; border: 2px dashed var(--border-hover); color: var(--text-muted); }
+.stage-node .stage-label { font-size: 11px; font-weight: 500; text-align: center; }
+.stage-node.completed .stage-label { color: var(--success); }
+.stage-node.current .stage-label { color: var(--accent); font-weight: 600; }
+.stage-node.pending .stage-label { color: var(--text-muted); }
+.stage-connector { flex: 1; height: 2px; min-width: 16px; margin-top: 14px; z-index: 0; flex-shrink: 0; }
+.stage-connector.completed { background: var(--success); }
+.stage-connector.pending { background: transparent; border-top: 2px dashed var(--border); }
+
+/* Subtask items */
+.subtask-detail-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; transition: all 0.15s; }
+.subtask-detail-item:last-child { margin-bottom: 0; }
+.subtask-detail-item.own-pending:hover { border-color: var(--accent); background: var(--bg-elevated); cursor: pointer; }
+.subtask-detail-icon { font-size: 18px; width: 24px; text-align: center; flex-shrink: 0; }
+.subtask-detail-info { flex: 1; min-width: 0; }
+.subtask-detail-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.subtask-detail-meta { font-size: 11px; color: var(--text-muted); margin-top: 4px; display: flex; align-items: center; gap: 8px; }
+.subtask-launch-btn { padding: 5px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; background: var(--accent); color: var(--text-inverse); border: none; cursor: pointer; transition: all 0.15s; font-family: inherit; }
+.subtask-launch-btn:hover { filter: brightness(0.9); }
+.subtask-progress { width: 80px; height: 4px; background: var(--progress-bg); border-radius: 2px; overflow: hidden; }
+.subtask-progress-bar { height: 100%; border-radius: 2px; background: var(--progress-gradient); }
+
+/* Linked req card */
+.linked-req-card { display: flex; align-items: center; gap: 10px; padding: 12px 14px; margin: 16px 24px 0; background: var(--bg-card); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 8px; cursor: pointer; transition: all 0.15s; }
+.linked-req-card:hover { background: var(--bg-elevated); border-color: var(--accent); }
+
+/* Collapsible */
+.collapsible { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.collapsible-header { padding: 12px 16px; background: var(--bg-elevated); cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 500; }
+.collapsible-header:hover { background: var(--bg-hover); }
+.collapsible-header .arrow { transition: transform 0.2s; font-size: 12px; color: var(--text-muted); }
+.collapsible-header.open .arrow { transform: rotate(90deg); }
+.collapsible-body { display: none; padding: 16px; }
+.collapsible-body.open { display: block; }
+
+/* JSON Block */
+.json-block { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-family: "JetBrains Mono", monospace; font-size: 12px; line-height: 1.6; color: var(--text-secondary); overflow-x: auto; white-space: pre; }
+
+/* === Command Palette === */
+.cmd-overlay { position: fixed; inset: 0; background: var(--overlay-bg); z-index: 500; display: none; align-items: flex-start; justify-content: center; padding-top: 20vh; backdrop-filter: blur(4px); }
+.cmd-overlay.show { display: flex; }
+.cmd-palette { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; width: 560px; max-height: 420px; box-shadow: var(--shadow-modal); animation: modalIn 0.2s ease; display: flex; flex-direction: column; overflow: hidden; }
+.cmd-input-wrap { padding: 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; position: relative; }
+.cmd-input-wrap input { width: 100%; padding: 10px 14px 10px 38px; border-radius: 8px; background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-primary); font-size: 14px; outline: none; font-family: inherit; }
+.cmd-input-wrap input:focus { border-color: var(--accent); }
+.cmd-input-wrap .cmd-icon { position: absolute; left: 28px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+.cmd-results { flex: 1; overflow-y: auto; padding: 8px; }
+.cmd-section-title { padding: 8px 12px; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.cmd-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; cursor: pointer; transition: all 0.1s; }
+.cmd-item:hover { background: var(--accent-bg); }
+.cmd-item .cmd-item-icon { width: 28px; height: 28px; border-radius: 6px; background: var(--bg-elevated); display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+.cmd-item .cmd-item-text { flex: 1; }
+.cmd-item .cmd-item-text .cmd-title { font-size: 13px; }
+.cmd-item .cmd-item-text .cmd-sub { font-size: 11px; color: var(--text-muted); }
+
+/* === Toast === */
+.toast-container { position: fixed; top: 68px; right: 24px; z-index: 600; display: flex; flex-direction: column; gap: 8px; }
+.toast { padding: 12px 16px; border-radius: 8px; min-width: 280px; max-width: 400px; display: flex; align-items: center; gap: 10px; font-size: 13px; border: 1px solid var(--border); background: var(--bg-elevated); box-shadow: var(--shadow-card); animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+.toast.removing { animation: toastOut 0.3s ease forwards; }
+@keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes toastOut { to { opacity: 0; transform: translateX(40px); } }
+.toast .toast-icon { flex-shrink: 0; font-size: 16px; }
+.toast.success { border-color: rgba(0,210,160,0.3); }
+.toast.success .toast-icon { color: var(--success); }
+.toast.warning { border-color: rgba(254,202,87,0.3); }
+.toast.warning .toast-icon { color: var(--warning); }
+.toast.error { border-color: rgba(255,107,107,0.3); }
+.toast.error .toast-icon { color: var(--danger); }
+.toast .toast-close { margin-left: auto; cursor: pointer; color: var(--text-muted); font-size: 14px; }
+
+/* === Confirm Dialog === */
+.confirm-overlay { position: fixed; inset: 0; background: var(--overlay-bg); z-index: 500; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+.confirm-overlay.show { display: flex; }
+.confirm-dialog { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; width: 400px; padding: 24px; text-align: center; box-shadow: var(--shadow-modal); animation: modalIn 0.2s ease; }
+.confirm-dialog .confirm-icon { font-size: 36px; margin-bottom: 12px; }
+.confirm-dialog h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+.confirm-dialog p { font-size: 13px; color: var(--text-secondary); margin-bottom: 24px; line-height: 1.5; }
+.confirm-dialog .confirm-actions { display: flex; gap: 8px; justify-content: center; }
+
+/* Empty state */
+.empty-state { text-align: center; padding: 60px 32px; }
+.empty-state .empty-icon { font-size: 40px; margin-bottom: 16px; opacity: 0.3; }
+.empty-state .empty-title { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+.empty-state .empty-desc { font-size: 13px; color: var(--text-secondary); }
+
+/* Spinner */
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Req filter bar */
+.req-filter-bar { padding: 12px 32px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; border-bottom: 1px solid var(--border); background: var(--bg-filter); }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="logo-area" onclick="navigate('#/')">
+      <div class="logo-icon">AO</div>
+      <div class="logo-text">AgentOps</div>
+    </div>
+    <div class="nav-links">
+      <div class="nav-link" data-route="#/" onclick="navigate(this.dataset.route)">需求</div>
+      <div class="nav-link" data-route="#/tasks" onclick="navigate(this.dataset.route)">任务</div>
+      <div class="nav-link" data-route="#/templates" onclick="navigate(this.dataset.route)">模板</div>
+      <div class="nav-link" data-route="#/settings" onclick="navigate(this.dataset.route)">设置</div>
+    </div>
+    <div class="search-area">
+      <div class="search-box">
+        <span class="s-icon">&#128269;</span>
+        <input type="text" placeholder="搜索任务、模板..." onclick="openCommandPalette()" readonly>
+        <span class="s-shortcut">⌘K</span>
+      </div>
+    </div>
+    <div class="top-bar-right">
+      <button class="icon-btn" data-tip="通知" onclick="showToast('暂无新通知','warning')">
+        &#128276;
+        <span class="notif-badge"></span>
+      </button>
+      <button class="icon-btn" data-tip="切换主题" onclick="toggleTheme()">&#127769;</button>
+      <div style="position:relative">
+        <div class="avatar-btn" onclick="toggleMenu('avatar-menu')">周</div>
+        <div class="avatar-dropdown" id="avatar-menu">
+          <div class="avatar-dropdown-header">
+            <div class="name">周正</div>
+            <div class="email">zhouzheng@example.com</div>
+          </div>
+          <div class="nav-dropdown-item" onclick="navigate('#/settings');closeAllMenus()">&#9881; 设置</div>
+          <div class="nav-dropdown-item" onclick="showToast('已退出登录','success');closeAllMenus()">&#10145; 退出登录</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Page Container -->
+  <div class="page-container">
+    <!-- Requirements Page -->
+    <div class="page-section" id="page-requirements">
+      <div class="page-header">
+        <div>
+          <h1>需求列表</h1>
+          <div class="page-header-desc">从 DevOps 平台同步的待办任务</div>
+        </div>
+        <button class="btn btn-secondary" onclick="showToast('已刷新','success');renderRequirementsPage()">&#8635; 刷新</button>
+      </div>
+      <div class="req-filter-bar">
+        <div class="filter-chip-pill active" onclick="setReqFilter('all',this)">全部</div>
+        <div class="filter-chip-pill" onclick="setReqFilter('brd',this)">BRD</div>
+        <div class="filter-chip-pill" onclick="setReqFilter('prd',this)">PRD</div>
+        <div class="filter-chip-pill" onclick="setReqFilter('dev',this)">开发</div>
+        <div class="filter-chip-pill" onclick="setReqFilter('test',this)">测试</div>
+        <div class="filter-search" style="margin-left:auto">
+          <span class="search-icon">&#128269;</span>
+          <input type="text" id="req-search-input" placeholder="搜索需求..." oninput="renderRequirementsPage()">
+        </div>
+        <div class="view-toggle">
+          <button class="view-btn active" id="req-view-card" onclick="setReqView('card')">&#9638;</button>
+          <button class="view-btn" id="req-view-list" onclick="setReqView('list')">&#9776;</button>
+        </div>
+      </div>
+      <div id="req-content-area">
+        <div class="req-grid" id="req-grid"></div>
+        <div id="req-list-view" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- Tasks Page -->
+    <div class="page-section" id="page-tasks">
+      <div class="page-header">
+        <div>
+          <h1>任务管理</h1>
+          <div class="page-header-desc">查看和管理所有 Agent 编码任务</div>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateTask()">&#10010; 创建任务</button>
+      </div>
+      <div class="filter-bar" style="padding:10px 24px;border-bottom:1px solid var(--border);background:var(--bg-filter);align-items:center;gap:6px">
+        <div class="filter-chip-pill active" onclick="setTaskFilter('all',this)">全部</div>
+        <div class="filter-chip-pill" onclick="setTaskFilter('running',this)">运行中</div>
+        <div class="filter-chip-pill" onclick="setTaskFilter('pending',this)">排队中</div>
+        <div class="filter-chip-pill" onclick="setTaskFilter('succeeded',this)">已完成</div>
+        <div class="filter-chip-pill" onclick="setTaskFilter('failed',this)">失败</div>
+        <div style="flex:1"></div>
+        <div class="view-toggle">
+          <button class="view-btn active" id="task-view-kanban" onclick="setTaskView('kanban')">&#9638;</button>
+          <button class="view-btn" id="task-view-list" onclick="setTaskView('list')">&#9776;</button>
+        </div>
+      </div>
+      <div class="kanban" id="kanban-board"></div>
+      <div class="list-view" id="list-view" style="display:none"></div>
+    </div>
+
+    <!-- Templates Page -->
+    <div class="page-section" id="page-templates">
+      <div class="page-header">
+        <div>
+          <h1>模板浏览</h1>
+          <div class="page-header-desc">预置的任务模板，定义了权限、工具集、成功标准和资源限制</div>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <div class="filter-chip-pill active" onclick="setTplFilter('all',this)">全部</div>
+        <div class="filter-chip-pill" onclick="setTplFilter('coding',this)">编码</div>
+        <div class="filter-chip-pill" onclick="setTplFilter('document',this)">文档</div>
+      </div>
+      <div class="template-grid" id="template-grid"></div>
+    </div>
+
+    <!-- Settings Page -->
+    <div class="page-section" id="page-settings">
+      <div class="settings-layout">
+        <div class="settings-sidebar">
+          <div class="settings-nav-item active" onclick="setSettingsTab('credentials',this)">&#128273; 凭证管理</div>
+          <div class="settings-nav-item" onclick="setSettingsTab('apikeys',this)">&#128274; API Key</div>
+          <div class="settings-nav-item" onclick="setSettingsTab('repo',this)">&#128193; 代码仓库</div>
+          <div class="settings-nav-item" onclick="setSettingsTab('provider',this)">&#9881; Provider</div>
+        </div>
+        <div class="settings-content" id="settings-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide Panel -->
+  <div class="slide-panel-overlay" id="slide-overlay" onclick="closeSlidePanel()"></div>
+  <div class="slide-panel" id="slide-panel">
+    <div class="slide-panel-header">
+      <button class="back-btn" onclick="closeSlidePanel()">&#8592;</button>
+      <div class="sp-title" id="slide-title">详情</div>
+    </div>
+    <div class="slide-panel-body" id="slide-body"></div>
+    <div class="slide-panel-footer" id="slide-footer" style="display:none"></div>
+  </div>
+
+  <!-- Create Task Modal -->
+  <div class="modal-overlay" id="create-task-modal">
+    <div class="modal">
+      <div class="modal-header"><h2>创建任务</h2><button class="modal-close" onclick="closeCreateTask()">&#10005;</button></div>
+      <div class="modal-body" id="create-task-body"></div>
+      <div class="modal-footer" id="create-task-footer"></div>
+    </div>
+  </div>
+
+  <!-- Command Palette -->
+  <div class="cmd-overlay" id="cmd-overlay" onclick="closeCommandPalette()">
+    <div class="cmd-palette" onclick="event.stopPropagation()">
+      <div class="cmd-input-wrap">
+        <span class="cmd-icon">&#128269;</span>
+        <input type="text" id="cmd-input" placeholder="搜索任务、模板、操作..." oninput="filterCommandPalette(this.value)">
+      </div>
+      <div class="cmd-results" id="cmd-results"></div>
+    </div>
+  </div>
+
+  <!-- Confirm Dialog -->
+  <div class="confirm-overlay" id="confirm-overlay">
+    <div class="confirm-dialog">
+      <div class="confirm-icon" id="confirm-icon">&#9888;</div>
+      <h3 id="confirm-title">确认操作</h3>
+      <p id="confirm-desc">确定要执行此操作吗？</p>
+      <div class="confirm-actions">
+        <button class="btn btn-secondary" onclick="closeConfirm()">取消</button>
+        <button class="btn btn-danger" id="confirm-ok">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+</div>
+
+<script>
+// =============================================
+// MOCK DATA
+// =============================================
+const mockTasks = [
+  { id: 'TASK-001', title: '修复登录页面白屏问题', desc: '用户反馈登录页面偶发白屏，需要排查原因', priority: 'P1', type: 'Bug修复', status: 'running', progress: 65, provider: 'Claude Code', assignee: '周正', time: '5分钟前', duration: '12:30', steps: 10, currentStep: 7, template: 'Bug 修复助手', instruction: '优先排查白屏原因', workItemId: 'WI-004', subTaskId: 'ST-008', brainstorm: false },
+  { id: 'TASK-002', title: '实现用户权限管理模块', desc: '新增 RBAC 权限管理功能', priority: 'P2', type: '功能开发', status: 'running', progress: 35, provider: 'Claude Code', assignee: '周正', time: '15分钟前', duration: '08:45', steps: 12, currentStep: 4, template: '功能开发向导', instruction: '参考现有权限模型', workItemId: 'WI-001', subTaskId: null, brainstorm: false },
+  { id: 'TASK-003', title: '优化数据库查询性能', desc: '慢查询日志中有多个超阈值查询', priority: 'P1', type: '性能优化', status: 'succeeded', progress: 100, provider: 'Claude Code', assignee: '周正', time: '30分钟前', duration: '15:20', steps: 8, currentStep: 8, template: '代码重构专家', instruction: '' },
+  { id: 'TASK-004', title: '添加 API 文档', desc: '为新增接口补充 OpenAPI 文档', priority: 'P3', type: '文档', status: 'pending', progress: 0, provider: 'Claude Code', assignee: '周正', queue: '#1', time: '1小时前', duration: '', steps: 0, currentStep: 0, template: 'API 文档生成', instruction: '' },
+  { id: 'TASK-005', title: '重构任务调度引擎', desc: '引入优先级队列，支持动态权重调整', priority: 'P2', type: '代码重构', status: 'scheduled', progress: 0, provider: 'Claude Code', assignee: '周正', queue: '#2', time: '2小时前', duration: '', steps: 0, currentStep: 0, template: '代码重构专家', instruction: '保持向后兼容', workItemId: 'WI-001' },
+  { id: 'TASK-006', title: '修复并发竞争条件', desc: '多实例部署下存在数据竞争', priority: 'P1', type: 'Bug修复', status: 'pending', progress: 0, provider: 'Claude Code', assignee: '周正', queue: '#3', time: '3小时前', duration: '', steps: 0, currentStep: 0, template: 'Bug 修复助手', instruction: '' },
+  { id: 'TASK-007', title: '集成 CI/CD 流水线', desc: '配置 GitHub Actions 自动化构建部署', priority: 'P2', type: 'DevOps', status: 'succeeded', progress: 100, provider: 'Claude Code', assignee: '周正', time: '昨天', duration: '45:20', steps: 6, currentStep: 6, template: '功能开发向导', instruction: '' },
+  { id: 'TASK-008', title: '更新依赖版本', desc: '升级核心依赖到最新稳定版本', priority: 'P3', type: '维护', status: 'failed', progress: 60, provider: 'Claude Code', assignee: '周正', time: '昨天', duration: '22:10', steps: 5, currentStep: 3, template: '代码重构专家', instruction: '', errorMsg: '编译失败: 依赖冲突', workItemId: 'WI-001', subTaskId: 'ST-002' },
+  { id: 'TASK-009', title: 'API 接口生成', desc: '根据 OpenAPI spec 生成接口代码', priority: 'P2', type: '代码生成', status: 'running', progress: 20, provider: 'Claude Code', assignee: '周正', time: '8分钟前', duration: '03:15', steps: 5, currentStep: 1, template: '功能开发向导', instruction: '' },
+  { id: 'TASK-010', title: '数据库迁移优化', desc: '优化数据库迁移脚本执行速度', priority: 'P2', type: '优化', status: 'succeeded', progress: 100, provider: 'Claude Code', assignee: '周正', time: '昨天', duration: '03:20', steps: 4, currentStep: 4, template: '代码重构专家', instruction: '', workItemId: 'WI-003' },
+  { id: 'TASK-011', title: '技术评审-调度引擎', desc: '评审调度引擎优化方案', type: '文档生成', provider: 'Claude Code', priority: 'P2', status: 'running', progress: 45, time: '5min ago', steps: 5, currentStep: 3, instruction: '评审技术可行性', subTaskId: 'ST-007', brainstorm: false },
+  { id: 'TASK-012', title: '后端导出服务开发', desc: '开发大数据量异步导出服务', type: '功能开发', provider: 'Claude Code', priority: 'P2', status: 'running', progress: 20, time: '10min ago', steps: 8, currentStep: 2, instruction: '支持CSV和Excel格式', subTaskId: 'ST-004', brainstorm: false },
+];
+
+const mockTemplates = [
+  { id: 'TPL-001', name: 'Bug 修复助手', desc: '自动定位并修复代码中的 Bug，生成修复补丁和测试用例', icon: '&#128027;', category: 'coding', rating: 4.8, uses: 1024, version: 'v2.1', status: '已发布', scene: '编码', goal: '定位并修复代码中的 Bug，确保修复不会引入新问题', params: [
+    { name: 'repo_url', type: 'string', required: true, default: '-', desc: '代码仓库地址' },
+    { name: 'bug_description', type: 'text', required: true, default: '-', desc: 'Bug 现象、复现步骤和预期行为' },
+    { name: 'auto_test', type: 'boolean', required: false, default: 'true', desc: '修复后是否自动运行测试' },
+  ], capabilities: ['git', 'editor', 'terminal', 'test_runner'], timeout: 1800 },
+  { id: 'TPL-002', name: '功能开发向导', desc: '根据需求描述生成完整的功能代码实现，包含测试', icon: '&#128640;', category: 'coding', rating: 4.6, uses: 856, version: 'v1.5', status: '已发布', scene: '编码', goal: '根据需求描述实现完整的功能代码，包含测试和文档', params: [
+    { name: 'repo_url', type: 'string', required: true, default: '-', desc: '代码仓库地址' },
+    { name: 'requirement', type: 'text', required: true, default: '-', desc: '功能需求详细描述' },
+    { name: 'with_test', type: 'boolean', required: false, default: 'true', desc: '是否自动生成单元测试' },
+  ], capabilities: ['git', 'editor', 'terminal', 'test_runner', 'linter'], timeout: 3600 },
+  { id: 'TPL-003', name: '代码重构专家', desc: '分析代码质量并执行安全的重构操作', icon: '&#128295;', category: 'coding', rating: 4.7, uses: 623, version: 'v1.3', status: '已发布', scene: '编码', goal: '分析代码质量并执行安全的重构操作，保持功能不变', params: [
+    { name: 'repo_url', type: 'string', required: true, default: '-', desc: '代码仓库地址' },
+    { name: 'target_path', type: 'string', required: false, default: './', desc: '需要重构的目录或文件' },
+    { name: 'refactor_type', type: 'select', required: false, default: 'auto', desc: '重构类型：auto/extract/rename/simplify' },
+  ], capabilities: ['git', 'editor', 'terminal', 'test_runner'], timeout: 1800 },
+  { id: 'TPL-STG-001', name: 'BRD 需求分析助手', desc: '基于业务需求文档模板，辅助生成标准 BRD', icon: '&#128203;', category: 'document', rating: 4.6, uses: 456, version: 'v2.3', status: '已发布', scene: '需求', goal: '基于业务需求文档模板，辅助生成标准 BRD', params: [
+    { name: 'repo_url', type: 'string', required: true, default: '-', desc: '代码仓库地址' },
+    { name: 'requirements', type: 'text', required: true, default: '-', desc: '业务需求详细描述' },
+    { name: 'output_path', type: 'string', required: false, default: 'docs/BRD.md', desc: 'BRD 输出路径' },
+  ], capabilities: ['git', 'editor'], timeout: 1800 },
+  { id: 'TPL-STG-002', name: 'PRD 方案设计助手', desc: '基于产品方案设计模板，辅助生成标准 PRD', icon: '&#128208;', category: 'document', rating: 4.7, uses: 389, version: 'v2.1', status: '已发布', scene: '设计', goal: '基于产品方案设计模板，辅助生成标准 PRD', params: [
+    { name: 'repo_url', type: 'string', required: true, default: '-', desc: '代码仓库地址' },
+    { name: 'requirements', type: 'text', required: true, default: '-', desc: '产品需求详细描述' },
+    { name: 'brd_path', type: 'string', required: false, default: 'docs/BRD.md', desc: '参考 BRD 路径' },
+  ], capabilities: ['git', 'editor'], timeout: 1800 },
+  { id: 'TPL-STG-003', name: 'TRD 技术设计助手', desc: '基于技术设计模板，辅助生成标准 TRD', icon: '&#128295;', category: 'document', rating: 4.5, uses: 312, version: 'v2.0', status: '已发布', scene: '设计', goal: '基于技术设计模板，辅助生成标准 TRD', params: [
+    { name: 'repo_url', type: 'string', required: true, default: '-', desc: '代码仓库地址' },
+    { name: 'requirements', type: 'text', required: true, default: '-', desc: '技术需求详细描述' },
+    { name: 'prd_path', type: 'string', required: false, default: 'docs/PRD.md', desc: '参考 PRD 路径' },
+  ], capabilities: ['git', 'editor'], timeout: 1800 },
+];
+
+const mockProviders = [
+  { id:'PRV-001', name:'Claude Code', desc:'Anthropic 官方 Claude Code CLI', icon:'🤖', type:'claude_code', status:'active', scope:'system', isDefault:true, endpoint:'https://api.anthropic.com', apiKeyMask:'sk-••••••••abcd', modelMapping:{default:'claude-sonnet-4-20250514'}, lastTestAt:'2026-04-08 10:30', lastTestResult:'success' },
+  { id:'PRV-002', name:'我的 GLM', desc:'智谱 AI GLM-4，个人 API Key', icon:'🔮', type:'anthropic_compatible', status:'active', scope:'user', isDefault:false, endpoint:'https://open.bigmodel.cn/api/paas', apiKeyMask:'sk-••••••••efgh', modelMapping:{default:'glm-4-plus'}, lastTestAt:'2026-04-07 15:00', lastTestResult:'success' },
+];
+
+const mockWorkItems = [
+  { id: 'WI-001', externalId: 'JIRA-1234', title: '用户权限管理模块', description: '新增 RBAC 权限管理功能，支持角色定义、权限分配、审计日志。', type: 'requirement', stage: 'dev', status: 'in_progress', priority: 'P1', assigneeName: '周正', projectName: 'AgentOps 平台', externalUrl: 'https://jira.example.com/browse/JIRA-1234', syncedAt: '2026-04-09 10:32',
+    artifacts: [{ id: 'ART-001', title: 'BRD.md', stage: 'brd' },{ id: 'ART-002', title: 'PRD.md', stage: 'prd' },{ id: 'ART-003', title: 'TRD.md', stage: 'trd' }],
+    subtasks: [
+      { id: 'ST-001', title: '前端页面开发', description: '实现权限管理前端页面', type: 'frontend', assigneeName: '周正', status: 'pending', agentTaskId: null },
+      { id: 'ST-002', title: '后端API开发', description: '开发RBAC后端API接口', type: 'backend', assigneeName: '李明', status: 'running', agentTaskId: 'TASK-008' },
+      { id: 'ST-003', title: '单元测试编写', description: '编写单元和集成测试', type: 'testing', assigneeName: '张伟', status: 'pending', agentTaskId: null },
+    ],
+    stages: [{ key: 'brd', label: 'BRD', status: 'completed' },{ key: 'prd', label: 'PRD', status: 'completed' },{ key: 'trd', label: 'TRD', status: 'completed' },{ key: 'dev', label: '开发', status: 'current' },{ key: 'test', label: '测试', status: 'pending' },{ key: 'deploy', label: '上线', status: 'pending' }]
+  },
+  { id: 'WI-002', externalId: 'JIRA-1235', title: '订单导出优化', description: '优化订单数据导出功能，支持大数据量异步导出。', type: 'improvement', stage: 'dev', status: 'in_progress', priority: 'P2', assigneeName: '李明', projectName: 'AgentOps 平台', externalUrl: 'https://jira.example.com/browse/JIRA-1235', syncedAt: '2026-04-09 10:32',
+    artifacts: [{ id: 'ART-004', title: 'BRD.md', stage: 'brd' },{ id: 'ART-005', title: 'PRD.md', stage: 'prd' }],
+    subtasks: [
+      { id: 'ST-004', title: '后端导出服务', description: '开发异步导出服务', type: 'backend', assigneeName: '周正', status: 'running', agentTaskId: 'TASK-012' },
+      { id: 'ST-005', title: '集成测试', description: '编写导出功能集成测试', type: 'testing', assigneeName: '李明', status: 'pending', agentTaskId: null },
+    ],
+    stages: [{ key: 'brd', label: 'BRD', status: 'completed' },{ key: 'prd', label: 'PRD', status: 'completed' },{ key: 'trd', label: 'TRD', status: 'completed' },{ key: 'dev', label: '开发', status: 'current' },{ key: 'test', label: '测试', status: 'pending' },{ key: 'deploy', label: '上线', status: 'pending' }]
+  },
+  { id: 'WI-003', externalId: 'JIRA-1236', title: '任务调度引擎优化', description: '优化调度引擎排队和资源分配策略。', type: 'requirement', stage: 'prd', status: 'in_progress', priority: 'P2', assigneeName: '周正', projectName: 'AgentOps 平台', externalUrl: 'https://jira.example.com/browse/JIRA-1236', syncedAt: '2026-04-09 10:32',
+    artifacts: [{ id: 'ART-007', title: 'BRD.md', stage: 'brd' }],
+    subtasks: [
+      { id: 'ST-006', title: '方案设计', description: '设计调度优化方案', type: 'docs', assigneeName: '周正', status: 'completed', agentTaskId: 'TASK-010' },
+      { id: 'ST-007', title: '技术评审', description: '评审技术可行性', type: 'docs', assigneeName: '李明', status: 'running', agentTaskId: 'TASK-011' },
+    ],
+    stages: [{ key: 'brd', label: 'BRD', status: 'completed' },{ key: 'prd', label: 'PRD', status: 'current' },{ key: 'trd', label: 'TRD', status: 'pending' },{ key: 'dev', label: '开发', status: 'pending' },{ key: 'test', label: '测试', status: 'pending' },{ key: 'deploy', label: '上线', status: 'pending' }]
+  },
+  { id: 'WI-004', externalId: 'JIRA-1237', title: '登录页面白屏问题修复', description: '用户反馈登录页面偶发白屏。', type: 'bug', stage: 'dev', status: 'in_progress', priority: 'P1', assigneeName: '周正', projectName: 'AgentOps 平台', externalUrl: 'https://jira.example.com/browse/JIRA-1237', syncedAt: '2026-04-09 10:32',
+    artifacts: [],
+    subtasks: [
+      { id: 'ST-008', title: 'Bug排查与修复', description: '排查白屏问题根因并修复', type: 'frontend', assigneeName: '周正', status: 'running', agentTaskId: 'TASK-001' },
+    ],
+    stages: [{ key: 'brd', label: 'BRD', status: 'completed' },{ key: 'prd', label: 'PRD', status: 'completed' },{ key: 'trd', label: 'TRD', status: 'completed' },{ key: 'dev', label: '开发', status: 'current' },{ key: 'test', label: '测试', status: 'pending' },{ key: 'deploy', label: '上线', status: 'pending' }]
+  },
+  { id: 'WI-005', externalId: 'JIRA-1238', title: 'API 文档自动生成工具', description: '实现 API 接口文档自动生成工具。', type: 'improvement', stage: 'brd', status: 'in_progress', priority: 'P3', assigneeName: '周正', projectName: 'AgentOps 平台', externalUrl: 'https://jira.example.com/browse/JIRA-1238', syncedAt: '2026-04-09 10:32',
+    artifacts: [],
+    subtasks: [],
+    stages: [{ key: 'brd', label: 'BRD', status: 'current' },{ key: 'prd', label: 'PRD', status: 'pending' },{ key: 'trd', label: 'TRD', status: 'pending' },{ key: 'dev', label: '开发', status: 'pending' },{ key: 'test', label: '测试', status: 'pending' },{ key: 'deploy', label: '上线', status: 'pending' }]
+  },
+];
+
+var mockStageTemplateMapping = {
+  'frontend': [{ tplId: 'TPL-002', label: '功能开发向导' }],
+  'backend':  [{ tplId: 'TPL-002', label: '功能开发向导' }],
+  'testing':  [{ tplId: 'TPL-002', label: '功能开发向导' }],
+  'docs':     [{ tplId: 'TPL-002', label: '功能开发向导' }],
+};
+
+var currentUser = '周正';
+var currentDetailTask = null;
+
+// Status metadata
+var statusMeta = {
+  running: { label: '运行中', color: '#C76A3A', dot: true },
+  pending: { label: '排队中', color: '#8a8780', dot: false },
+  scheduled: { label: '已调度', color: '#8a8780', dot: false },
+  succeeded: { label: '已完成', color: '#2DA06C', dot: false },
+  failed: { label: '失败', color: '#D94848', dot: false },
+  cancelled: { label: '已取消', color: '#6e6b64', dot: false },
+  paused: { label: '已暂停', color: '#D4A017', dot: true },
+};
+var stIconMap = { frontend: '🖥️', backend: '⚙️', testing: '🧪', docs: '📄', other: '📋' };
+
+function cssVar(n) { return 'var(' + n + ')'; }
+function escapeHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// =============================================
+// ROUTING
+// =============================================
+var routeMap = { '#/': 'page-requirements', '#/tasks': 'page-tasks', '#/templates': 'page-templates', '#/settings': 'page-settings' };
+var reqFilterStage = 'all'; var reqViewMode = 'card'; var taskFilterStatus = 'all'; var taskViewMode = 'kanban'; var tplFilterCat = 'all'; var settingsTab = 'credentials';
+
+function navigate(hash) { window.location.hash = hash; }
+
+function handleRoute() {
+  var hash = window.location.hash || '#/';
+  closeAllMenus();
+  document.querySelectorAll('.page-section').forEach(function(p) { p.classList.remove('active'); });
+  var pageId = routeMap[hash];
+  if (pageId) { var el = document.getElementById(pageId); if (el) el.classList.add('active'); }
+  document.querySelectorAll('.nav-link[data-route]').forEach(function(l) { l.classList.toggle('active', l.dataset.route === hash); });
+  // Render page content
+  if (pageId === 'page-requirements') renderRequirementsPage();
+  else if (pageId === 'page-tasks') renderKanban();
+  else if (pageId === 'page-templates') renderTemplates();
+  else if (pageId === 'page-settings') renderSettings();
+}
+window.addEventListener('hashchange', handleRoute);
+window.addEventListener('load', handleRoute);
+
+// =============================================
+// MENU / DROPDOWN / THEME
+// =============================================
+function toggleMenu(id) { var m = document.getElementById(id); var o = m.classList.contains('show'); closeAllMenus(); if (!o) m.classList.add('show'); }
+function closeAllMenus() { document.querySelectorAll('.avatar-dropdown,.dropdown-menu,.nav-dropdown').forEach(function(m) { m.classList.remove('show'); }); }
+document.addEventListener('click', function(e) { if (!e.target.closest('.avatar-dropdown') && !e.target.closest('.avatar-btn')) closeAllMenus(); });
+function toggleTheme() { var t = document.documentElement.getAttribute('data-theme') === 'light' ? '' : 'light'; document.documentElement.setAttribute('data-theme', t); showToast(t === 'light' ? '已切换到亮色模式' : '已切换到暗色模式', 'success'); }
+
+// =============================================
+// TOAST / CONFIRM
+// =============================================
+function showToast(msg, type) {
+  type = type || 'success';
+  var icons = { success: '&#10004;', warning: '&#9888;', error: '&#10008;' };
+  var c = document.getElementById('toast-container');
+  var t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.innerHTML = '<span class="toast-icon">' + icons[type] + '</span><span>' + msg + '</span><span class="toast-close" onclick="this.parentElement.classList.add(\'removing\');setTimeout(()=>this.parentElement.remove(),300)">&#10005;</span>';
+  c.appendChild(t);
+  setTimeout(function() { if (t.parentElement) { t.classList.add('removing'); setTimeout(function() { if (t.parentElement) t.remove(); }, 300); } }, 3000);
+}
+
+var _confirmCallback = null;
+function confirmAction(title, desc, callback) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-desc').textContent = desc;
+  document.getElementById('confirm-overlay').classList.add('show');
+  _confirmCallback = callback;
+  document.getElementById('confirm-ok').onclick = function() { closeConfirm(); if (_confirmCallback) _confirmCallback(); };
+}
+function closeConfirm() { document.getElementById('confirm-overlay').classList.remove('show'); _confirmCallback = null; }
+
+// =============================================
+// COMMAND PALETTE
+// =============================================
+function openCommandPalette() { document.getElementById('cmd-overlay').classList.add('show'); setTimeout(function() { document.getElementById('cmd-input').focus(); }, 100); renderCommandPalette(''); }
+function closeCommandPalette() { document.getElementById('cmd-overlay').classList.remove('show'); document.getElementById('cmd-input').value = ''; }
+function filterCommandPalette(q) { renderCommandPalette(q); }
+
+function renderCommandPalette(q) {
+  q = (q||'').toLowerCase(); var html = '';
+  html += '<div class="cmd-section-title">快速操作</div>';
+  var actions = [
+    { icon: '&#128203;', title: '需求列表', sub: '查看需求列表首页', action: "navigate('#/')" },
+    { icon: '&#10010;', title: '新建任务', sub: '创建新的 Agent 任务', action: 'openCreateTask()' },
+    { icon: '&#128196;', title: '浏览模板', sub: '查看预置模板', action: "navigate('#/templates')" },
+    { icon: '&#9881;', title: '设置', sub: '凭证、API Key、仓库配置', action: "navigate('#/settings')" },
+  ];
+  actions.forEach(function(a) { if (!q || a.title.toLowerCase().includes(q) || a.sub.toLowerCase().includes(q)) html += '<div class="cmd-item" onclick="closeCommandPalette();' + a.action + '"><div class="cmd-item-icon">' + a.icon + '</div><div class="cmd-item-text"><div class="cmd-title">' + a.title + '</div><div class="cmd-sub">' + a.sub + '</div></div></div>'; });
+  var ft = mockTasks.filter(function(t) { return !q || t.title.toLowerCase().includes(q); });
+  if (ft.length) { html += '<div class="cmd-section-title">最近任务</div>'; ft.slice(0, 5).forEach(function(t) { html += '<div class="cmd-item" onclick="closeCommandPalette();openTaskDetail(\'' + t.id + '\')"><div class="cmd-item-icon">' + (t.status === 'running' ? '&#9654;' : '&#9632;') + '</div><div class="cmd-item-text"><div class="cmd-title">' + t.title + '</div><div class="cmd-sub">' + t.id + ' · ' + t.status + '</div></div></div>'; }); }
+  if (!html) html = '<div style="padding:20px;text-align:center;color:var(--text-muted)">无匹配结果</div>';
+  document.getElementById('cmd-results').innerHTML = html;
+}
+
+// =============================================
+// KEYBOARD SHORTCUTS
+// =============================================
+document.addEventListener('keydown', function(e) {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); var o = document.getElementById('cmd-overlay'); if (o.classList.contains('show')) closeCommandPalette(); else openCommandPalette(); return; }
+  if (e.key === 'Escape') { closeCommandPalette(); closeSlidePanel(); closeConfirm(); if (document.getElementById('create-task-modal').classList.contains('show')) closeCreateTask(); return; }
+  if (e.key === 'n' && !e.ctrlKey && !e.metaKey && !e.altKey && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') openCreateTask();
+});
+
+// =============================================
+// SLIDE PANEL
+// =============================================
+function openSlidePanel(title, bodyHtml) {
+  document.getElementById('slide-title').textContent = title;
+  document.getElementById('slide-body').innerHTML = bodyHtml;
+  document.getElementById('slide-overlay').classList.add('show');
+  document.getElementById('slide-panel').classList.add('show');
+  var footer = document.getElementById('slide-footer'); footer.innerHTML = ''; footer.style.display = 'none';
+}
+function closeSlidePanel() {
+  document.getElementById('slide-overlay').classList.remove('show');
+  document.getElementById('slide-panel').classList.remove('show');
+  document.getElementById('slide-footer').innerHTML = '';
+  document.getElementById('slide-footer').style.display = 'none';
+  currentDetailTask = null;
+}
+
+// =============================================
+// REQUIREMENTS PAGE
+// =============================================
+function setReqFilter(stage, el) {
+  reqFilterStage = stage;
+  document.querySelectorAll('.req-filter-bar .filter-chip-pill').forEach(function(c) { c.classList.remove('active'); });
+  el.classList.add('active');
+  renderRequirementsPage();
+}
+function setReqView(mode) {
+  reqViewMode = mode;
+  document.getElementById('req-view-card').classList.toggle('active', mode === 'card');
+  document.getElementById('req-view-list').classList.toggle('active', mode === 'list');
+  renderRequirementsPage();
+}
+
+function renderRequirementsPage() {
+  var q = (document.getElementById('req-search-input') || {}).value || '';
+  q = q.toLowerCase();
+  var items = mockWorkItems.filter(function(w) {
+    if (reqFilterStage !== 'all') { var s = w.stages.find(function(s) { return s.status === 'current'; }); if (!s || s.key !== reqFilterStage) return false; }
+    if (q && !w.title.toLowerCase().includes(q) && !w.description.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  if (reqViewMode === 'card') renderRequirementsCards(items);
+  else renderRequirementsList(items);
+}
+
+function renderRequirementsCards(items) {
+  document.getElementById('req-grid').style.display = '';
+  document.getElementById('req-list-view').style.display = 'none';
+  if (!items.length) { document.getElementById('req-grid').innerHTML = '<div class="empty-state"><div class="empty-icon">&#128203;</div><div class="empty-title">暂无需求</div><div class="empty-desc">调整筛选条件查看更多</div></div>'; return; }
+  var h = '';
+  items.forEach(function(w) {
+    var pc = { P1: 'p1', P2: 'p2', P3: 'p3' };
+    h += '<div class="req-card" onclick="openRequirementDetail(\'' + w.id + '\')">';
+    h += '<div class="req-card-top"><span class="req-priority-tag ' + (pc[w.priority]||'p3') + '">' + w.priority + '</span><span style="font-size:11px;color:var(--text-muted)">' + w.externalId + '</span></div>';
+    h += '<div class="req-card-title">' + escapeHtml(w.title) + '</div>';
+    // Stage progress
+    h += '<div class="req-stage-progress">';
+    w.stages.forEach(function(s, i) {
+      h += '<div class="req-stage-dot ' + s.status + '"></div>';
+      if (i < w.stages.length - 1) { var ns = w.stages[i+1]; h += '<div class="req-stage-line ' + (s.status === 'completed' ? (ns.status !== 'pending' ? 'completed' : 'completed') : (s.status === 'current' ? 'current' : '')) + '"></div>'; }
+    });
+    h += '</div>';
+    // Artifacts
+    if (w.artifacts.length) { h += '<div class="req-card-artifacts">'; w.artifacts.forEach(function(a) { h += '<span class="req-artifact-badge">&#10003; ' + a.title + '</span>'; }); h += '</div>'; }
+    // Subtask summary
+    if (w.subtasks.length) { h += '<div style="display:flex;flex-wrap:wrap;gap:6px">'; w.subtasks.forEach(function(st) { var si = stIconMap[st.type] || '📋'; var sc = st.status === 'running' ? 'var(--accent)' : st.status === 'completed' ? 'var(--success)' : 'var(--text-muted)'; h += '<span style="font-size:11px;color:' + sc + ';display:flex;align-items:center;gap:3px">' + si + ' ' + escapeHtml(st.title) + '</span>'; }); h += '</div>'; }
+    // Footer
+    h += '<div class="req-card-footer"><span class="req-card-source">' + w.assigneeName + ' · ' + w.syncedAt + '</span>';
+    // Launch button
+    var ownRunning = w.subtasks.find(function(st) { return st.status === 'running' && st.assigneeName === currentUser; });
+    var ownPending = w.subtasks.find(function(st) { return st.status === 'pending' && st.assigneeName === currentUser; });
+    if (ownRunning) { h += '<button class="req-launch-btn req-launch-running" onclick="event.stopPropagation();openTaskDetail(\'' + ownRunning.agentTaskId + '\')">&#9654; 查看进度</button>'; }
+    else if (ownPending) { h += '<button class="req-launch-btn" onclick="event.stopPropagation();openCreateTaskForSubTask(\'' + w.id + '\',\'' + ownPending.id + '\')">&#9654; 启动任务</button>'; }
+    h += '</div></div>';
+  });
+  document.getElementById('req-grid').innerHTML = h;
+}
+
+function renderRequirementsList(items) {
+  document.getElementById('req-grid').style.display = 'none';
+  document.getElementById('req-list-view').style.display = '';
+  var h = '<table style="width:100%;border-collapse:collapse"><thead><tr><th style="text-align:left;padding:10px 14px;font-size:11px;font-weight:600;color:var(--text-secondary);background:var(--bg-elevated);border-bottom:1px solid var(--border)">优先级</th><th style="text-align:left;padding:10px 14px;font-size:11px;font-weight:600;color:var(--text-secondary);background:var(--bg-elevated);border-bottom:1px solid var(--border)">标题</th><th style="text-align:left;padding:10px 14px;font-size:11px;font-weight:600;color:var(--text-secondary);background:var(--bg-elevated);border-bottom:1px solid var(--border)">阶段</th><th style="text-align:left;padding:10px 14px;font-size:11px;font-weight:600;color:var(--text-secondary);background:var(--bg-elevated);border-bottom:1px solid var(--border)">负责人</th><th style="text-align:right;padding:10px 14px;font-size:11px;font-weight:600;color:var(--text-secondary);background:var(--bg-elevated);border-bottom:1px solid var(--border)">操作</th></tr></thead><tbody>';
+  items.forEach(function(w) {
+    var cur = w.stages.find(function(s) { return s.status === 'current'; });
+    h += '<tr style="cursor:pointer" onclick="openRequirementDetail(\'' + w.id + '\')">';
+    h += '<td style="padding:12px 14px;border-bottom:1px solid var(--border)"><span class="req-priority-tag ' + ({P1:'p1',P2:'p2',P3:'p3'}[w.priority]||'p3') + '">' + w.priority + '</span></td>';
+    h += '<td style="padding:12px 14px;border-bottom:1px solid var(--border);font-weight:500;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(w.title) + '</td>';
+    h += '<td style="padding:12px 14px;border-bottom:1px solid var(--border)"><span class="tag tag-purple">' + (cur ? cur.label : '-') + '</span></td>';
+    h += '<td style="padding:12px 14px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-secondary)">' + w.assigneeName + '</td>';
+    h += '<td style="padding:12px 14px;border-bottom:1px solid var(--border);text-align:right">';
+    var ownRunning = w.subtasks.find(function(st) { return st.status === 'running' && st.assigneeName === currentUser; });
+    var ownPending = w.subtasks.find(function(st) { return st.status === 'pending' && st.assigneeName === currentUser; });
+    if (ownRunning) h += '<button class="req-launch-btn req-launch-running" style="font-size:11px;padding:3px 10px" onclick="event.stopPropagation();openTaskDetail(\'' + ownRunning.agentTaskId + '\')">&#9654; 查看</button>';
+    else if (ownPending) h += '<button class="req-launch-btn" style="font-size:11px;padding:3px 10px" onclick="event.stopPropagation();openCreateTaskForSubTask(\'' + w.id + '\',\'' + ownPending.id + '\')">&#9654; 启动</button>';
+    h += '</td></tr>';
+  });
+  h += '</tbody></table>';
+  document.getElementById('req-list-view').innerHTML = h;
+}
+
+// Requirement detail panel
+function openRequirementDetail(wiId) {
+  var w = mockWorkItems.find(function(x) { return x.id === wiId; });
+  if (!w) return;
+  var h = '';
+  // Info
+  h += '<div class="req-detail-section"><div class="req-section-label">基本信息</div>';
+  h += '<div class="req-info-grid">';
+  h += '<div class="req-info-item"><div class="info-label">ID</div><div class="info-value">' + w.externalId + '</div></div>';
+  h += '<div class="req-info-item"><div class="info-label">优先级</div><div class="info-value">' + w.priority + '</div></div>';
+  h += '<div class="req-info-item"><div class="info-label">负责人</div><div class="info-value">' + w.assigneeName + '</div></div>';
+  h += '<div class="req-info-item"><div class="info-label">同步时间</div><div class="info-value">' + w.syncedAt + '</div></div>';
+  h += '<div class="req-info-item" style="grid-column:1/-1"><div class="info-label">链接</div><div class="info-value"><a href="' + w.externalUrl + '" target="_blank">' + w.externalUrl + '</a></div></div>';
+  h += '</div></div>';
+  // Description
+  h += '<div class="req-detail-section"><div class="req-section-label">描述</div><div class="req-desc-text">' + escapeHtml(w.description) + '</div></div>';
+  // Stage timeline
+  h += '<div class="req-detail-section"><div class="req-section-label">阶段进度</div>';
+  h += '<div class="stage-timeline">';
+  w.stages.forEach(function(s, i) {
+    h += '<div class="stage-node ' + s.status + '"><div class="stage-dot">' + (s.status === 'completed' ? '&#10003;' : s.status === 'current' ? (i+1) : (i+1)) + '</div><div class="stage-label">' + s.label + '</div></div>';
+    if (i < w.stages.length - 1) h += '<div class="stage-connector ' + (s.status === 'completed' ? 'completed' : 'pending') + '"></div>';
+  });
+  h += '</div></div>';
+  // Artifacts
+  if (w.artifacts.length) {
+    h += '<div class="req-detail-section"><div class="req-section-label">已产出文档</div>';
+    w.artifacts.forEach(function(a) { h += '<div style="display:flex;align-items:center;gap:8px;padding:8px 0"><span style="color:var(--success)">&#10003;</span><span style="font-size:13px">' + a.title + '</span></div>'; });
+    h += '</div>';
+  }
+  // Subtasks
+  if (w.subtasks.length) {
+    h += '<div class="req-detail-section"><div class="req-section-label">子任务 <span style="font-size:10px;background:var(--bg-elevated);color:var(--text-muted);padding:1px 7px;border-radius:10px">' + w.subtasks.length + '</span></div>';
+    w.subtasks.forEach(function(st) {
+      var isOwn = st.assigneeName === currentUser;
+      var cls = isOwn ? (st.status === 'pending' ? 'own-pending' : (st.status === 'running' ? 'own-running' : '')) : '';
+      h += '<div class="subtask-detail-item ' + cls + '"';
+      if (isOwn && st.status === 'pending') h += ' onclick="closeSlidePanel();openCreateTaskForSubTask(\'' + w.id + '\',\'' + st.id + '\')"';
+      h += '>';
+      h += '<div class="subtask-detail-icon">' + (stIconMap[st.type] || '📋') + '</div>';
+      h += '<div class="subtask-detail-info"><div class="subtask-detail-title">' + escapeHtml(st.title) + '</div>';
+      h += '<div class="subtask-detail-meta"><span>' + st.assigneeName + '</span></div></div>';
+      h += '<div>';
+      if (st.status === 'running' && st.agentTaskId) h += '<button class="subtask-launch-btn" style="background:var(--success)" onclick="event.stopPropagation();openTaskDetail(\'' + st.agentTaskId + '\')">&#9654; 查看</button>';
+      else if (st.status === 'pending' && isOwn) h += '<button class="subtask-launch-btn" onclick="event.stopPropagation();closeSlidePanel();openCreateTaskForSubTask(\'' + w.id + '\',\'' + st.id + '\')">&#9654; 启动</button>';
+      else if (st.status === 'completed') h += '<span style="color:var(--success);font-size:12px;font-weight:500">&#10003; 完成</span>';
+      else h += '<span style="color:var(--text-muted);font-size:11px">' + st.status + '</span>';
+      h += '</div></div>';
+    });
+    h += '</div>';
+  }
+
+  openSlidePanel(w.title, h);
+  // Footer with launch button
+  var ownPending = w.subtasks.find(function(st) { return st.status === 'pending' && st.assigneeName === currentUser; });
+  if (ownPending) {
+    document.getElementById('slide-footer').innerHTML = '<button class="btn btn-primary" style="margin-left:auto" onclick="closeSlidePanel();openCreateTaskForSubTask(\'' + w.id + '\',\'' + ownPending.id + '\')">&#9654; 启动子任务</button>';
+    document.getElementById('slide-footer').style.display = 'flex';
+  }
+}
+
+// =============================================
+// TASKS PAGE (Kanban + List)
+// =============================================
+function setTaskFilter(status, el) {
+  taskFilterStatus = status;
+  document.querySelectorAll('#page-tasks .filter-chip-pill').forEach(function(c) { c.classList.remove('active'); });
+  el.classList.add('active');
+  renderKanban();
+}
+function setTaskView(mode) {
+  taskViewMode = mode;
+  document.getElementById('task-view-kanban').classList.toggle('active', mode === 'kanban');
+  document.getElementById('task-view-list').classList.toggle('active', mode === 'list');
+  document.getElementById('kanban-board').style.display = mode === 'kanban' ? '' : 'none';
+  document.getElementById('list-view').style.display = mode === 'list' ? '' : 'none';
+  if (mode === 'kanban') renderKanban(); else renderTaskList();
+}
+
+function renderKanban() {
+  var filtered = taskFilterStatus === 'all' ? mockTasks : mockTasks.filter(function(t) { return t.status === taskFilterStatus; });
+  var cols = [
+    { key: 'pending', label: '排队中', color: '#8a8780', tasks: filtered.filter(function(t) { return t.status === 'pending' || t.status === 'scheduled'; }) },
+    { key: 'running', label: '运行中', color: '#C76A3A', tasks: filtered.filter(function(t) { return t.status === 'running'; }) },
+    { key: 'succeeded', label: '已完成', color: '#2DA06C', tasks: filtered.filter(function(t) { return t.status === 'succeeded'; }) },
+    { key: 'failed', label: '失败/取消', color: '#D94848', tasks: filtered.filter(function(t) { return t.status === 'failed' || t.status === 'cancelled'; }) },
+  ];
+  var h = '';
+  cols.forEach(function(col) {
+    h += '<div class="kanban-col"><div class="kanban-col-header"><div class="kanban-col-dot" style="background:' + col.color + '"></div><span class="kanban-col-title">' + col.label + '</span><span class="kanban-col-count">' + col.tasks.length + '</span></div>';
+    h += '<div class="kanban-cards">';
+    col.tasks.forEach(function(t) {
+      var meta = statusMeta[t.status] || {};
+      h += '<div class="kanban-card" onclick="openTaskDetail(\'' + t.id + '\')">';
+      h += '<div class="card-title">' + (meta.dot ? '<span class="status-dot"></span> ' : '') + escapeHtml(t.title) + '</div>';
+      h += '<div class="card-desc">' + escapeHtml(t.desc) + '</div>';
+      if (t.progress > 0 && t.status === 'running') {
+        h += '<div class="card-progress"><div class="card-progress-bar"><div class="card-progress-fill" style="width:' + t.progress + '%"></div></div><span class="card-progress-text">' + t.progress + '%</span></div>';
+      }
+      h += '<div class="card-meta"><span class="tag" style="background:' + meta.color + '20;color:' + meta.color + '">' + meta.label + '</span><span class="tag tag-gray">' + t.provider + '</span>';
+      if (t.duration) h += '<span style="font-size:10px;color:var(--text-muted)">⏱ ' + t.duration + '</span>';
+      h += '</div></div>';
+    });
+    h += '</div></div>';
+  });
+  document.getElementById('kanban-board').innerHTML = h;
+}
+
+function renderTaskList() {
+  var filtered = taskFilterStatus === 'all' ? mockTasks : mockTasks.filter(function(t) { return t.status === taskFilterStatus; });
+  var h = '';
+  filtered.forEach(function(t) {
+    var meta = statusMeta[t.status] || {};
+    h += '<div class="list-row" onclick="openTaskDetail(\'' + t.id + '\')">';
+    h += '<div class="list-status" style="background:' + meta.color + '"></div>';
+    h += '<div class="list-title">' + (meta.dot ? '<span class="status-dot"></span> ' : '') + escapeHtml(t.title) + '</div>';
+    h += '<div class="list-type">' + (t.type || '-') + '</div>';
+    h += '<div class="list-provider">' + t.provider + '</div>';
+    h += '<div class="list-time">' + t.time + '</div>';
+    h += '</div>';
+  });
+  document.getElementById('list-view').innerHTML = h || '<div class="empty-state"><div class="empty-icon">&#128203;</div><div class="empty-title">暂无任务</div></div>';
+}
+
+// =============================================
+// TASK DETAIL
+// =============================================
+function openTaskDetail(taskId) {
+  var task = mockTasks.find(function(t) { return t.id === taskId; });
+  if (!task) return;
+  currentDetailTask = task;
+  navigate('#/tasks');
+  renderDetailPanel();
+  document.getElementById('slide-overlay').classList.add('show');
+  document.getElementById('slide-panel').classList.add('show');
+}
+
+function renderDetailPanel() {
+  var task = currentDetailTask; if (!task) return;
+  var meta = statusMeta[task.status] || {};
+  document.getElementById('slide-title').textContent = task.title;
+  var h = '';
+  // Linked requirement
+  if (task.workItemId) {
+    var wi = mockWorkItems.find(function(w) { return w.id === task.workItemId; });
+    if (wi) {
+      h += '<div class="linked-req-card" onclick="closeSlidePanel();navigate(\'#/\');setTimeout(function(){openRequirementDetail(\'' + wi.id + '\')},50)">';
+      h += '<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;background:var(--accent-bg);color:var(--accent-light)">' + wi.priority + '</span>';
+      h += '<div style="flex:1;min-width:0"><div style="font-size:13px;color:var(--text-primary)">' + escapeHtml(wi.title) + '</div><div style="font-size:11px;color:var(--text-subtle);margin-top:2px">' + wi.externalId + '</div></div>';
+      h += '<span style="color:var(--text-subtle)">&#8594;</span></div>';
+    }
+  }
+  // Status bar
+  h += '<div style="padding:10px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0">';
+  h += '<span class="tag" style="background:' + meta.color + '20;color:' + meta.color + ';border:1px solid ' + meta.color + '40">' + (meta.dot ? '<span class="status-dot"></span> ' : '') + meta.label + '</span>';
+  h += '<span class="tag" style="background:rgba(255,107,107,0.1);color:#D94848">' + task.priority + '</span>';
+  if (task.template) h += '<span style="color:var(--accent-light);font-size:12px">' + task.template + '</span>';
+  h += '<span class="tag tag-gray">' + task.provider + '</span>';
+  if (task.duration) h += '<span style="font-size:11px;color:var(--text-subtle)">⏱ ' + task.duration + '</span>';
+  h += '</div>';
+  // Tabs
+  h += '<div id="detail-tabs" style="display:flex;border-bottom:1px solid var(--border);flex-shrink:0">';
+  var tabs = ['操作台', '概览', '文件变更', '日志'];
+  tabs.forEach(function(t, i) { h += '<div class="tab' + (i === 0 ? ' active' : '') + '" onclick="switchDetailTab(' + i + ')" style="padding:10px 20px">' + t + '</div>'; });
+  h += '</div>';
+  h += '<div id="detail-tab-content" style="flex:1;overflow-y:auto">' + renderConsoleTab(task) + '</div>';
+  document.getElementById('slide-body').innerHTML = h;
+  // Footer actions
+  var footer = document.getElementById('slide-footer'); var actions = '';
+  if (task.status === 'running') { actions += '<button class="btn btn-secondary" onclick="doTaskAction(\'pause\')">⏸ 暂停</button><button class="btn btn-danger" onclick="doTaskAction(\'cancel\')">✕ 取消</button>'; }
+  else if (task.status === 'paused') { actions += '<button class="btn btn-primary" onclick="doTaskAction(\'resume\')">▶ 恢复</button><button class="btn btn-danger" onclick="doTaskAction(\'cancel\')">✕ 取消</button>'; }
+  else if (task.status === 'succeeded' || task.status === 'failed') { actions += '<button class="btn btn-secondary" onclick="doTaskAction(\'retry\')">↻ 重试</button>'; }
+  else if (task.status === 'pending' || task.status === 'scheduled') { actions += '<button class="btn btn-danger" onclick="doTaskAction(\'cancel\')">✕ 取消</button>'; }
+  footer.innerHTML = actions; footer.style.display = actions ? 'flex' : 'none';
+}
+
+function switchDetailTab(idx) {
+  var task = currentDetailTask; if (!task) return;
+  document.querySelectorAll('#detail-tabs .tab').forEach(function(t, i) { t.classList.toggle('active', i === idx); });
+  var content = document.getElementById('detail-tab-content');
+  if (idx === 0) content.innerHTML = renderConsoleTab(task);
+  else if (idx === 1) content.innerHTML = renderOverviewTab(task);
+  else if (idx === 2) content.innerHTML = renderFilesTab(task);
+  else if (idx === 3) content.innerHTML = renderLogTab(task);
+}
+
+function renderConsoleTab(task) {
+  var h = '<div style="display:flex;flex-direction:column;height:100%">';
+  h += '<div style="flex:1;overflow-y:auto;padding:20px">';
+  // Agent message
+  h += '<div style="margin-bottom:20px"><div style="font-size:11px;font-weight:600;color:#E08858;margin-bottom:6px;display:flex;align-items:center;gap:6px"><span style="width:18px;height:18px;border-radius:50%;background:var(--bg-ai-avatar);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff">AI</span>Agent</div>';
+  h += '<div style="max-width:85%;padding:12px 16px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border);border-top-left-radius:4px;font-size:13px;line-height:1.6">任务开始执行。正在分析代码结构...<br><span style="font-size:12px;color:var(--text-secondary);margin-top:8px;display:block">发现以下模块需要处理:<br>• auth - 认证模块<br>• user - 用户模块</span></div></div>';
+  // User intervention
+  if (task.instruction) {
+    h += '<div style="margin-bottom:20px;text-align:right"><div style="font-size:11px;font-weight:600;color:#E08858;margin-bottom:6px;display:flex;align-items:center;gap:6px;justify-content:flex-end"><span>周正</span><span style="width:18px;height:18px;border-radius:50%;background:var(--bg-user-avatar);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff">周</span></div>';
+    h += '<div style="max-width:85%;padding:12px 16px;border-radius:12px;background:var(--bg-user-bubble);border:1px solid var(--border-user-bubble);border-top-right-radius:4px;font-size:13px;line-height:1.6;margin-left:auto">' + escapeHtml(task.instruction) + '</div></div>';
+  }
+  if (task.status === 'running') {
+    h += '<div style="margin-bottom:20px"><div style="font-size:11px;font-weight:600;color:#E08858;margin-bottom:6px;display:flex;align-items:center;gap:6px"><span style="width:18px;height:18px;border-radius:50%;background:var(--bg-ai-avatar);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff">AI</span>Agent</div>';
+    h += '<div style="max-width:85%;padding:12px 16px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border);border-top-left-radius:4px;font-size:13px;line-height:1.6">正在执行 Step ' + task.currentStep + '...<div style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;background:#C76A3A20;color:#E08858;margin-top:8px"><span class="status-dot" style="width:4px;height:4px"></span>执行中</div></div></div>';
+  }
+  h += '</div>';
+  // Intervention input
+  h += '<div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--bg-secondary);flex-shrink:0">';
+  h += '<input id="conv-input" style="flex:1;padding:10px 14px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);font-size:13px;outline:none;font-family:inherit" placeholder="输入消息干预 Agent... (Enter 发送)">';
+  h += '<button class="btn btn-primary" onclick="sendIntervention()">➤ 发送</button>';
+  h += '</div></div>';
+  return h;
+}
+
+function renderOverviewTab(task) {
+  var h = '<div style="padding:20px 24px">';
+  h += '<div style="font-size:12px;font-weight:600;color:var(--text-label);margin-bottom:14px;text-transform:uppercase;letter-spacing:0.4px">基本信息</div>';
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px">';
+  [['任务 ID', task.id], ['Provider', task.provider], ['优先级', task.priority], ['创建时间', '2026-04-07'], ['目标仓库', 'github.com/org/repo'], ['执行时长', task.duration || '-']].forEach(function(it) {
+    h += '<div style="padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px"><div style="font-size:10px;color:var(--text-subtle);text-transform:uppercase;margin-bottom:3px">' + it[0] + '</div><div style="font-size:13px">' + it[1] + '</div></div>';
+  });
+  h += '</div>';
+  if (task.steps > 0) {
+    h += '<div style="font-size:12px;font-weight:600;color:var(--text-label);margin-bottom:14px;text-transform:uppercase">执行进度</div>';
+    h += '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-size:12px;color:var(--text-label)">总体进度</span><span style="font-size:13px;font-weight:600;color:var(--accent-light)">' + task.progress + '%</span></div>';
+    h += '<div style="height:6px;background:var(--progress-bg);border-radius:3px;overflow:hidden;margin-bottom:14px"><div style="height:100%;width:' + task.progress + '%;border-radius:3px;background:var(--progress-gradient)"></div></div>';
+    var stepNames = ['分析代码结构', '识别目标', '制定方案', '获取确认', '执行修改', '更新测试', '运行测试', '代码审查', '提交变更', '生成报告'];
+    for (var i = 0; i < task.steps && i < 10; i++) {
+      var done = i < task.currentStep; var isR = i === task.currentStep && task.status === 'running';
+      h += '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;' + (isR ? 'background:var(--bg-step-running)' : '') + '">';
+      h += '<div style="width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;' + (done ? 'background:#2DA06C20;color:#2DA06C' : isR ? 'background:#C76A3A20;color:#C76A3A' : 'background:var(--bg-step-idle);color:var(--text-subtle)') + '">' + (done ? '✓' : isR ? '●' : '○') + '</div>';
+      h += '<div style="flex:1;font-size:12px;color:' + (done ? 'var(--text-light)' : isR ? '#E08858' : 'var(--text-subtle)') + '">Step ' + (i+1) + ': ' + stepNames[i] + '</div>';
+      h += '<div style="font-size:11px">' + (done ? '<span style="color:#2DA06C">完成</span>' : isR ? '<span style="color:#C76A3A"><span class="status-dot" style="width:5px;height:5px"></span> 运行中</span>' : '<span style="color:var(--text-faint)">待执行</span>') + '</div></div>';
+    }
+  }
+  if (task.instruction) {
+    h += '<div style="font-size:12px;font-weight:600;color:var(--text-label);margin:24px 0 14px;text-transform:uppercase">自定义指令</div>';
+    h += '<div style="padding:12px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;border-left:3px solid var(--accent);font-size:12px;color:var(--text-soft);line-height:1.6">' + escapeHtml(task.instruction) + '</div>';
+  }
+  h += '</div>'; return h;
+}
+
+function renderFilesTab(task) {
+  var h = '<div style="padding:20px 24px">';
+  h += '<div style="display:flex;gap:16px;margin-bottom:20px;padding:14px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px">';
+  h += '<div style="display:flex;align-items:center;gap:6px;font-size:12px"><span style="width:8px;height:8px;border-radius:50%;background:#2DA06C"></span><span style="color:var(--text-label)">新增</span><span style="font-weight:600">1</span></div>';
+  h += '<div style="display:flex;align-items:center;gap:6px;font-size:12px"><span style="width:8px;height:8px;border-radius:50%;background:#D4A017"></span><span style="color:var(--text-label)">修改</span><span style="font-weight:600">2</span></div>';
+  h += '<div style="flex:1"></div><span style="font-size:12px;color:var(--text-label)">+48 −12</span></div>';
+  var files = [
+    { path: 'internal/auth/middleware.go', added: 18, deleted: 4, diff: [{ type: '-', text: 'func (m *Middleware) Validate(token string) (*Claims, error) {' }, { type: '+', text: 'func (m *Middleware) Validate(token string) (*Claims, error) {' }, { type: '+', text: '  if token == "" { return nil, ErrEmptyToken }' }] },
+    { path: 'internal/user/service.go', added: 12, deleted: 5, diff: [{ type: '-', text: 'import "github.com/org/repo/internal/auth"' }, { type: '+', text: 'import "github.com/org/repo/internal/interfaces"' }] },
+  ];
+  files.forEach(function(f) {
+    h += '<div style="margin-bottom:16px">';
+    h += '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;margin-bottom:6px"><span style="font-size:14px;color:#D4A017">✎</span><span style="font-family:monospace;font-size:12px;flex:1">' + f.path + '</span><span style="font-size:11px;font-weight:600;color:#2DA06C">+' + f.added + '</span><span style="font-size:11px;font-weight:600;color:#D94848">-' + f.deleted + '</span></div>';
+    h += '<div style="background:var(--bg-diff);border:1px solid var(--border-diff);border-radius:8px;overflow:hidden;font-family:monospace;font-size:12px;line-height:1.6">';
+    f.diff.forEach(function(d) { var bg = d.type === '+' ? 'background:var(--diff-add-bg)' : d.type === '-' ? 'background:var(--diff-del-bg)' : ''; h += '<div style="padding:1px 16px;display:flex;' + bg + '"><span style="min-width:20px;text-align:center;color:' + (d.type === '+' ? '#2DA06C' : d.type === '-' ? '#D94848' : '') + '">' + d.type + '</span><span style="flex:1">' + d.text + '</span></div>'; });
+    h += '</div></div>';
+  });
+  h += '</div>'; return h;
+}
+
+function renderLogTab(task) {
+  var h = '<div style="display:flex;flex-direction:column;height:100%">';
+  h += '<div id="log-scroll" style="flex:1;overflow-y:auto;padding:16px 20px;background:var(--bg-log);font-family:monospace;font-size:12px;line-height:1.7">';
+  var logs = [
+    ['10:00:01', 'INFO', '[Wrapper]', '任务开始执行，加载配置文件...'],
+    ['10:00:02', 'INFO', '[Wrapper]', '创建沙箱环境'],
+    ['10:00:04', 'INFO', '[CLI]', '克隆代码仓库'],
+    ['10:00:15', 'INFO', '[CLI]', '克隆完成，开始分析代码结构...'],
+    ['10:00:28', 'INFO', '[CLI]', '发现 5 个待处理模块'],
+    ['10:01:05', 'INFO', '[CLI]', 'Step 1 完成: 代码结构分析报告已生成'],
+    ['10:01:32', 'WARN', '[CLI]', '检测到循环依赖: auth ↔ user'],
+    ['10:02:05', 'INFO', '[CLI]', '重新排序执行计划...'],
+    ['10:02:30', 'INFO', '[CLI]', 'Step 3 完成: 方案已生成'],
+    ['10:04:01', 'INFO', '[CLI]', 'Step 5 开始: 执行代码修改...'],
+    ['10:05:00', 'INFO', '[CLI]', '修改 3 个文件完成'],
+    ['10:06:00', 'INFO', '[CLI]', '编译检查通过'],
+  ];
+  logs.forEach(function(log) {
+    var lc = log[1] === 'WARN' ? '#D4A017' : log[1] === 'ERROR' ? '#D94848' : '#C76A3A';
+    h += '<div style="display:flex;gap:0;padding:1px 0"><span style="color:var(--text-faint);min-width:72px;flex-shrink:0">' + log[0] + '</span><span style="min-width:48px;flex-shrink:0;font-weight:600;font-size:11px;color:' + lc + '">' + log[1] + '</span><span style="color:var(--text-subtle);min-width:80px;flex-shrink:0;font-size:11px">' + log[2] + '</span><span style="color:var(--text-light);flex:1">' + log[3] + '</span></div>';
+  });
+  h += '</div>';
+  h += '<div style="padding:8px 20px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--bg-secondary);flex-shrink:0">';
+  h += '<input style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:5px 12px;color:var(--text-secondary);font-size:12px;outline:none;font-family:inherit;width:180px" placeholder="🔍 搜索日志...">';
+  h += '<button class="btn btn-xs btn-ghost">全部</button><button class="btn btn-xs btn-ghost">INFO</button><button class="btn btn-xs btn-ghost">WARN</button>';
+  h += '</div>';
+  h += '<div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--bg-secondary);flex-shrink:0">';
+  h += '<input id="log-input" style="flex:1;padding:10px 14px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);font-size:13px;outline:none;font-family:inherit" placeholder="输入指令干预 Agent...">';
+  h += '<button class="btn btn-primary" onclick="sendLogIntervention()">➤ 发送</button>';
+  h += '</div></div>';
+  return h;
+}
+
+function sendIntervention() { var i = document.getElementById('conv-input'); if (i && i.value.trim()) { showToast('指令已发送: ' + i.value.substring(0, 30), 'success'); i.value = ''; } }
+function sendLogIntervention() { var i = document.getElementById('log-input'); if (i && i.value.trim()) { showToast('指令已发送: ' + i.value.substring(0, 30), 'success'); i.value = ''; } }
+
+function doTaskAction(action) {
+  var task = currentDetailTask; if (!task) return;
+  var labels = { pause: '暂停', cancel: '取消', resume: '恢复', retry: '重试' };
+  showToast('已执行: ' + labels[action], 'success');
+  if (action === 'pause' && task.status === 'running') task.status = 'paused';
+  else if (action === 'resume' && task.status === 'paused') task.status = 'running';
+  else if (action === 'cancel') task.status = 'cancelled';
+  else if (action === 'retry') { task.status = 'running'; task.progress = 0; task.currentStep = 0; }
+  renderDetailPanel(); renderKanban();
+}
+
+// =============================================
+// TEMPLATES PAGE
+// =============================================
+function setTplFilter(cat, el) {
+  tplFilterCat = cat;
+  document.querySelectorAll('#page-templates .filter-chip-pill').forEach(function(c) { c.classList.remove('active'); });
+  el.classList.add('active');
+  renderTemplates();
+}
+
+function renderTemplates() {
+  var items = tplFilterCat === 'all' ? mockTemplates : mockTemplates.filter(function(t) { return t.category === tplFilterCat; });
+  var h = '';
+  items.forEach(function(tpl) {
+    h += '<div class="template-card" onclick="openTemplateDetail(\'' + tpl.id + '\')">';
+    h += '<div class="t-icon">' + tpl.icon + '</div>';
+    h += '<div class="t-name">' + tpl.name + '</div>';
+    h += '<div class="t-desc">' + tpl.desc + '</div>';
+    h += '<div class="t-footer"><div class="t-meta"><span style="color:var(--warning)">&#9733; ' + tpl.rating + '</span> · ' + tpl.uses + ' 次使用 · ' + tpl.version + '</div>';
+    h += '<span class="tag tag-green">' + tpl.status + '</span></div>';
+    h += '</div>';
+  });
+  document.getElementById('template-grid').innerHTML = h;
+}
+
+function openTemplateDetail(tplId) {
+  var tpl = mockTemplates.find(function(t) { return t.id === tplId; }); if (!tpl) return;
+  var h = '<div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:20px;padding:20px 24px">';
+  h += '<div style="font-size:40px;line-height:1;flex-shrink:0">' + tpl.icon + '</div>';
+  h += '<div style="flex:1;min-width:0"><div style="font-size:18px;font-weight:700;margin-bottom:4px">' + tpl.name + '</div>';
+  h += '<div style="font-size:13px;color:var(--text-secondary);line-height:1.6">' + tpl.desc + '</div>';
+  h += '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><span class="tag tag-purple">' + tpl.scene + '</span><span class="tag tag-green">' + tpl.status + '</span><span class="tag tag-gray">' + tpl.version + '</span><span style="font-size:11px;color:var(--warning)">&#9733; ' + tpl.rating + '</span></div></div></div>';
+  // Goal
+  h += '<div style="padding:14px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;border-left:3px solid var(--accent);margin:0 24px 20px"><div style="font-size:11px;font-weight:600;color:var(--accent-light);text-transform:uppercase;margin-bottom:6px">任务目标</div><div style="font-size:13px;line-height:1.6">' + tpl.goal + '</div></div>';
+  // Params
+  if (tpl.params && tpl.params.length) {
+    h += '<div style="margin:0 24px 20px"><div style="font-size:12px;font-weight:600;color:var(--text-label);margin-bottom:12px;text-transform:uppercase">参数说明</div>';
+    h += '<table style="width:100%;border-collapse:collapse"><thead><tr><th style="text-align:left;padding:8px 12px;font-size:11px;background:var(--bg-elevated);border-bottom:1px solid var(--border)">参数</th><th style="text-align:left;padding:8px 12px;font-size:11px;background:var(--bg-elevated);border-bottom:1px solid var(--border)">类型</th><th style="text-align:center;padding:8px 12px;font-size:11px;background:var(--bg-elevated);border-bottom:1px solid var(--border)">必填</th><th style="text-align:left;padding:8px 12px;font-size:11px;background:var(--bg-elevated);border-bottom:1px solid var(--border)">说明</th></tr></thead><tbody>';
+    tpl.params.forEach(function(p) { h += '<tr><td style="padding:8px 12px;font-size:12px;border-bottom:1px solid var(--border);font-family:monospace">' + p.name + (p.required ? '<span style="color:var(--danger)">*</span>' : '') + '</td><td style="padding:8px 12px;border-bottom:1px solid var(--border)"><span style="font-size:11px;padding:1px 6px;border-radius:3px;background:var(--accent-bg);color:var(--accent-light)">' + p.type + '</span></td><td style="padding:8px 12px;text-align:center;font-size:12px;border-bottom:1px solid var(--border)">' + (p.required ? '<span style="color:var(--success)">是</span>' : '否') + '</td><td style="padding:8px 12px;font-size:12px;color:var(--text-secondary);border-bottom:1px solid var(--border)">' + p.desc + '</td></tr>'; });
+    h += '</tbody></table></div>';
+  }
+  // Execution config
+  h += '<div style="margin:0 24px 20px;display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+  h += '<div style="padding:12px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px"><div style="font-size:10px;color:var(--text-subtle);text-transform:uppercase;margin-bottom:6px">能力</div><div style="display:flex;gap:4px;flex-wrap:wrap">';
+  tpl.capabilities.forEach(function(c) { h += '<span class="tag tag-gray">' + c + '</span>'; });
+  h += '</div></div>';
+  h += '<div style="padding:12px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px"><div style="font-size:10px;color:var(--text-subtle);text-transform:uppercase;margin-bottom:6px">超时时间</div><div style="font-size:13px;font-weight:500">' + Math.floor(tpl.timeout / 60) + ' 分钟</div></div>';
+  h += '</div>';
+
+  openSlidePanel(tpl.name, h);
+  document.getElementById('slide-footer').innerHTML = '<button class="btn btn-primary" style="margin-left:auto" onclick="closeSlidePanel();openCreateTask(\'' + tpl.id + '\')">使用此模板</button>';
+  document.getElementById('slide-footer').style.display = 'flex';
+}
+
+// =============================================
+// SETTINGS PAGE
+// =============================================
+function setSettingsTab(tab, el) {
+  settingsTab = tab;
+  document.querySelectorAll('.settings-nav-item').forEach(function(n) { n.classList.remove('active'); });
+  el.classList.add('active');
+  renderSettings();
+}
+
+function renderSettings() {
+  var h = '';
+  if (settingsTab === 'credentials') {
+    h += '<div class="settings-section-title">&#128273; 凭证管理</div>';
+    h += '<div class="settings-card"><div class="settings-card-header"><div class="settings-card-title">&#128274; Git Token</div><button class="btn btn-sm btn-secondary" onclick="showToast(\'请输入新的 Git Token\',\'success\')">更新</button></div>';
+    h += '<div class="settings-card-desc">用于代码仓库的 Clone、Push 操作。沙箱启动时自动注入。</div>';
+    h += '<div class="credential-row"><span class="credential-label">当前值</span><span class="credential-value">ghp_••••••••••••xxxx</span></div></div>';
+    h += '<div class="settings-card"><div class="settings-card-header"><div class="settings-card-title">&#128274; DevOps Token</div><button class="btn btn-sm btn-secondary" onclick="showToast(\'请输入新的 DevOps Token\',\'success\')">更新</button></div>';
+    h += '<div class="settings-card-desc">用于拉取需求列表、创建 MR。沙箱启动时自动注入。</div>';
+    h += '<div class="credential-row"><span class="credential-label">当前值</span><span class="credential-value">dops_••••••••yyyy</span></div></div>';
+  } else if (settingsTab === 'apikeys') {
+    h += '<div class="settings-section-title">&#128274; API Key 管理</div>';
+    h += '<div class="settings-card"><div class="settings-card-header"><div class="settings-card-title">API Key 列表</div><button class="btn btn-sm btn-primary" onclick="showToast(\'新 API Key 已创建: sk-a1b2****x8f3\',\'success\')">&#10010; 创建新 Key</button></div>';
+    h += '<div class="api-key-row"><span class="api-key-name">Default Key</span><span class="api-key-masked">sk-a1b2****c4d5</span><span class="api-key-meta">创建于 2026-03-01 · 最后使用 2小时前</span><button class="btn btn-xs btn-danger" onclick="confirmAction(\'撤销 API Key\',\'撤销后使用该 Key 的请求将被拒绝\',function(){showToast(\'Key 已撤销\',\'error\')})">撤销</button></div>';
+    h += '<div class="api-key-row"><span class="api-key-name">CI Key</span><span class="api-key-masked">sk-e3f4****g5h6</span><span class="api-key-meta">创建于 2026-03-15 · 最后使用 1天前</span><button class="btn btn-xs btn-danger" onclick="confirmAction(\'撤销 API Key\',\'撤销后使用该 Key 的请求将被拒绝\',function(){showToast(\'Key 已撤销\',\'error\')})">撤销</button></div>';
+    h += '</div>';
+  } else if (settingsTab === 'repo') {
+    h += '<div class="settings-section-title">&#128193; 代码仓库配置</div>';
+    h += '<div class="settings-card"><div class="form-group"><label class="form-label">默认仓库 URL</label><input class="form-input" value="https://github.com/org/agent-infra" placeholder="输入仓库 HTTPS URL"><div class="form-hint">任务创建时默认使用的代码仓库</div></div>';
+    h += '<div class="form-group"><label class="form-label">默认分支</label><input class="form-input" value="main" placeholder="默认分支名称"></div>';
+    h += '<div class="form-group"><label class="form-label">DevOps Endpoint</label><input class="form-input" value="https://devops.example.com/api/v1" placeholder="DevOps 平台 API 地址"></div>';
+    h += '<button class="btn btn-primary" onclick="showToast(\'配置已保存\',\'success\')">保存配置</button></div>';
+  } else if (settingsTab === 'provider') {
+    h += '<div class="settings-section-title">&#9881; Provider 配置</div>';
+    mockProviders.forEach(function(p) {
+      h += '<div class="provider-setting-card"><span class="ps-icon">' + p.icon + '</span>';
+      h += '<div class="ps-info"><div class="ps-name">' + p.name + (p.isDefault ? ' <span class="tag tag-green">默认</span>' : '') + (p.scope === 'system' ? ' <span class="tag tag-gray">系统预置</span>' : ' <span class="tag tag-purple">个人</span>') + '</div>';
+      h += '<div class="ps-desc">' + p.desc + '</div>';
+      h += '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">Endpoint: ' + p.endpoint + ' · Key: ' + p.apiKeyMask + '</div></div>';
+      h += '<div class="ps-actions">';
+      if (!p.isDefault) h += '<button class="btn btn-xs btn-secondary" onclick="showToast(\'已设为默认 Provider\',\'success\')">设为默认</button>';
+      h += '<button class="btn btn-xs btn-secondary pvd-test-btn" onclick="testProvider(this,\'' + p.id + '\')">测试连接</button>';
+      h += '</div></div>';
+    });
+  }
+  document.getElementById('settings-content').innerHTML = h;
+}
+
+function testProvider(btn, pvdId) {
+  btn.textContent = '测试中...'; btn.classList.add('testing');
+  setTimeout(function() { btn.textContent = '✓ 连接正常'; btn.classList.remove('testing'); btn.classList.add('test-ok'); setTimeout(function() { btn.textContent = '测试连接'; btn.classList.remove('test-ok'); }, 2000); }, 1500);
+}
+
+// =============================================
+// CREATE TASK MODAL (Simplified 3-Step Wizard)
+// =============================================
+var createStep = 1;
+var selectedTplId = null;
+var linkedWorkItem = null;
+var linkedSubTask = null;
+var allTemplatesExpanded = false;
+
+function openCreateTask(tplId) {
+  createStep = 1; selectedTplId = tplId || null; linkedWorkItem = null; linkedSubTask = null; allTemplatesExpanded = false;
+  renderCreateStep();
+  document.getElementById('create-task-modal').classList.add('show');
+}
+
+function openCreateTaskForSubTask(wiId, stId) {
+  createStep = 1; selectedTplId = null; allTemplatesExpanded = false;
+  linkedWorkItem = mockWorkItems.find(function(w) { return w.id === wiId; });
+  linkedSubTask = linkedWorkItem ? linkedWorkItem.subtasks.find(function(s) { return s.id === stId; }) : null;
+  renderCreateStep();
+  document.getElementById('create-task-modal').classList.add('show');
+}
+
+function closeCreateTask() {
+  document.getElementById('create-task-modal').classList.remove('show');
+  createStep = 1; selectedTplId = null; linkedWorkItem = null; linkedSubTask = null;
+}
+
+function renderCreateStep() {
+  var body = document.getElementById('create-task-body');
+  var footer = document.getElementById('create-task-footer');
+  var stepsHtml = '<div class="wizard-steps">';
+  for (var i = 1; i <= 3; i++) {
+    var cls = i < createStep ? 'done' : (i === createStep ? 'active' : '');
+    stepsHtml += '<div class="wizard-step ' + cls + '"><div class="wizard-step-num">' + (i < createStep ? '&#10003;' : i) + '</div><div class="wizard-step-label">' + ['选择', '配置', '确认'][i-1] + '</div></div>';
+    if (i < 3) stepsHtml += '<div class="wizard-step-line ' + (i < createStep ? 'done' : '') + '"></div>';
+  }
+  stepsHtml += '</div>';
+
+  if (createStep === 1) {
+    var h = stepsHtml;
+    // Context card
+    if (linkedWorkItem && linkedSubTask) {
+      var cur = linkedWorkItem.stages.find(function(s) { return s.status === 'current'; });
+      h += '<div class="req-context-card"><div class="req-ctx-header"><span class="tag tag-' + ({P1:'red',P2:'yellow',P3:'green'}[linkedWorkItem.priority]||'green') + '" style="font-size:10px">' + linkedWorkItem.priority + '</span><span class="req-ctx-title">' + escapeHtml(linkedWorkItem.title) + '</span>' + (cur ? '<span class="req-ctx-stage">' + cur.label + '</span>' : '') + '</div>';
+      h += '<div style="font-size:12px;color:var(--text-secondary);margin-top:6px">子任务: ' + (stIconMap[linkedSubTask.type]||'') + ' ' + escapeHtml(linkedSubTask.title) + '</div>';
+      if (linkedWorkItem.artifacts.length) { h += '<div class="req-ctx-artifacts" style="margin-top:6px">'; linkedWorkItem.artifacts.forEach(function(a) { h += '<span class="req-ctx-art">&#10003; ' + a.title + '</span>'; }); h += '</div>'; }
+      h += '</div>';
+      // Recommended templates
+      var recs = mockStageTemplateMapping[linkedSubTask.type] || [];
+      if (recs.length) {
+        h += '<div class="recommend-section"><div class="recommend-title">&#11088; 推荐模板</div>';
+        recs.forEach(function(r) {
+          var rt = mockTemplates.find(function(t) { return t.id === r.tplId; });
+          if (rt) h += '<div class="recommend-card' + (selectedTplId === rt.id ? ' selected' : '') + '" onclick="selectedTplId=\'' + rt.id + '\';renderCreateStep()" style="margin-bottom:8px"><span class="rec-icon">' + rt.icon + '</span><div class="rec-info"><div class="rec-name">' + rt.name + '</div><div class="rec-desc">' + rt.desc + '</div></div><div class="rec-check">' + (selectedTplId === rt.id ? '&#10003;' : '') + '</div></div>';
+        });
+        h += '</div>';
+        h += '<div class="all-templates-toggle" onclick="allTemplatesExpanded=!allTemplatesExpanded;renderCreateStep()">' + (allTemplatesExpanded ? '&#9660;' : '&#9654;') + ' 全部模板</div>';
+        if (allTemplatesExpanded) { h += '<div class="tpl-chip-grid">'; mockTemplates.forEach(function(t) { h += '<div class="tpl-chip' + (selectedTplId === t.id ? ' selected' : '') + '" onclick="selectedTplId=\'' + t.id + '\';renderCreateStep()"><span class="tpl-chip-icon">' + t.icon + '</span><span class="tpl-chip-name">' + t.name + '</span></div>'; }); h += '</div>'; }
+      }
+    } else {
+      h += '<div class="form-group"><label class="form-label">选择模板</label><div class="tpl-chip-grid">';
+      mockTemplates.forEach(function(t) { h += '<div class="tpl-chip' + (selectedTplId === t.id ? ' selected' : '') + '" onclick="selectedTplId=\'' + t.id + '\';renderCreateStep()"><span class="tpl-chip-icon">' + t.icon + '</span><span class="tpl-chip-name">' + t.name + '</span></div>'; });
+      h += '</div></div>';
+    }
+    body.innerHTML = h;
+    footer.innerHTML = '<button class="btn btn-secondary" onclick="closeCreateTask()">取消</button><button class="btn btn-primary" style="margin-left:auto" onclick="createStep=2;renderCreateStep()" ' + (!selectedTplId ? 'disabled' : '') + '>下一步</button>';
+  } else if (createStep === 2) {
+    var tpl = mockTemplates.find(function(t) { return t.id === selectedTplId; });
+    var h = stepsHtml;
+    h += '<div class="form-group"><label class="form-label">任务名称</label><input class="form-input" id="ct-name" value="' + (linkedSubTask ? escapeHtml(linkedSubTask.title) : (tpl ? tpl.name + ' - 新任务' : '')) + '"></div>';
+    h += '<div class="form-group"><label class="form-label">自定义指令（可选）</label><textarea class="form-textarea" id="ct-instruction" placeholder="向 Agent 提供额外指令或上下文..." rows="3"></textarea></div>';
+    if (tpl && tpl.params && tpl.params.length) {
+      h += '<div style="font-size:12px;font-weight:600;color:var(--text-label);margin-bottom:12px;text-transform:uppercase">模板参数</div>';
+      tpl.params.forEach(function(p) {
+        h += '<div class="form-group"><label class="form-label">' + p.name + (p.required ? ' <span style="color:var(--danger)">*</span>' : '') + '</label>';
+        if (p.type === 'select') h += '<select class="form-select"><option>' + p.default + '</option></select>';
+        else if (p.type === 'boolean') h += '<label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" ' + (p.default === 'true' ? 'checked' : '') + '> ' + p.desc + '</label>';
+        else if (p.type === 'text') h += '<textarea class="form-textarea" rows="2" placeholder="' + p.desc + '">' + (linkedWorkItem ? escapeHtml(linkedWorkItem.description) : '') + '</textarea>';
+        else h += '<input class="form-input" value="' + (p.default !== '-' ? p.default : '') + '" placeholder="' + p.desc + '">';
+        h += '<div class="form-hint">' + p.desc + '</div></div>';
+      });
+    }
+    body.innerHTML = h;
+    footer.innerHTML = '<button class="btn btn-secondary" onclick="createStep=1;renderCreateStep()">上一步</button><button class="btn btn-primary" style="margin-left:auto" onclick="createStep=3;renderCreateStep()">下一步</button>';
+  } else if (createStep === 3) {
+    var tpl = mockTemplates.find(function(t) { return t.id === selectedTplId; });
+    var nameEl = document.getElementById('ct-name'); var name = nameEl ? nameEl.value : (tpl ? tpl.name : '');
+    var instrEl = document.getElementById('ct-instruction'); var instr = instrEl ? instrEl.value : '';
+    var h = stepsHtml;
+    h += '<div style="text-align:center;padding:20px 0 16px"><div style="display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;font-size:28px;margin-bottom:12px">&#9654;</div>';
+    h += '<div style="font-size:16px;font-weight:600">准备创建任务</div></div>';
+    h += '<div class="settings-card" style="margin-bottom:12px"><div style="font-size:12px;color:var(--text-subtle);text-transform:uppercase;margin-bottom:8px">任务信息</div>';
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">';
+    h += '<div><span style="color:var(--text-muted)">名称: </span>' + escapeHtml(name) + '</div>';
+    h += '<div><span style="color:var(--text-muted)">模板: </span>' + (tpl ? tpl.name : '-') + '</div>';
+    h += '<div><span style="color:var(--text-muted)">Provider: </span>Claude Code</div>';
+    h += '<div><span style="color:var(--text-muted)">仓库: </span>github.com/org/repo</div>';
+    h += '</div>';
+    if (instr) h += '<div style="margin-top:10px;font-size:12px;color:var(--text-secondary);border-top:1px solid var(--border);padding-top:10px"><span style="color:var(--text-muted)">指令: </span>' + escapeHtml(instr) + '</div>';
+    if (linkedWorkItem) h += '<div style="margin-top:10px;font-size:12px;color:var(--text-secondary);border-top:1px solid var(--border);padding-top:10px"><span style="color:var(--text-muted)">关联需求: </span>' + escapeHtml(linkedWorkItem.title) + '</div>';
+    h += '</div>';
+    h += '<div style="padding:14px 16px;background:var(--success-bg);border:1px solid rgba(0,210,160,0.2);border-radius:8px;font-size:12px;color:var(--success)">&#10003; 确认后系统将自动：创建沙箱 → 注入凭证 → Clone 代码 → 启动 Agent</div>';
+    body.innerHTML = h;
+    footer.innerHTML = '<button class="btn btn-secondary" onclick="createStep=2;renderCreateStep()">上一步</button><button class="btn btn-primary" style="margin-left:auto" onclick="confirmCreateTask(\'' + escapeHtml(name) + '\')">&#9654; 确认创建</button>';
+  }
+}
+
+function confirmCreateTask(name) {
+  var body = document.getElementById('create-task-body');
+  var footer = document.getElementById('create-task-footer');
+  body.innerHTML = '<div style="text-align:center;padding:40px 20px"><div style="display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;background:var(--success);color:#fff;font-size:28px;margin-bottom:16px">&#10003;</div><div style="font-size:18px;font-weight:600;margin-bottom:8px">任务创建成功</div><div style="font-size:13px;color:var(--text-secondary);margin-bottom:20px">Agent 正在启动，即将开始执行</div></div>';
+  footer.innerHTML = '<button class="btn btn-secondary" onclick="closeCreateTask()">关闭</button><button class="btn btn-primary" onclick="closeCreateTask();openTaskDetail(\'TASK-NEW\')">查看任务</button>';
+  showToast('任务已创建: ' + (name || '新任务'), 'success');
+}
+</script>
+</body>
+</html>
