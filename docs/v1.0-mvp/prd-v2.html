@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agentic Coding Platform — 产品需求文档 v2.0（阶段一）</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a2e;--muted:#6b7280;--accent:#3b82f6;--accent-light:#eff6ff;--border:#e5e7eb;--code-bg:#f8f9fa;--card-bg:#f9fafb;--green:#059669;--green-light:#ecfdf5;--amber:#d97706;--amber-light:#fffbeb;--red:#dc2626;--red-light:#fef2f2;--purple:#7c3aed;--purple-light:#faf5ff}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:var(--fg);background:var(--bg);line-height:1.7;padding:2rem 1rem;max-width:960px;margin:0 auto}
+h1{font-size:1.8rem;font-weight:700;margin-bottom:.25rem}
+h1 .subtitle{display:block;font-size:.9rem;color:var(--muted);font-weight:400;margin-top:.25rem;margin-bottom:1rem}
+.meta{display:flex;gap:1.5rem;flex-wrap:wrap;font-size:.85rem;color:var(--muted);margin-bottom:2rem;padding:.8rem 1rem;background:var(--card-bg);border:1px solid var(--border);border-radius:8px}
+.meta strong{color:var(--fg)}
+h2{font-size:1.35rem;font-weight:700;margin-top:2.5rem;margin-bottom:1rem;padding-left:.75rem;border-left:4px solid var(--accent)}
+h3{font-size:1.1rem;font-weight:600;margin-top:1.8rem;margin-bottom:.75rem}
+h4{font-size:1rem;font-weight:600;margin-top:1.3rem;margin-bottom:.5rem}
+p{font-size:.95rem;margin-bottom:.75rem}
+ul,ol{margin-left:1.5rem;margin-bottom:.75rem}li{margin-bottom:.3rem;font-size:.95rem}
+strong{font-weight:600}
+table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:.9rem}
+th,td{border:1px solid var(--border);padding:.55rem .8rem;text-align:left;vertical-align:top}
+th{background:var(--accent-light);font-weight:600;white-space:nowrap}
+tr:nth-child(even) td{background:var(--card-bg)}
+blockquote{border-left:4px solid var(--accent);background:var(--accent-light);padding:.75rem 1rem;margin:1rem 0;border-radius:0 6px 6px 0}
+.card{border:1px solid var(--border);border-radius:8px;padding:1.25rem;margin:1rem 0;background:var(--card-bg)}
+.card h4{margin-top:0}.card p:last-child{margin-bottom:0}
+.tag{display:inline-block;border-radius:4px;padding:.1em .5em;font-size:.8rem;font-weight:500;margin-right:.3rem}
+.tag-blue{background:var(--accent-light);color:#2563eb}
+.tag-green{background:var(--green-light);color:var(--green)}
+.tag-amber{background:var(--amber-light);color:var(--amber)}
+.tag-red{background:var(--red-light);color:var(--red)}
+.tag-purple{background:var(--purple-light);color:var(--purple)}
+.us{border:1px solid var(--border);border-radius:8px;padding:1rem 1.25rem;margin:1rem 0;background:var(--card-bg)}
+.us-id{font-size:.8rem;color:var(--accent);font-weight:600;margin-bottom:.3rem}
+.us-title{font-size:.95rem;font-weight:600;margin-bottom:.5rem}
+.us-body{font-size:.9rem;color:#4b5563;margin-bottom:.5rem;font-style:italic}
+.us-meta{display:flex;gap:.8rem;margin-top:.4rem;font-size:.78rem;color:var(--muted)}
+.flow-box{display:flex;flex-direction:column;align-items:center;gap:0;margin:1.5rem 0}
+.flow-row{display:flex;align-items:center;gap:.4rem;justify-content:center;flex-wrap:wrap}
+.flow-node{border:2px solid var(--border);border-radius:8px;padding:.5rem 1.1rem;font-weight:500;font-size:.9rem;background:var(--card-bg);text-align:center}
+.flow-node.accent{border-color:var(--accent);background:var(--accent-light);color:#1d4ed8;font-weight:600}
+.flow-node.green{border-color:var(--green);background:var(--green-light);color:var(--green);font-weight:600}
+.flow-node.amber{border-color:var(--amber);background:var(--amber-light);color:#92400e;font-weight:600}
+.flow-arrow{color:var(--muted);font-size:1.1rem;margin:0 .1rem}
+.flow-arrow-down{color:var(--muted);font-size:1rem;text-align:center;margin:.2rem 0}
+hr{border:none;border-top:2px solid var(--border);margin:3rem 0}
+.toc{background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1.25rem 1.5rem;margin:1.5rem 0}
+.toc h3{margin-top:0;margin-bottom:.75rem;font-size:1rem}
+.toc ol,.toc ul{margin-left:1.25rem}.toc li{margin-bottom:.2rem;font-size:.9rem}
+.toc a{color:var(--accent);text-decoration:none}.toc a:hover{text-decoration:underline}
+.module{border:2px solid var(--border);border-radius:12px;padding:1.5rem;margin:1.5rem 0;background:var(--card-bg)}
+.module-title{font-size:1.1rem;font-weight:700;margin-bottom:.5rem}
+.module-tag{font-size:.8rem;margin-left:.5rem}
+@media(max-width:640px){body{padding:1rem .75rem}h1{font-size:1.4rem}.flow-row{flex-direction:column}}
+</style>
+</head>
+<body>
+
+<h1>Agentic Coding Platform<br><span class="subtitle">产品需求文档 · v2.0（阶段一）· 2026-05-13</span></h1>
+
+<div class="meta">
+  <span><strong>版本</strong> v2.0</span>
+  <span><strong>日期</strong> 2026-05-13</span>
+  <span><strong>范围</strong> 阶段一（单 Agent 编码闭环）</span>
+  <span><strong>关联</strong> <a href="BRD-v2.html">BRD v1.0</a></span>
+</div>
+
+<nav class="toc">
+<h3>目录</h3>
+<ol>
+  <li><a href="#s1">问题陈述</a></li>
+  <li><a href="#s2">解决方案</a></li>
+  <li><a href="#s3">用户故事</a>
+    <ul>
+      <li><a href="#s3-1">任务创建与配置</a></li>
+      <li><a href="#s3-2">模板管理</a></li>
+      <li><a href="#s3-3">沙箱执行与反馈闭环</a></li>
+      <li><a href="#s3-4">任务监控</a></li>
+      <li><a href="#s3-5">任务干预</a></li>
+      <li><a href="#s3-6">交付与通知</a></li>
+      <li><a href="#s3-7">Provider 管理</a></li>
+      <li><a href="#s3-8">能力注册</a></li>
+      <li><a href="#s3-9">认证与身份</a></li>
+      <li><a href="#s3-10">配额与限流</a></li>
+      <li><a href="#s3-11">本地开发</a></li>
+      <li><a href="#s3-12">管理与配置</a></li>
+    </ul>
+  </li>
+  <li><a href="#s4">功能模块设计</a></li>
+  <li><a href="#s5">用户面板设计</a></li>
+  <li><a href="#s6">核心业务实体</a></li>
+  <li><a href="#s7">范围外</a></li>
+</ol>
+</nav>
+
+<!-- ████████████████████████████████████████████████████████████ -->
+<h2 id="s1">1 · 问题陈述</h2>
+
+<p>开发者使用 Claude Code 在本地执行编码任务时面临四个核心问题：</p>
+
+<table>
+  <tr><th>问题</th><th>影响</th></tr>
+  <tr><td><strong>本地资源占用大</strong></td><td>AI Agent 运行时消耗大量 CPU/内存/磁盘，导致本地机器变卡，影响其他工作</td></tr>
+  <tr><td><strong>交互体验受限</strong></td><td>本地 CLI 交互模式不适合长时间自主执行，开发者被迫等待或频繁干预</td></tr>
+  <tr><td><strong>无法安全授权</strong></td><td>要让 Agent 产出高质量代码需要最高权限，但本地环境包含敏感文件和配置，风险不可控</td></tr>
+  <tr><td><strong>缺乏任务抽象</strong></td><td>每次执行都是临时性的，无法定义权限边界、工具集、skill、预算、目标、成功标准，也无法复用配置</td></tr>
+</table>
+
+<p>团队使用 DevOps 平台管理需求任务和代码仓库，但目前没有工具能将 DevOps 平台上的需求任务自动交给 AI Agent 在隔离环境中完成。</p>
+
+<!-- ████████████████████████████████████████████████████████████ -->
+<h2 id="s2">2 · 解决方案</h2>
+
+<p>构建一个 <strong>Agentic Coding Platform</strong>，开发者从 DevOps 平台选择需求任务，平台调度 Agent 在隔离沙箱中自动完成编码、自检、提交、CI/CD 验证，最终创建 MR 等待开发者 Review。</p>
+
+<blockquote><strong>Issue in, MR out.</strong></blockquote>
+
+<h3>2.1 核心机制</h3>
+
+<table>
+  <tr><th>机制</th><th>说明</th></tr>
+  <tr><td>Task 抽象</td><td>基于 Template 定义任务的权限、工具集、skill、预算、成功标准。Template 可复用、可参数化</td></tr>
+  <tr><td>沙箱隔离</td><td>每个任务在独立 Docker 容器中执行，Agent 拥有完全权限但不影响开发者本地环境</td></tr>
+  <tr><td>身份绑定</td><td>沙箱继承用户身份，Agent 的所有对外操作（Git push、CI/CD 访问）代表该用户</td></tr>
+  <tr><td>双层反馈闭环</td><td>内层自检（Template 定义，始终生效）+ 外层 CI/CD 反馈（MCP Server，就绪后生效）</td></tr>
+  <tr><td>DevOps 集成</td><td>控制面直接调 DevOps API（拉取任务列表、创建 MR）；执行面 Agent 通过 MCP Server 按需访问 DevOps</td></tr>
+</table>
+
+<h3>2.2 完整闭环流程</h3>
+
+<div class="flow-box">
+  <div class="flow-row"><div class="flow-node accent">平台拉取 DevOps 待办任务列表</div></div>
+  <div class="flow-arrow-down">↓</div>
+  <div class="flow-row"><div class="flow-node">开发者选择任务 → 选择 Template → 配置参数 → 确认创建</div></div>
+  <div class="flow-arrow-down">↓</div>
+  <div class="flow-row"><div class="flow-node accent">创建沙箱 → 注入用户凭证 → Clone 代码 → 启动 Agent</div></div>
+  <div class="flow-arrow-down">↓</div>
+  <div class="flow-row"><div class="flow-node amber">Agent 编码 → 自检（测试 + lint）</div></div>
+  <div class="flow-arrow-down">↓</div>
+  <div class="flow-row">
+    <div style="text-align:center">
+      <div style="font-size:.8rem;color:var(--red);margin-bottom:.2rem">自检不通过</div>
+      <div class="flow-node" style="font-size:.85rem;border-color:var(--red);color:var(--red)">分析 → 修复 → 重新自检 ⟲</div>
+    </div>
+    <span style="margin:0 .8rem;color:var(--muted)">或</span>
+    <div style="text-align:center">
+      <div style="font-size:.8rem;color:var(--green);margin-bottom:.2rem">自检通过</div>
+      <div class="flow-node green">Push 代码到新分支</div>
+    </div>
+  </div>
+  <div class="flow-arrow-down">↓</div>
+  <div class="flow-row"><div class="flow-node amber">CI/CD 自动触发 → Agent 通过 MCP Server 获取结果</div></div>
+  <div class="flow-arrow-down">↓</div>
+  <div class="flow-row">
+    <div style="text-align:center">
+      <div style="font-size:.8rem;color:var(--red);margin-bottom:.2rem">CI/CD 失败</div>
+      <div class="flow-node" style="font-size:.85rem;border-color:var(--red);color:var(--red)">分析 → 修复 → 重新 Push ⟲</div>
+    </div>
+    <span style="margin:0 .8rem;color:var(--muted)">或</span>
+    <div style="text-align:center">
+      <div style="font-size:.8rem;color:var(--green);margin-bottom:.2rem">CI/CD 全部通过</div>
+      <div class="flow-node green">创建 MR</div>
+    </div>
+  </div>
+  <div class="flow-arrow-down">↓</div>
+  <div class="flow-row"><div class="flow-node green">通知开发者 → Review MR</div></div>
+</div>
+
+<h3>2.3 双层反馈闭环</h3>
+
+<div style="display:flex;gap:1.5rem;margin:1rem 0;flex-wrap:wrap">
+  <div class="card" style="flex:1;min-width:280px;border-color:var(--accent)">
+    <h4 style="color:#1d4ed8">内层：Agent 自检（始终生效）</h4>
+    <p>Agent 在沙箱内部自主完成编码后，按 Template 定义的标准自检：</p>
+    <ul>
+      <li>运行项目已有测试用例（如测试通过率 &gt; 80%）</li>
+      <li>执行 lint、格式化等代码规范检查</li>
+      <li>检查关键文件是否生成/修改</li>
+      <li>自检不通过 → 分析问题 → 修复 → 重新自检</li>
+    </ul>
+    <p style="font-size:.85rem;color:var(--muted)">不依赖任何外部系统，Agent 自身能力范围内完成。自检通过后 Push 代码。</p>
+  </div>
+  <div class="card" style="flex:1;min-width:280px;border-color:var(--green)">
+    <h4 style="color:var(--green)">外层：CI/CD 反馈（MCP Server 就绪后生效）</h4>
+    <p>Agent Push 代码后，通过 MCP Server 获取 CI/CD 结果：</p>
+    <ul>
+      <li>通过 DevOps MCP Server 获取流水线执行结果</li>
+      <li>获取测试通过率、扫描问题、构建状态</li>
+      <li>CI/CD 有失败 → 分析问题 → 修复 → 重新 Push</li>
+      <li>CI/CD 全部通过 → 创建 MR</li>
+    </ul>
+    <p style="font-size:.85rem;color:var(--muted)">依赖 DevOps MCP Server 开发完成。MCP Server 就绪前，以内层自检为主，自检通过即可创建 MR。</p>
+  </div>
+</div>
+
+<h3>2.4 一阶段约束</h3>
+
+<table>
+  <tr><th>约束</th><th>说明</th></tr>
+  <tr><td>单 Provider</td><td>只支持 Claude Code CLI，不提供 Provider 选择（Provider 管理代码保留）</td></tr>
+  <tr><td>单 Agent</td><td>每个任务一个 Agent，不支持多 Agent 协作</td></tr>
+  <tr><td>FIFO 调度</td><td>简单队列，不支持优先级、抢占</td></tr>
+  <tr><td>API Key 认证</td><td>一阶段 API Key，后续接公司 SSO</td></tr>
+  <tr><td>单租户运行</td><td>多租户代码保留，一阶段单租户运行</td></tr>
+  <tr><td>预置模板</td><td>3 个预置模板（编码任务/Bug 修复/代码重构），不支持自定义模板。模板定义成功标准</td></tr>
+  <tr><td>Web 通知</td><td>仅 Web 推送通知，不做 IM/邮件</td></tr>
+  <tr><td>双 Runtime</td><td>本地 Docker + 远程 K8s 双运行时，支持不同开发环境</td></tr>
+</table>
+
+<!-- ████████████████████████████████████████████████████████████ -->
+<h2 id="s3">3 · 用户故事</h2>
+
+<p>阶段一只有一个角色：<strong>开发者</strong>。</p>
+
+<h3 id="s3-1">3.1 任务创建与配置</h3>
+
+<div class="us">
+  <div class="us-id">US-D01</div>
+  <div class="us-title">浏览 DevOps 平台的待办任务列表</div>
+  <div class="us-body">作为开发者，我希望在平台上看到 DevOps 平台指派给我的待办任务列表，以便不用切换工具就能选任务。</div>
+  <ul class="us-ac">
+    <li>平台通过 DevOps API 拉取指派给当前用户的待办任务</li>
+    <li>每个任务展示标题、优先级、标签、描述摘要</li>
+    <li>支持手动刷新列表</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span> <span>追溯: BRD §3.1 任务创建</span></div>
+</div>
+
+<div class="us">
+  <div class="us-id">US-D02</div>
+  <div class="us-title">选择任务并预览完整内容</div>
+  <div class="us-body">作为开发者，我希望选择一个任务后看到完整内容（描述、验收标准、相关链接），以便理解需求后再创建平台任务。</div>
+  <ul class="us-ac">
+    <li>选择任务后展示完整描述和验收标准</li>
+    <li>展示目标仓库和分支信息</li>
+    <li>展示任务预览（Issue 内容 + 仓库 + 分支）</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span> <span>追溯: BRD §3.1 任务创建</span></div>
+</div>
+
+<div class="us">
+  <div class="us-id">US-D03</div>
+  <div class="us-title">选择 Template 创建任务</div>
+  <div class="us-body">作为开发者，我希望在创建任务时选择一个 Template（编码任务/Bug修复/重构等），以便任务自动获得合适的配置（工具集、成功标准、资源限制）。</div>
+  <ul class="us-ac">
+    <li>创建任务时展示可用 Template 列表（系统预置 + 自定义）</li>
+    <li>每个 Template 展示名称、描述、包含的配置摘要</li>
+    <li>选择 Template 后展示具体配置（工具集、skill、成功标准、资源限制）</li>
+    <li>系统提供预置 Template：coding-task、bug-fix、refactor</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span> <span>追溯: BRD §3.1 任务创建</span></div>
+</div>
+
+<div class="us">
+  <div class="us-id">US-D04</div>
+  <div class="us-title">覆盖 Template 参数并预览最终配置</div>
+  <div class="us-body">作为开发者，我希望在创建任务时调整 Template 的默认参数（Token 预算、额外工具、成功标准），以便针对具体任务微调配置。</div>
+  <ul class="us-ac">
+    <li>展示 Template 的所有可配置参数及默认值</li>
+    <li>允许修改 Token 预算、执行时长上限</li>
+    <li>允许增减工具和 skill</li>
+    <li>允许修改成功标准</li>
+    <li>展示最终任务配置预览</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span> <span>追溯: BRD §3.1 任务创建</span></div>
+</div>
+
+<div class="us">
+  <div class="us-id">US-D05</div>
+  <div class="us-title">一键确认创建任务</div>
+  <div class="us-body">作为开发者，我希望确认后一键创建任务，系统自动创建沙箱、注入凭证、Clone 代码、启动 Agent，无需手动配置环境。</div>
+  <ul class="us-ac">
+    <li>确认后系统自动：创建 Task → 创建沙箱 → 注入用户凭证 → Clone 代码 → 创建新分支 → 启动 Agent</li>
+    <li>任务上下文以任务标题为目标、任务正文为详细描述注入 Agent 系统提示</li>
+    <li>创建后跳转到任务详情页，可立即看到启动进度和初始日志</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span> <span>追溯: BRD §3.1 任务创建</span></div>
+</div>
+
+<h3 id="s3-2">3.2 模板管理</h3>
+
+<div class="us">
+  <div class="us-id">US-D07</div>
+  <div class="us-title">浏览和使用预置 Template</div>
+  <div class="us-body">作为开发者，我希望看到系统预置的 Template 及其详细配置，以便选择合适的模板创建任务。</div>
+  <ul class="us-ac">
+    <li>系统预置 Template：coding-task（编码）、bug-fix（Bug修复）、refactor（重构）</li>
+    <li>展示 Template 的工具集、skill、成功标准、资源限制</li>
+    <li>预置 Template 由系统管理，不可编辑</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span></div>
+</div>
+
+<div class="us">
+  <div class="us-id">US-D08</div>
+  <div class="us-title">创建和编辑自定义 Template</div>
+  <div class="us-body">作为开发者，我希望创建自己的 Template，定义工具集、skill、成功标准、资源限制，以便标准化团队的任务执行流程。</div>
+  <ul class="us-ac">
+    <li>通过表单创建自定义 Template</li>
+    <li>配置工具集、skill、成功标准（lint 通过、测试通过率等）、资源限制（Token、时长）</li>
+    <li>支持编辑和版本管理</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span></div>
+</div>
+
+<h3 id="s3-3">3.3 沙箱执行与反馈闭环</h3>
+
+<div class="us">
+  <div class="us-id">US-D09</div>
+  <div class="us-title">任务在隔离沙箱中执行</div>
+  <div class="us-body">作为开发者，我希望每个任务在独立的 Docker 容器中执行，Agent 拥有完全权限但不影响我的本地环境。</div>
+  <ul class="us-ac">
+    <li>每个任务创建独立的 Docker 容器</li>
+    <li>容器启动时自动 Clone 代码仓库到指定分支</li>
+    <li>Agent 在容器内自主执行，拥有完全文件和命令权限</li>
+    <li>任务完成后容器自动清理（TTL 1 小时）</li>
+    <li>多个任务各自独立运行，互不干扰</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span> <span>追溯: BRD §3.2 任务执行</span></div>
+</div>
+
+<div class="us">
+  <div class="us-id">US-D10</div>
+  <div class="us-title">Agent 代表我操作外部系统</div>
+  <div class="us-body">作为开发者，我希望沙箱继承我的身份凭证，Agent 的所有对外操作（Git push、CI/CD 访问）代表我本人。</div>
+  <ul class="us-ac">
+    <li>沙箱启动时注入用户的 Git token 和 DevOps token</li>
+    <li>Agent 通过中间件获取 token 完成工具调用</li>
+    <li>Agent 的权限边界由用户自身的权限决定</li>
+    <li>凭证不在日志中输出</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span></div>
+</div>
+
+<div class="us">
+  <div class="us-id">US-D11</div>
+  <div class="us-title">Agent 按模板标准自检代码</div>
+  <div class="us-body">作为开发者，我希望 Agent 在提交前按 Template 定义的标准自动检查代码质量（lint、测试、格式），自检通过后才 Push。</div>
+  <ul class="us-ac">
+    <li>Agent 编码完成后按 Template 的 success_criteria 执行自检</li>
+    <li>自检包括：运行测试用例、执行 lint 检查、格式检查</li>
+    <li>自检不通过 → Agent 分析问题 → 修复 → 重新自检</li>
+    <li>自检通过 → Agent Push 代码到新分支</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span> <span>追溯: BRD §3.2 双层反馈闭环</span></div>
+</div>
+
+<div class="us">
+  <div class="us-id">US-D12</div>
+  <div class="us-title">Agent 通过 MCP Server 获取 CI/CD 结果并自动修复</div>
+  <div class="us-body">作为开发者，我希望 Agent Push 代码后能获取 CI/CD 执行结果，失败时自动分析修复并重新 Push，CI/CD 全部通过后创建 MR。</div>
+  <ul class="us-ac">
+    <li>Agent Push 后通过 DevOps MCP Server 获取 CI/CD 流水线结果</li>
+    <li>获取测试通过率、扫描问题、构建状态</li>
+    <li>CI/CD 失败 → Agent 分析失败原因 → 修复 → 重新 Push</li>
+    <li>修复循环有最大次数限制（默认 5 次），避免无限循环</li>
+    <li>CI/CD 全部通过 → Agent 创建 MR</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span> <span>追溯: BRD §3.2 双层反馈闭环</span></div>
+</div>
+
+<div class="us">
+  <div class="us-id">US-D13</div>
+  <div class="us-title">任务超时和资源限制自动终止</div>
+  <div class="us-body">作为开发者，我希望任务有执行时长和 Token 消耗上限，超限后自动终止，避免资源浪费。</div>
+  <ul class="us-ac">
+    <li>每个任务有可配置的执行时长上限（默认 30 分钟）</li>
+    <li>每个任务有可配置的 Token 消耗上限</li>
+    <li>超限后任务自动终止，标记为 Failed</li>
+    <li>超限信息写入执行日志</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span> <span>追溯: BRD §4.2 可靠性</span></div>
+</div>
+
+<h3 id="s3-4">3.4 任务监控</h3>
+
+<div class="us">
+  <div class="us-id">US-D14</div>
+  <div class="us-title">查看任务列表和状态</div>
+  <div class="us-body">作为开发者，我希望看到所有任务及当前状态，以便跟踪进度。</div>
+  <ul class="us-ac">
+    <li>任务列表展示所有任务及状态（Pending / Scheduled / Running / Paused / Succeeded / Failed / Cancelled）</li>
+    <li>支持按状态筛选</li>
+    <li>展示任务标题、创建时间、执行时长</li>
+    <li>点击任务进入详情页</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span> <span>追溯: BRD §3.4 任务管理</span></div>
+</div>
+
+<div class="us">
+  <div class="us-id">US-D15</div>
+  <div class="us-title">实时查看 Agent 执行日志</div>
+  <div class="us-body">作为开发者，我希望实时看到 Agent 在做什么，以便了解工作状态和中间结果。</div>
+  <ul class="us-ac">
+    <li>任务详情页通过 WebSocket 流式输出 Agent 执行日志</li>
+    <li>日志类型：代码变更、工具调用、LLM 输入输出、错误信息</li>
+    <li>显示当前执行阶段（编码/自检/Push/CI/CD验证/MR创建）</li>
+    <li>显示 Token 消耗和已执行时长</li>
+    <li>支持查看历史任务的完整执行日志</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span> <span>追溯: BRD §3.5 执行可观测性</span></div>
+</div>
+
+<div class="us">
+  <div class="us-id">US-D16</div>
+  <div class="us-title">实时接收任务状态变更推送</div>
+  <div class="us-body">作为开发者，我希望任务状态变更时实时推送到前端，以便不需要刷新页面。</div>
+  <ul class="us-ac">
+    <li>任务状态变更通过 WebSocket 推送</li>
+    <li>任务进度变更实时推送</li>
+    <li>前端实时更新任务列表和详情页</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span> <span>追溯: BRD §3.5 执行可观测性</span></div>
+</div>
+
+<h3 id="s3-5">3.5 任务干预</h3>
+
+<div class="us">
+  <div class="us-id">US-D17</div>
+  <div class="us-title">暂停和恢复任务</div>
+  <div class="us-body">作为开发者，我希望暂停正在执行的任务（Agent 跑偏时），恢复后 Agent 继续执行。</div>
+  <ul class="us-ac">
+    <li>Running 状态的任务可暂停（协作式暂停）</li>
+    <li>Paused 状态的任务可恢复</li>
+    <li>操作记录到干预日志</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span> <span>追溯: BRD §3.4 任务管理</span></div>
+</div>
+
+<div class="us">
+  <div class="us-id">US-D18</div>
+  <div class="us-title">向 Agent 注入指令纠偏</div>
+  <div class="us-body">作为开发者，我希望在 Agent 执行过程中直接注入额外指令（不需要先暂停），以便实时纠正方向或补充上下文。</div>
+  <ul class="us-ac">
+    <li>任务详情页提供输入框，可向 Agent 发送指令</li>
+    <li>指令立即送达 Agent（不需要暂停再恢复）</li>
+    <li>Agent 收到指令后在日志中体现处理过程</li>
+    <li>注入记录保存到干预日志</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span> <span>追溯: BRD §3.4 任务管理</span></div>
+</div>
+
+<div class="us">
+  <div class="us-id">US-D19</div>
+  <div class="us-title">取消任务</div>
+  <div class="us-body">作为开发者，我希望取消不再需要的任务并清理沙箱资源。</div>
+  <ul class="us-ac">
+    <li>任何非终态任务可取消</li>
+    <li>取消后自动终止 Agent 并清理沙箱资源</li>
+    <li>操作记录到干预日志</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span> <span>追溯: BRD §3.4 任务管理</span></div>
+</div>
+
+<div class="us">
+  <div class="us-id">US-D20</div>
+  <div class="us-title">查看干预历史和沙箱状态</div>
+  <div class="us-body">作为开发者，我希望在任务详情页看到所有干预操作记录和沙箱运行状态。</div>
+  <ul class="us-ac">
+    <li>展示干预历史（暂停/恢复/注入/取消），包含时间和操作者</li>
+    <li>展示沙箱状态（创建中/运行中/已完成/已清理）</li>
+    <li>支持手动清理已完成任务的沙箱资源</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span> <span>追溯: BRD §3.4 任务管理</span></div>
+</div>
+
+<h3 id="s3-6">3.6 交付与通知</h3>
+
+<div class="us">
+  <div class="us-id">US-D21</div>
+  <div class="us-title">接收任务完成通知</div>
+  <div class="us-body">作为开发者，我希望任务成功或失败后收到 Web 推送通知，以便及时查看结果。</div>
+  <ul class="us-ac">
+    <li>任务成功后 Web 推送通知，包含 MR 链接</li>
+    <li>任务失败后 Web 推送通知，包含错误摘要</li>
+    <li>工作台首页展示待 Review 的 MR 列表</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span> <span>追溯: BRD §3.6 交付与通知</span></div>
+</div>
+
+<div class="us">
+  <div class="us-id">US-D22</div>
+  <div class="us-title">查看 MR 链接并跳转 Review</div>
+  <div class="us-body">作为开发者，我希望在任务详情页看到 MR 链接，点击跳转到 DevOps 平台进行代码 Review。</div>
+  <ul class="us-ac">
+    <li>任务详情页展示 MR 链接</li>
+    <li>MR 状态实时同步（open / merged / closed）</li>
+    <li>点击跳转到 DevOps 平台</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span> <span>追溯: BRD §3.6 交付与通知</span></div>
+</div>
+
+<h3 id="s3-7">3.7 Provider 管理</h3>
+
+<div class="us">
+  <div class="us-id">US-D23</div>
+  <div class="us-title">浏览和配置 Provider</div>
+  <div class="us-body">作为开发者，我希望看到可用的 Provider（系统预置 + 个人配置），并能创建个人 Provider。</div>
+  <ul class="us-ac">
+    <li>展示系统预置 Provider（Claude Code）</li>
+    <li>可创建个人 Provider（API 端点、模型映射、API Key）</li>
+    <li>可设置个人默认 Provider</li>
+    <li>可测试 Provider 连接</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span></div>
+</div>
+
+<h3 id="s3-8">3.8 能力注册</h3>
+
+<div class="us">
+  <div class="us-id">US-D24</div>
+  <div class="us-title">查看系统注册的工具和 Skill</div>
+  <div class="us-body">作为开发者，我希望看到系统中注册的工具和 Skill，以便了解 Agent 可用的能力。</div>
+  <ul class="us-ac">
+    <li>展示已注册的工具和 Skill 列表</li>
+    <li>展示每个能力的类型、状态、权限级别</li>
+    <li>在 Template 配置中可选择启用/禁用特定能力</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span></div>
+</div>
+
+<h3 id="s3-9">3.9 认证与身份</h3>
+
+<div class="us">
+  <div class="us-id">US-D25</div>
+  <div class="us-title">通过 API Key 认证</div>
+  <div class="us-body">作为开发者，我希望通过 API Key 访问平台（API 调用和 Web UI），后续接入公司 SSO。</div>
+  <ul class="us-ac">
+    <li>支持 API Key 创建和撤销</li>
+    <li>API Key 安全存储（哈希，不明文）</li>
+    <li>展示最后使用时间</li>
+    <li>认证中间件预留 SSO 扩展点</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span></div>
+</div>
+
+<div class="us">
+  <div class="us-id">US-D26</div>
+  <div class="us-title">用户凭证安全管理</div>
+  <div class="us-body">作为开发者，我希望我的 Git token 和 DevOps token 被安全存储，沙箱启动时自动注入，凭证不在日志中泄露。</div>
+  <ul class="us-ac">
+    <li>用户可在设置页配置 Git token 和 DevOps token</li>
+    <li>凭证加密存储</li>
+    <li>沙箱启动时自动注入环境变量</li>
+    <li>凭证不在日志中输出</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span></div>
+</div>
+
+<h3 id="s3-10">3.10 配额与限流</h3>
+
+<div class="us">
+  <div class="us-id">US-D27</div>
+  <div class="us-title">了解资源使用和队列状态</div>
+  <div class="us-body">作为开发者，我希望看到当前资源使用情况（运行中任务数、Token 消耗）和队列位置，以便了解任务何时开始执行。</div>
+  <ul class="us-ac">
+    <li>展示当前运行中任务数和并发上限</li>
+    <li>展示 Token 消耗统计</li>
+    <li>Scheduled 状态的任务展示队列位置</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span></div>
+</div>
+
+<h3 id="s3-11">3.11 本地开发</h3>
+
+<div class="us">
+  <div class="us-id">US-D28</div>
+  <div class="us-title">本地一键启动开发环境</div>
+  <div class="us-body">作为开发者，我希望通过 <code>make local</code> 在本地启动完整平台，无需安装 MySQL、Redis、K8s。</div>
+  <ul class="us-ac">
+    <li><code>make local</code> 一条命令启动完整环境（SQLite + miniredis + Docker）</li>
+    <li>Docker 不可用时 API 仍可用（任务执行提示环境不可用）</li>
+    <li>本地环境自动填充演示数据（预置 Template、Provider、示例仓库配置）</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span> <span>追溯: BRD §3.7 产品形态</span></div>
+</div>
+
+<h3 id="s3-12">3.12 管理与配置</h3>
+
+<div class="us">
+  <div class="us-id">US-D29</div>
+  <div class="us-title">配置代码仓库和 DevOps 连接</div>
+  <div class="us-body">作为开发者，我希望在设置页配置代码仓库地址、分支、认证信息和 DevOps 平台连接，以便平台知道从哪拉任务、从哪 Clone 代码。</div>
+  <ul class="us-ac">
+    <li>配置代码仓库 URL、默认分支、认证信息</li>
+    <li>配置 DevOps 平台 endpoint 和 token</li>
+    <li>可测试连接是否正常</li>
+  </ul>
+  <div class="us-meta"><span class="tag tag-green">阶段一</span></div>
+</div>
+
+<!-- ████████████████████████████████████████████████████████████ -->
+<h2 id="s4">4 · 功能模块设计</h2>
+
+<table>
+  <tr><th>#</th><th>模块</th><th>类型</th><th>核心职责</th></tr>
+  <tr><td>1</td><td><strong>Auth Middleware</strong></td><td><span class="tag tag-amber">新建</span></td><td>API Key 校验 → 注入 user_id/tenant_id 到 context；预留 SSO 扩展点</td></tr>
+  <tr><td>2</td><td><strong>Scheduler Dispatcher</strong></td><td><span class="tag tag-blue">修改</span></td><td>给 scheduler.Start() 加 goroutine 消费循环：Dequeue → rate limit → executor.Execute()</td></tr>
+  <tr><td>3</td><td><strong>DevOps Integration Service</strong></td><td><span class="tag tag-amber">新建</span></td><td>封装 DevOps API：拉取用户任务列表、获取任务详情、创建 MR、获取仓库信息</td></tr>
+  <tr><td>4</td><td><strong>Credential Manager</strong></td><td><span class="tag tag-amber">新建</span></td><td>用户凭证（Git token、DevOps token）加密存储 + 沙箱启动时注入</td></tr>
+  <tr><td>5</td><td><strong>Template Preset + Task Resolution</strong></td><td><span class="tag tag-blue">修改</span></td><td>预置 Template（coding-task/bug-fix/refactor）+ DevOps 任务 + Template → Task 解析</td></tr>
+  <tr><td>6</td><td><strong>Metrics Implementation</strong></td><td><span class="tag tag-blue">修改</span></td><td>替换 stub 为实际 DB 查询（任务统计、资源使用、队列状态）</td></tr>
+  <tr><td>7</td><td><strong>WebSocket Auth</strong></td><td><span class="tag tag-blue">修改</span></td><td>连接时校验用户身份（<code>ws://?token=api_key</code>），按 user scope 推送</td></tr>
+  <tr><td>8</td><td><strong>Frontend UI</strong></td><td><span class="tag tag-amber">新建（后补）</span></td><td>工作台 + 任务列表 + 任务详情 + Issue 列表 + 设置（React + Ant Design）</td></tr>
+</table>
+
+<h3>4.1 Deep Modules</h3>
+
+<div style="display:flex;gap:1.5rem;margin:1rem 0;flex-wrap:wrap">
+  <div class="card" style="flex:1;min-width:250px;border-color:var(--accent)">
+    <h4 style="color:#1d4ed8">DevOps Integration Service</h4>
+    <p>封装所有 DevOps API 复杂度。</p>
+    <p><strong>接口</strong>：<code>ListTasks(userID)</code>, <code>GetTaskDetail(taskID)</code>, <code>CreateMR(repo, branch, title)</code></p>
+    <p style="font-size:.85rem;color:var(--muted)">Mock DevOps API 即可独立测试。</p>
+  </div>
+  <div class="card" style="flex:1;min-width:250px;border-color:var(--green)">
+    <h4 style="color:var(--green)">Credential Manager</h4>
+    <p>封装凭证存储加密 + 沙箱注入。</p>
+    <p><strong>接口</strong>：<code>Store(userID, type, value)</code>, <code>InjectToSandbox(taskID, config)</code></p>
+    <p style="font-size:.85rem;color:var(--muted)">Mock sandbox 即可独立测试。</p>
+  </div>
+  <div class="card" style="flex:1;min-width:250px;border-color:var(--amber)">
+    <h4 style="color:var(--amber)">Scheduler Dispatcher</h4>
+    <p>封装调度循环逻辑。</p>
+    <p><strong>接口</strong>：<code>Start()</code>, <code>Stop()</code>（内部 goroutine 自动 Dequeue → Execute）</p>
+    <p style="font-size:.85rem;color:var(--muted)">Mock queue + executor 即可独立测试。</p>
+  </div>
+</div>
+
+<p><strong>必写测试的模块</strong>：Auth Middleware (#1)、Scheduler Dispatcher (#2)、DevOps Integration (#3)、Credential Manager (#4)。</p>
+
+<!-- ████████████████████████████████████████████████████████████ -->
+<h2 id="s5">5 · 用户面板设计</h2>
+
+<p>阶段一只需要用户面板，不需要管理面板。API 先行，UI 后补。交互原型详见 <a href="v5-app.html">v5-app.html</a>。</p>
+
+<h3>5.1 信息架构</h3>
+
+<div style="border:2px solid var(--border);border-radius:12px;padding:1.5rem;margin:1.5rem 0;background:var(--card-bg)">
+  <div style="font-size:1.1rem;font-weight:700;margin-bottom:.75rem">用户面板（5 个主页面）</div>
+
+  <div style="margin-bottom:1rem">
+    <h4 style="font-size:.95rem;margin-bottom:.3rem">需求页（首页）<span class="tag tag-green" style="margin-left:.5rem">MVP</span></h4>
+    <ul style="font-size:.88rem;margin-left:1.2rem">
+      <li>浏览 DevOps 需求列表（卡片/列表视图切换）</li>
+      <li>按阶段筛选（BRD/PRD/TRD/开发/测试/上线）+ 按指派给我筛选</li>
+      <li>展开需求查看子任务列表及状态</li>
+      <li>子任务直接启动创建任务向导</li>
+      <li>需求阶段进度条（artifacts 文档状态）</li>
+    </ul>
+  </div>
+
+  <div style="margin-bottom:1rem">
+    <h4 style="font-size:.95rem;margin-bottom:.3rem">任务页 <span class="tag tag-green" style="margin-left:.5rem">MVP</span></h4>
+    <ul style="font-size:.88rem;margin-left:1.2rem">
+      <li>任务看板视图（按状态分列：排队/运行/暂停/完成/失败/取消）+ 列表视图切换</li>
+      <li>按状态筛选 + 搜索</li>
+      <li>任务详情侧滑面板：
+        <ul>
+          <li>基本信息（标题、状态、关联需求/子任务、创建时间、执行时长）</li>
+          <li>执行步骤进度条（当前步骤 / 总步骤）</li>
+          <li>实时执行日志（WebSocket 流式输出）</li>
+          <li>资源消耗（Token、时间）</li>
+          <li>操作面板（暂停/恢复/注入指令/取消）</li>
+          <li>干预记录（历史操作日志）</li>
+          <li>交付产物（MR 链接、执行结果）</li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+
+  <div style="margin-bottom:1rem">
+    <h4 style="font-size:.95rem;margin-bottom:.3rem">模板页 <span class="tag tag-green" style="margin-left:.5rem">MVP（浏览）</span> <span class="tag tag-blue" style="margin-left:.3rem">自定义（阶段二）</span></h4>
+    <ul style="font-size:.88rem;margin-left:1.2rem">
+      <li>浏览预置模板（coding-task / bug-fix / refactor）<span class="tag tag-green">MVP</span></li>
+      <li>展示模板的参数、成功标准、能力集</li>
+      <li>创建和编辑自定义 Template <span class="tag tag-blue">阶段二</span></li>
+    </ul>
+  </div>
+
+  <div style="margin-bottom:1rem">
+    <h4 style="font-size:.95rem;margin-bottom:.3rem">能力市场 <span class="tag tag-blue" style="margin-left:.5rem">阶段二</span></h4>
+    <ul style="font-size:.88rem;margin-left:1.2rem">
+      <li>查看已注册的工具和 Skill 列表（类型、状态、权限级别）</li>
+      <li>在 Template 配置中启用/禁用能力 <span class="tag tag-blue">阶段二</span></li>
+    </ul>
+  </div>
+
+  <div>
+    <h4 style="font-size:.95rem;margin-bottom:.3rem">设置页 <span class="tag tag-green" style="margin-left:.5rem">MVP</span></h4>
+    <ul style="font-size:.88rem;margin-left:1.2rem">
+      <li>凭证管理（Git Token、DevOps Token 加密存储）</li>
+      <li>API Key 管理（创建、查看、撤销）</li>
+      <li>Provider 配置 <span class="tag tag-blue">阶段二</span></li>
+    </ul>
+  </div>
+</div>
+
+<h3>5.2 创建任务向导（4 步）</h3>
+
+<p>从需求页的子任务触发，或从任务页/模板页手动触发。向导流程对齐 TRD §5.2。</p>
+
+<table>
+  <tr><th>步骤</th><th>标题</th><th>用户操作</th></tr>
+  <tr><td><span class="tag tag-blue">Step 1</span></td><td>选择</td><td>展示关联的需求/子任务信息（自动预填）；选择或切换 Template（可基于子任务 type 推荐）</td></tr>
+  <tr><td><span class="tag tag-amber">Step 2</span></td><td>配置</td><td>编辑任务名称、描述、仓库地址、目标分支（必填）、优先级、附加指令；所有预填字段均可覆盖</td></tr>
+  <tr><td><span class="tag tag-amber">Step 3</span></td><td>能力</td><td>选择能力集（可选）<span class="tag tag-blue">阶段二</span></td></tr>
+  <tr><td><span class="tag tag-green">Step 4</span></td><td>确认</td><td>展示完整配置预览，确认创建</td></tr>
+</table>
+
+<h3>5.3 任务状态映射</h3>
+
+<p>前端展示标签与后端状态枚举的映射：</p>
+
+<table>
+  <tr><th>后端状态</th><th>前端标签</th><th>看板分组</th></tr>
+  <tr><td><code>pending</code></td><td>队列中</td><td rowspan="2">排队</td></tr>
+  <tr><td><code>queued</code> / <code>scheduled</code></td><td>已调度</td></tr>
+  <tr><td><code>running</code></td><td>运行中</td><td>运行</td></tr>
+  <tr><td><code>paused</code></td><td>已暂停</td><td>暂停</td></tr>
+  <tr><td><code>completed</code></td><td>已完成</td><td rowspan="2">完成</td></tr>
+  <tr><td><code>succeeded</code>（前端兼容）</td><td>已完成</td></tr>
+  <tr><td><code>failed</code></td><td>已失败</td><td>失败</td></tr>
+  <tr><td><code>timed_out</code></td><td>已超时</td><td>失败</td></tr>
+  <tr><td><code>cancelled</code></td><td>已取消</td><td>取消</td></tr>
+</table>
+
+<blockquote><strong>废弃状态：</strong><code>waiting_approval</code> 和 <code>retrying</code> 在阶段一不使用。前端不展示这两个状态。</blockquote>
+
+<h3>5.4 MVP 裁剪说明</h3>
+
+<table>
+  <tr><th>页面/功能</th><th>MVP</th><th>阶段二</th></tr>
+  <tr><td>需求页（浏览 + 创建任务入口）</td><td><span class="tag tag-green">✓</span></td><td></td></tr>
+  <tr><td>任务页（看板 + 列表 + 详情侧滑面板）</td><td><span class="tag tag-green">✓</span></td><td></td></tr>
+  <tr><td>模板页（浏览 3 个预置模板）</td><td><span class="tag tag-green">✓</span></td><td></td></tr>
+  <tr><td>模板页（创建/编辑自定义模板）</td><td></td><td><span class="tag tag-blue">✓</span></td></tr>
+  <tr><td>能力市场页</td><td></td><td><span class="tag tag-blue">✓</span></td></tr>
+  <tr><td>Provider 页</td><td></td><td><span class="tag tag-blue">✓</span></td></tr>
+  <tr><td>设置页（凭证 + API Key）</td><td><span class="tag tag-green">✓</span></td><td></td></tr>
+  <tr><td>头脑风暴模式</td><td></td><td><span class="tag tag-blue">✓</span></td></tr>
+  <tr><td>管理后台</td><td></td><td><span class="tag tag-blue">✓</span></td></tr>
+</table>
+
+<!-- ████████████████████████████████████████████████████████████ -->
+<h2 id="s6">6 · 核心业务实体</h2>
+
+<h3>6.1 实体关系</h3>
+
+<div style="text-align:center;margin:1.5rem 0">
+  <div style="margin-bottom:.6rem">
+    <div style="display:inline-block;border:2px solid var(--accent);background:var(--accent-light);border-radius:10px;padding:.7rem 1.5rem;min-width:200px;text-align:center">
+      <strong style="color:#1d4ed8">User（开发者）</strong><br>
+      <small style="color:var(--muted)">API Key · 凭证 · DevOps 配置</small>
+    </div>
+  </div>
+  <div style="font-size:.78rem;color:var(--muted);margin:.3rem 0">1:N</div>
+  <div style="margin-bottom:.6rem">
+    <div style="display:inline-block;border:2px solid var(--purple);background:var(--purple-light);border-radius:10px;padding:.6rem 1.2rem;min-width:160px;text-align:center">
+      <strong style="color:var(--purple)">Template</strong><br>
+      <small style="color:var(--muted)">工具集 · Skill · 成功标准 · 资源限制</small>
+    </div>
+  </div>
+  <div style="font-size:.78rem;color:var(--muted);margin:.3rem 0">Template + DevOps 任务 →</div>
+  <div style="margin-bottom:.6rem">
+    <div style="display:inline-block;border:2.5px solid var(--green);background:var(--green-light);border-radius:10px;padding:.8rem 1.5rem;min-width:240px;text-align:center">
+      <strong style="color:var(--green);font-size:1.05rem">Task（任务）</strong><br>
+      <small style="color:var(--muted)">来源 DevOps 任务 · 状态 · 配置 · 结果</small>
+    </div>
+  </div>
+  <div style="font-size:.78rem;color:var(--muted);margin:.3rem 0">1:N</div>
+  <div style="display:flex;gap:1.2rem;justify-content:center;flex-wrap:wrap">
+    <div style="border:2px solid var(--amber);background:var(--amber-light);border-radius:8px;padding:.5rem 1rem;text-align:center;min-width:110px">
+      <strong style="color:#92400e">ExecutionLog</strong><br><small>执行日志</small>
+    </div>
+    <div style="border:2px solid var(--amber);background:var(--amber-light);border-radius:8px;padding:.5rem 1rem;text-align:center;min-width:110px">
+      <strong style="color:#92400e">Intervention</strong><br><small>干预记录</small>
+    </div>
+    <div style="border:2px solid var(--green);background:var(--green-light);border-radius:8px;padding:.5rem 1rem;text-align:center;min-width:110px">
+      <strong style="color:var(--green)">MR</strong><br><small>交付产物</small>
+    </div>
+  </div>
+</div>
+
+<h3>6.2 核心实体说明</h3>
+
+<table>
+  <tr><th>实体</th><th>核心属性</th><th>说明</th></tr>
+  <tr><td>User</td><td>username · api_key · git_token · devops_token · devops_endpoint · repo_config</td><td>开发者，绑定 DevOps 配置和凭证</td></tr>
+  <tr><td>Template</td><td>name · spec（工具集/skill/成功标准/资源限制）· scene_type · status</td><td>可复用任务配置，预置 + 自定义</td></tr>
+  <tr><td>Task</td><td>source_task_id · source_title · source_body · repo_url · branch · template_id · status · resolved_config · result</td><td>核心业务对象，来源为 DevOps 任务</td></tr>
+  <tr><td>ExecutionLog</td><td>task_id · event_type · content · timestamp</td><td>执行过程记录，WebSocket 实时推送</td></tr>
+  <tr><td>Intervention</td><td>task_id · action · content · result</td><td>人工干预记录（暂停/恢复/注入/取消）</td></tr>
+  <tr><td>MR</td><td>task_id · mr_url · mr_status</td><td>Agent 提交的 Merge Request</td></tr>
+</table>
+
+<!-- ████████████████████████████████████████████████████████████ -->
+<h2 id="s7">7 · 范围外</h2>
+
+<h3>7.1 功能边界</h3>
+
+<table>
+  <tr><th>功能</th><th>说明</th><th>计划</th></tr>
+  <tr><td>多 Agent 协作</td><td>每个任务只有一个 Agent，不支持多角色分配</td><td>阶段二</td></tr>
+  <tr><td>审批断点</td><td>不在中间节点暂停等待审批</td><td>阶段二</td></tr>
+  <tr><td>对话式任务创建</td><td>不支持自然语言交互，通过表单选择</td><td>阶段二</td></tr>
+  <tr><td>知识沉淀</td><td>不收集执行案例、不建知识库</td><td>阶段二/三</td></tr>
+  <tr><td>技术债治理</td><td>不做自动化代码治理</td><td>阶段二/三</td></tr>
+  <tr><td>DAG/动态编排</td><td>不支持多任务依赖编排</td><td>阶段三</td></tr>
+  <tr><td>IM 通知</td><td>不做钉钉/飞书/Slack 推送</td><td>阶段二</td></tr>
+  <tr><td>邮件通知</td><td>不做邮件推送</td><td>—</td></tr>
+  <tr><td>管理面板</td><td>管理操作通过 API 或用户面板设置页</td><td>阶段二</td></tr>
+  <tr><td>CLI 工具</td><td>不提供独立命令行工具</td><td>—</td></tr>
+  <tr><td>SSO 登录</td><td>一阶段 API Key，后续接公司 SSO</td><td>阶段二</td></tr>
+  <tr><td>K8s 生产部署</td><td>一阶段支持 Docker 本地 + K8s 远程双运行时</td><td>阶段一</td></tr>
+</table>
+
+<h3>7.2 技术边界</h3>
+
+<table>
+  <tr><th>边界</th><th>说明</th></tr>
+  <tr><td>平台级重试</td><td>任务失败后不做平台级重试（不重新创建沙箱），只有 Agent 内部修复循环</td></tr>
+  <tr><td>自定义 MCP Server</td><td>不支持用户注册自定义 MCP Server，只使用预置 DevOps MCP Server</td></tr>
+  <tr><td>版本化 DB 迁移</td><td>使用 GORM AutoMigrate，不做 DDL 版本管理</td></tr>
+  <tr><td>SLS 日志集成</td><td>日志存本地文件 + WebSocket 推送，不接阿里云 SLS</td></tr>
+</table>
+
+<h3>7.3 已保留但一阶段不启用的代码</h3>
+
+<table>
+  <tr><th>模块</th><th>状态</th><th>说明</th></tr>
+  <tr><td>多租户隔离</td><td>代码完整，维护，测试</td><td>一阶段单租户运行，不启用租户间隔离</td></tr>
+  <tr><td>SSO 认证</td><td>Auth middleware 预留扩展点</td><td>一阶段只用 API Key</td></tr>
+</table>
+
+<hr>
+
+<table>
+  <tr><th>版本</th><th>日期</th><th>修订内容</th></tr>
+  <tr><td>v0.7-draft</td><td>2026-03-22</td><td>初稿（通用平台版）</td></tr>
+  <tr><td>v0.8-draft</td><td>2026-03-28</td><td>MVP 细化：模板 Schema、Provider 三层作用域</td></tr>
+  <tr><td>v2.0</td><td>2026-05-13</td><td>阶段一重写：DevOps 平台集成；Template 体系保留；双层反馈闭环（自检 + MCP Server）；用户身份绑定沙箱；保留 Provider/能力注册/多租户代码/限流配额</td></tr>
+</table>
+
+</body>
+</html>

@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TRD-v2.html 技术方案评审报告（修订版）</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a2e;--muted:#6b7280;--accent:#3b82f6;--accent-light:#eff6ff;--border:#e5e7eb;--code-bg:#f8f9fa;--card-bg:#f9fafb;--green:#059669;--green-light:#ecfdf5;--amber:#d97706;--amber-light:#fffbeb;--red:#dc2626;--red-light:#fef2f2;--purple:#7c3aed;--purple-light:#faf5ff}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:var(--fg);background:var(--bg);line-height:1.7;padding:2rem 1rem;max-width:960px;margin:0 auto}
+h1{font-size:1.8rem;font-weight:700;margin-bottom:.25rem}
+h1 .subtitle{display:block;font-size:.9rem;color:var(--muted);font-weight:400;margin-top:.25rem;margin-bottom:1rem}
+.meta{display:flex;gap:1.5rem;flex-wrap:wrap;font-size:.85rem;color:var(--muted);margin-bottom:2rem;padding:.8rem 1rem;background:var(--card-bg);border:1px solid var(--border);border-radius:8px}
+.meta strong{color:var(--fg)}
+h2{font-size:1.35rem;font-weight:700;margin-top:2.5rem;margin-bottom:1rem;padding-left:.75rem;border-left:4px solid var(--accent)}
+h3{font-size:1.1rem;font-weight:600;margin-top:1.8rem;margin-bottom:.75rem}
+h4{font-size:1rem;font-weight:600;margin-top:1.3rem;margin-bottom:.5rem}
+p{font-size:.95rem;margin-bottom:.75rem}
+ul,ol{margin-left:1.5rem;margin-bottom:.75rem}li{margin-bottom:.3rem;font-size:.95rem}
+strong{font-weight:600}
+table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:.9rem}
+th,td{border:1px solid var(--border);padding:.55rem .8rem;text-align:left;vertical-align:top}
+th{background:var(--accent-light);font-weight:600;white-space:nowrap}
+tr:nth-child(even) td{background:var(--card-bg)}
+blockquote{border-left:4px solid var(--accent);background:var(--accent-light);padding:.75rem 1rem;margin:1rem 0;border-radius:0 6px 6px 0}
+.card{border:1px solid var(--border);border-radius:8px;padding:1.25rem;margin:1rem 0;background:var(--card-bg)}
+.card h4{margin-top:0}.card p:last-child{margin-bottom:0}
+.tag{display:inline-block;border-radius:4px;padding:.1em .5em;font-size:.8rem;font-weight:500;margin-right:.3rem}
+.tag-blue{background:var(--accent-light);color:#2563eb}
+.tag-green{background:var(--green-light);color:var(--green)}
+.tag-amber{background:var(--amber-light);color:var(--amber)}
+.tag-red{background:var(--red-light);color:var(--red)}
+.tag-purple{background:var(--purple-light);color:var(--purple)}
+hr{border:none;border-top:2px solid var(--border);margin:3rem 0}
+.toc{background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1.25rem 1.5rem;margin:1.5rem 0}
+.toc h3{margin-top:0;margin-bottom:.75rem;font-size:1rem}
+.toc ol,.toc ul{margin-left:1.25rem}.toc li{margin-bottom:.2rem;font-size:.9rem}
+.toc a{color:var(--accent);text-decoration:none}.toc a:hover{text-decoration:underline}
+.status-done{color:var(--green);font-weight:600}
+.status-partial{color:var(--amber);font-weight:600}
+.status-missing{color:var(--red);font-weight:600}
+.review-item{border:1px solid var(--border);border-radius:8px;padding:1rem 1.25rem;margin:1rem 0;background:var(--card-bg)}
+.review-item.critical{border-left:4px solid var(--red)}
+.review-item.warning{border-left:4px solid var(--amber)}
+.review-item.info{border-left:4px solid var(--accent)}
+.review-item.resolved{border-left:4px solid var(--green)}
+.review-title{font-size:1rem;font-weight:600;margin-bottom:.5rem}
+.review-status{font-size:.8rem;margin-bottom:.5rem}
+.review-body{font-size:.9rem;color:var(--muted)}
+.verdict-box{border:2px solid var(--green);background:var(--green-light);border-radius:12px;padding:1.5rem;margin:1.5rem 0;text-align:center}
+.verdict-box h3{color:var(--green);margin-bottom:.5rem}
+.verdict-box p{color:#166534;font-size:.95rem;margin:0}
+@media(max-width:640px){body{padding:1rem .75rem}h1{font-size:1.4rem}}
+</style>
+</head>
+<body>
+
+<h1>TRD-v2.html 技术方案评审报告<br><span class="subtitle">修订版 · 基于补充决策记录重新评估 · 2026-05-14</span></h1>
+
+<div class="meta">
+  <span><strong>评审对象</strong> TRD-v2.html（阶段一技术方案）</span>
+  <span><strong>关联文档</strong> BRD-v2.html · PRD-v2.html · design-book.html</span>
+  <span><strong>评审结论</strong> <span class="status-done">通过（需补充2项设计细节）</span></span>
+</div>
+
+<nav class="toc">
+<h3>目录</h3>
+<ol>
+  <li><a href="#s1">执行摘要</a></li>
+  <li><a href="#s2">核心决策合理性验证</a></li>
+  <li><a href="#s3">修订后的问题清单</a>
+    <ul>
+      <li><a href="#s3-1">需补充的设计细节（P1）</a></li>
+      <li><a href="#s3-2">已确认合理的MVP简化</a></li>
+      <li><a href="#s3-3">已解决的问题</a></li>
+    </ul>
+  </li>
+  <li><a href="#s4">修订后的风险评估</a></li>
+  <li><a href="#s5">改进建议优先级</a></li>
+  <li><a href="#s6">技术方案成熟度评估</a></li>
+  <li><a href="#s7">最终评审结论</a></li>
+  <li><a href="#s8">下一步行动建议</a></li>
+</ol>
+</nav>
+
+<div class="verdict-box">
+<h3>评审结论：通过</h3>
+<p>TRD-v2.html 技术方向正确、架构合理。仅需补充 Issue→Task 字段映射设计和 Agent SOP 技术实现机制 2 项 P1 设计细节，即可进入开发阶段。</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="s1">1 · 执行摘要</h2>
+
+<p>TRD-v2.html 作为阶段一的技术方案文档，<strong>整体架构合理、技术选型务实</strong>。文档准确识别了当前代码的 8 个关键缺口，并提出了 4 个新增模块和 3 个修改模块的设计方案。</p>
+
+<p>基于补充的决策记录和业务背景信息，原评审中的部分"重大问题"实际上是<strong>合理的 MVP 简化策略</strong>。修订后的评审结论从"有条件通过"调整为"<strong>通过</strong>"，仅需补充 Issue→Task 字段映射设计和明确 Agent SOP 的技术实现方式。</p>
+
+<blockquote>
+<strong>关键认知修正：</strong>原评审对 Scheduler-Executor 耦合、Credential 密钥管理、DevOps 接口抽象等问题的质疑，在 MVP 语境下是过度设计。阶段一的核心目标是"快速验证核心闭环"，而非追求架构完美。
+</blockquote>
+
+<!-- ============================================================ -->
+<h2 id="s2">2 · 核心决策合理性验证</h2>
+
+<p>根据补充的 brainstorming 决策记录，对 TRD 的关键设计决策进行验证：</p>
+
+<table>
+  <tr><th>决策维度</th><th>TRD 方案</th><th>决策记录</th><th>一致性</th><th>评审意见</th></tr>
+  <tr><td><strong>认证方式</strong></td><td>API Key 先行，预留 SSO 扩展点</td><td>API Key（先行）SSO（后续）</td><td><span class="status-done">一致</span></td><td>符合渐进式演进策略</td></tr>
+  <tr><td><strong>Agent 身份</strong></td><td>沙箱继承用户凭证，启动时注入</td><td>沙箱继承用户凭证，通过中间件获取 token</td><td><span class="status-done">一致</span></td><td>Credential Manager 设计合理</td></tr>
+  <tr><td><strong>任务来源</strong></td><td>DevOps 平台 API 直调</td><td>DevOps 平台任务管理，平台直接调 API</td><td><span class="status-done">一致</span></td><td>DevOps Integration 方向正确</td></tr>
+  <tr><td><strong>DevOps 集成</strong></td><td>控制面直调 API，执行面通过 MCP Server</td><td>控制面直调 + 执行面 MCP Server</td><td><span class="status-done">一致</span></td><td>双层集成架构清晰</td></tr>
+  <tr><td><strong>Template 体系</strong></td><td>保留体系，多个预置模板</td><td>保留体系，创建任务时选择</td><td><span class="status-done">一致</span></td><td>Template Preset 设计必要</td></tr>
+  <tr><td><strong>成功标准</strong></td><td>Template 定义（lint、测试通过率）</td><td>Template 定义</td><td><span class="status-done">一致</span></td><td>无需额外设计</td></tr>
+  <tr><td><strong>CI/CD 反馈</strong></td><td>内层自检 + 外层 MCP Server（就绪后）</td><td>内层自检（始终生效）+ 外层 MCP（就绪后）</td><td><span class="status-partial">需澄清</span></td><td>见 §3.1.2 分析</td></tr>
+  <tr><td><strong>提交策略</strong></td><td>新分支 + MR</td><td>新分支 + MR</td><td><span class="status-done">一致</span></td><td>符合 Git 工作流</td></tr>
+  <tr><td><strong>失败处理</strong></td><td>Agent 内部重试，达限标记 Failed</td><td>Agent 内部重试循环，达限通知用户</td><td><span class="status-done">一致</span></td><td>简化外部状态机</td></tr>
+  <tr><td><strong>通知方式</strong></td><td>Web 推送</td><td>Web 推送</td><td><span class="status-done">一致</span></td><td>MVP 合理选择</td></tr>
+  <tr><td><strong>多租户</strong></td><td>单租户运行，代码预留</td><td>单租户运行，代码预留</td><td><span class="status-done">一致</span></td><td>符合阶段一定位</td></tr>
+  <tr><td><strong>前端策略</strong></td><td>API 先行，UI 后补</td><td>API 先行，UI 后补</td><td><span class="status-done">一致</span></td><td>降低初期复杂度</td></tr>
+</table>
+
+<p><strong>验证结论：</strong>TRD 的核心设计决策与产品决策<strong>高度一致</strong>，技术方向正确。</p>
+
+<!-- ============================================================ -->
+<h2 id="s3">3 · 修订后的问题清单</h2>
+
+<h3 id="s3-1">3.1 需要补充的设计细节（P1）</h3>
+
+<div class="review-item warning">
+<div class="review-title">3.1.1 Issue → Task 字段映射设计缺失</div>
+<div class="review-status"><span class="tag tag-amber">P1</span> <span class="tag tag-amber">需补充</span></div>
+<div class="review-body">
+<p><strong>问题描述：</strong></p>
+<ul>
+  <li>TRD §5.1 提到"DevOps 任务内容填充"，但<strong>未明确具体的字段映射规则</strong></li>
+  <li>PRD US-D02 要求"展示完整内容（描述、验收标准、相关链接）"，但未说明如何映射到 Task 模型</li>
+  <li>用户编辑能力的技术实现方式未说明</li>
+</ul>
+<p><strong>影响分析：</strong></p>
+<ul>
+  <li>前端无法确定哪些字段可以预填、哪些需要用户手动填写</li>
+  <li>Task 模型的字段设计可能遗漏关键信息</li>
+  <li>DevOps API 返回的数据结构与 Task 模型可能存在差异</li>
+</ul>
+<p><strong>建议补充：</strong>在 TRD §5.1 或 §7 中增加<strong>字段映射表</strong>，明确：</p>
+<table>
+  <tr><th>DevOps Issue 字段</th><th>Task 模型字段</th><th>映射方式</th><th>是否可编辑</th></tr>
+  <tr><td>issue.title</td><td>Task.name / devops_title</td><td>直接映射</td><td>可编辑</td></tr>
+  <tr><td>issue.description</td><td>Task.devops_body</td><td>直接映射</td><td>可编辑</td></tr>
+  <tr><td>issue.repo_url</td><td>Task 参数或 resolved_config</td><td>提取后注入</td><td>不可编辑</td></tr>
+  <tr><td>issue.branch</td><td>Task 参数或 resolved_config</td><td>提取后注入</td><td>可编辑</td></tr>
+  <tr><td>issue.assignee</td><td>Task.creator_id</td><td>当前登录用户</td><td>自动填充</td></tr>
+  <tr><td>issue.labels</td><td>Task.params 或 tags</td><td>转换为标签</td><td>可编辑</td></tr>
+  <tr><td>issue.priority</td><td>Task.priority</td><td>映射优先级枚举</td><td>可编辑</td></tr>
+</table>
+<p><strong>同时说明：</strong></p>
+<ul>
+  <li>用户可以在创建任务时覆盖哪些字段</li>
+  <li>覆盖后的值如何存储（params JSON？独立字段？）</li>
+  <li>Template 参数与 Issue 字段的优先级关系</li>
+</ul>
+</div>
+</div>
+
+<div class="review-item warning">
+<div class="review-title">3.1.2 "内层自检"的技术实现方式不明确</div>
+<div class="review-status"><span class="tag tag-amber">P1</span> <span class="tag tag-amber">需澄清</span></div>
+<div class="review-body">
+<p><strong>问题描述：</strong></p>
+<ul>
+  <li>PRD §2.3 和 TRD §1.3 都提到"内层自检（始终生效）"</li>
+  <li>补充说明指出"<strong>不存在内外层自检，这应该是研发 Agent 的 SOP</strong>"</li>
+  <li>TRD 未说明如何将 Template 定义的 success_criteria 转化为 Agent 可执行的 SOP</li>
+</ul>
+<p><strong>概念澄清：</strong></p>
+<p>根据补充信息，正确的理解应该是：</p>
+<ul>
+  <li><strong>不是</strong>平台层面的"内层/外层"两个独立检查机制</li>
+  <li><strong>而是</strong>Agent 在执行过程中的标准操作流程（SOP）：
+    <ol>
+      <li>编码完成后，按 Template 定义的 success_criteria 执行自检</li>
+      <li>自检不通过 → 修复 → 重新自检（Agent 内部循环）</li>
+      <li>自检通过后 Push 代码</li>
+      <li>（未来）通过 MCP Server 获取 CI/CD 结果，失败则修复重推</li>
+    </ol>
+  </li>
+</ul>
+<p><strong>TRD 需要明确的要点：</strong></p>
+<ul>
+  <li><strong>Template → Agent 指令的转换：</strong>success_criteria 如何传递给 Agent？（系统提示？环境变量？配置文件？）</li>
+  <li><strong>自检命令的执行方式：</strong>调用项目已有测试命令？执行 lint 工具？检查特定文件？</li>
+  <li><strong>SOP 循环的控制逻辑：</strong>在 Wrapper 侧还是 Agent SDK 侧实现？如何避免无限循环？</li>
+</ul>
+<p><strong>建议补充：</strong>在 TRD §5.1 或新增章节说明 <strong>Agent SOP 的技术实现机制</strong>，包括：</p>
+<ol>
+  <li>Template success_criteria 如何渲染为自然语言指令</li>
+  <li>通过 Wrapper 的哪个接口触发自检命令</li>
+  <li>如何捕获和解析执行结果（不同测试框架输出格式各异）</li>
+  <li>SOP 循环的控制参数（超时、最大轮次、退避策略）</li>
+</ol>
+</div>
+</div>
+
+<h3 id="s3-2">3.2 已确认合理的 MVP 简化策略</h3>
+
+<p>基于补充的决策记录，以下在原评审中被标记为"问题"的内容，实际上是<strong>合理的 MVP 简化</strong>：</p>
+
+<div class="review-item resolved">
+<div class="review-title">3.2.1 Scheduler 消费循环的设计（原 P0 问题）</div>
+<div class="review-status"><span class="tag tag-green">已接受</span> <span class="tag tag-blue">MVP 简化</span></div>
+<div class="review-body">
+<p><strong>原评审观点：</strong>Scheduler 与 Executor 紧耦合违反架构原则</p>
+<p><strong>修正后的理解：</strong></p>
+<ul>
+  <li>TRD §4.2 提出的"dispatchLoop 调用 executor.Execute()"是<strong>MVP 阶段的合理简化</strong></li>
+  <li>虽然理想架构应该是解耦的消费者模式，但阶段一的目标是快速验证核心闭环</li>
+  <li>决策记录明确"复用已有代码"是核心原则，强行解耦会增加不必要的复杂度</li>
+</ul>
+<p><strong>评审结论：</strong>接受当前设计。MVP 阶段可以采用紧耦合，后续重构为事件驱动即可。</p>
+<p><strong>建议：</strong>在 TRD 中增加注释说明"此为 MVP 简化方案，v1.2 将重构为独立的 Consumer 服务"。</p>
+</div>
+</div>
+
+<div class="review-item resolved">
+<div class="review-title">3.2.2 Credential Manager 密钥管理简化（原 P1 问题）</div>
+<div class="review-status"><span class="tag tag-green">已接受</span> <span class="tag tag-blue">MVP 简化</span></div>
+<div class="review-body">
+<p><strong>原评审观点：</strong>缺少密钥轮换和过期策略，安全风险较高</p>
+<p><strong>修正后的理解：</strong></p>
+<ul>
+  <li>明确说明"<strong>MVP 阶段可以简化</strong>"</li>
+  <li>阶段一只服务于内部小团队，密钥泄露风险可控</li>
+  <li>AES-256-GCM 加密本身是安全的，主要风险在于密钥存储方式</li>
+</ul>
+<p><strong>评审结论：</strong>接受当前设计。MVP 阶段采用配置文件存储密钥是可接受的。</p>
+<p><strong>建议：</strong>在 TRD §9 安全设计中增加"MVP 限制说明"：</p>
+<ul>
+  <li>"阶段一采用配置文件存储加密密钥，适用于内部可信环境"</li>
+  <li>"生产环境部署前需评估集成 KMS 或 Vault 的必要性"</li>
+  <li>至少确保密钥<strong>不在版本控制系统中</strong>（通过环境变量或 .gitignore 保护）</li>
+</ul>
+</div>
+</div>
+
+<div class="review-item resolved">
+<div class="review-title">3.2.3 DevOps Integration 抽象层（原 P1 问题）</div>
+<div class="review-status"><span class="tag tag-green">已接受</span> <span class="tag tag-blue">MVP 简化</span></div>
+<div class="review-body">
+<p><strong>原评审观点：</strong>接口设计过于简化，无法覆盖多平台适配</p>
+<p><strong>修正后的理解：</strong></p>
+<ul>
+  <li>决策记录明确"<strong>任务来源是 DevOps 平台的任务管理（非 GitHub Issue）</strong>"</li>
+  <li>阶段一只需要对接<strong>一个</strong> DevOps 平台（京东行云）</li>
+  <li>不需要考虑多平台适配的复杂性</li>
+</ul>
+<p><strong>评审结论：</strong>接受当前设计。针对单一平台优化接口是务实的选择。</p>
+<p><strong>建议：</strong>在 TRD §4.3 中明确标注"<strong>阶段一只支持京东行云平台</strong>"。如果未来需要支持其他平台，再考虑插件化架构。</p>
+</div>
+</div>
+
+<div class="review-item info">
+<div class="review-title">3.2.4 双 Runtime 切换（原 P1 问题，调整为 P2）</div>
+<div class="review-status"><span class="tag tag-amber">待确认</span> <span class="tag tag-blue">优先级调整</span></div>
+<div class="review-body">
+<p><strong>原评审观点：</strong>Docker 和 K8s Runtime 接口不兼容，技术可行性存疑</p>
+<p><strong>修正后的理解：</strong></p>
+<ul>
+  <li>决策记录显示"本地 Docker + 远程 K8s 双运行时"</li>
+  <li>但这可能是<strong>长期目标</strong>，不一定是阶段一的强制要求</li>
+</ul>
+<p><strong>评审结论：</strong>需确认优先级。如果阶段一必须支持双 Runtime，则需要先统一接口定义；如果可以先只支持 Docker，K8s 推迟到 v1.1，则当前方案可接受。</p>
+<p><strong>建议：</strong>在 TRD §8 中明确阶段一的 Runtime 支持范围。</p>
+</div>
+</div>
+
+<h3 id="s3-3">3.3 已解决的问题</h3>
+
+<div class="review-item resolved">
+<div class="review-title">3.3.1 状态机不一致问题（原 P1 问题）</div>
+<div class="review-status"><span class="tag tag-green">已解决</span> <span class="tag tag-blue">文档一致性</span></div>
+<div class="review-body">
+<p><strong>原评审观点：</strong>TRD 的状态常量与 BRD 定义的 7 状态不一致</p>
+<p><strong>实际情况：</strong></p>
+<ul>
+  <li>查看 model/task.go 第 8-18 行，确实定义了 9 个状态常量</li>
+  <li>BRD-v2 §3.3 明确去掉了 waiting_approval 和 retrying</li>
+</ul>
+<p><strong>评审结论：</strong>仍需修正。这是文档一致性问题，不影响技术可行性，但应统一。</p>
+<p><strong>建议：</strong></p>
+<ul>
+  <li>删除 model/task.go 中的 TaskStatusWaitingApproval 和 TaskStatusRetrying</li>
+  <li>更新 TRD §7.2 的 Task 模型定义</li>
+  <li>确保所有文档（BRD/PRD/TRD/code）的状态机定义一致</li>
+</ul>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="s4">4 · 修订后的风险评估</h2>
+
+<table>
+  <tr><th>风险项</th><th>概率</th><th>影响</th><th>严重度</th><th>缓解措施</th><th>状态</th></tr>
+  <tr>
+    <td>Issue→Task 字段映射不明确导致返工</td>
+    <td>高</td>
+    <td>中</td>
+    <td><span class="status-partial">中</span></td>
+    <td>补充字段映射表</td>
+    <td><span class="tag tag-amber">待处理</span></td>
+  </tr>
+  <tr>
+    <td>Agent SOP 实现方式不清晰</td>
+    <td>中</td>
+    <td>中</td>
+    <td><span class="status-partial">中</span></td>
+    <td>明确 Template→Agent 指令转换机制</td>
+    <td><span class="tag tag-amber">待处理</span></td>
+  </tr>
+  <tr>
+    <td>Scheduler 紧耦合导致后续重构成本</td>
+    <td>低</td>
+    <td>低</td>
+    <td><span class="status-done">低</span></td>
+    <td>文档标注 MVP 简化，规划 v1.2 重构</td>
+    <td><span class="tag tag-green">已接受</span></td>
+  </tr>
+  <tr>
+    <td>加密密钥泄露（内部环境）</td>
+    <td>低</td>
+    <td>中</td>
+    <td><span class="status-done">低</span></td>
+    <td>.gitignore 保护 config 文件</td>
+    <td><span class="tag tag-green">已接受</span></td>
+  </tr>
+  <tr>
+    <td>DevOps API 适配工作量被低估</td>
+    <td>低</td>
+    <td>低</td>
+    <td><span class="status-done">低</span></td>
+    <td>单一平台，复杂度可控</td>
+    <td><span class="tag tag-green">已接受</span></td>
+  </tr>
+  <tr>
+    <td>状态机不一致导致业务逻辑 bug</td>
+    <td>中</td>
+    <td>低</td>
+    <td><span class="status-done">低</span></td>
+    <td>统一文档定义，删除冗余状态</td>
+    <td><span class="tag tag-amber">待处理</span></td>
+  </tr>
+  <tr>
+    <td>K8s/Docker 接口不兼容</td>
+    <td>中</td>
+    <td>中</td>
+    <td><span class="status-partial">中</span></td>
+    <td>确认阶段一是否必须支持双 Runtime</td>
+    <td><span class="tag tag-amber">待确认</span></td>
+  </tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="s5">5 · 改进建议优先级</h2>
+
+<h3>P1 — 进入开发前必须补充</h3>
+
+<ol>
+  <li><strong>补充 Issue → Task 字段映射设计</strong>
+    <ul>
+      <li>在 TRD §5.1 或 §7 中增加映射表</li>
+      <li>明确哪些字段可编辑、哪些自动填充</li>
+      <li>说明 Template 参数与 Issue 字段的优先级关系</li>
+    </ul>
+  </li>
+  <li><strong>明确 Agent SOP 的技术实现机制</strong>
+    <ul>
+      <li>Template success_criteria 如何传递给 Agent</li>
+      <li>Agent 如何执行自检命令</li>
+      <li>SOP 循环的控制逻辑（重试次数、超时、退避）</li>
+    </ul>
+  </li>
+  <li><strong>统一状态机定义</strong>
+    <ul>
+      <li>删除 waiting_approval 和 retrying 状态</li>
+      <li>确保 BRD/PRD/TRD/code 四者一致</li>
+    </ul>
+  </li>
+</ol>
+
+<h3>P2 — 建议优化（不影响 MVP 实施）</h3>
+
+<ol>
+  <li><strong>明确阶段一 Runtime 支持范围</strong>
+    <ul>
+      <li>如果只支持 Docker，在 TRD 中明确标注</li>
+      <li>如果必须支持双 Runtime，补充接口统一方案</li>
+    </ul>
+  </li>
+  <li><strong>增加 MVP 限制说明</strong>
+    <ul>
+      <li>在安全设计章节说明密钥管理的简化策略</li>
+      <li>标注哪些是临时方案、哪些是长期架构</li>
+    </ul>
+  </li>
+</ol>
+
+<!-- ============================================================ -->
+<h2 id="s6">6 · 技术方案成熟度评估（修订后）</h2>
+
+<table>
+  <tr><th>模块</th><th>原成熟度</th><th>修订后成熟度</th><th>变化原因</th></tr>
+  <tr><td>Auth Middleware</td><td>60%</td><td>75%</td><td>确认为 MVP 合理简化</td></tr>
+  <tr><td>Scheduler Dispatcher</td><td>40%</td><td>70%</td><td>接受紧耦合作为 MVP 策略</td></tr>
+  <tr><td>DevOps Integration</td><td>50%</td><td>75%</td><td>单一平台降低复杂度</td></tr>
+  <tr><td>Credential Manager</td><td>70%</td><td>80%</td><td>接受简化的密钥管理</td></tr>
+  <tr><td>Template Preset</td><td>90%</td><td>90%</td><td>无变化</td></tr>
+  <tr><td>Metrics Implementation</td><td>85%</td><td>85%</td><td>无变化</td></tr>
+  <tr><td>WebSocket Auth</td><td>75%</td><td>75%</td><td>无变化</td></tr>
+  <tr><td>K8s Wire Up</td><td>50%</td><td>60%</td><td>需确认优先级</td></tr>
+  <tr><td><strong>Issue→Task 映射</strong></td><td>N/A</td><td>40%</td><td><strong>新增待补充项</strong></td></tr>
+  <tr><td><strong>Agent SOP 机制</strong></td><td>N/A</td><td>50%</td><td><strong>新增待澄清项</strong></td></tr>
+</table>
+
+<p><strong>整体成熟度：72%</strong>（原 65%）—— <strong>可以进入开发，但需先补充 2 项设计细节</strong></p>
+
+<!-- ============================================================ -->
+<h2 id="s7">7 · 最终评审结论</h2>
+
+<div class="verdict-box">
+<h3>评审结果：通过</h3>
+<p>TRD-v2.html 技术方向正确、架构合理。仅需补充 Issue→Task 字段映射设计和 Agent SOP 技术实现机制 2 项 P1 设计细节，即可进入开发阶段。</p>
+</div>
+
+<h3>通过条件（必须满足）</h3>
+
+<ol>
+  <li>✅ 补充 Issue → Task 字段映射设计（P1）</li>
+  <li>✅ 明确 Agent SOP 的技术实现机制（P1）</li>
+  <li>✅ 统一状态机定义，删除冗余状态（P1）</li>
+</ol>
+
+<h3>可选优化</h3>
+
+<ol>
+  <li>⚪ 明确阶段一 Runtime 支持范围（P2）</li>
+  <li>⚪ 增加 MVP 限制说明文档（P2）</li>
+</ol>
+
+<h3>不再要求的条件（已确认为合理简化）</h3>
+
+<ul>
+  <li><del>修正 Scheduler-Executor 耦合设计</del> → 接受为 MVP 策略</li>
+  <li><del>完善 Credential 密钥轮换方案</del> → MVP 阶段可简化</li>
+  <li><del>重构 DevOps 适配器为插件化</del> → 单一平台无需过度设计</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="s8">8 · 下一步行动建议</h2>
+
+<h3>立即行动（1-2 天内）</h3>
+
+<ol>
+  <li><strong>补充 Issue → Task 字段映射表</strong>
+    <ul>
+      <li>与产品经理确认 DevOps API 返回的字段结构</li>
+      <li>确定哪些字段需要用户可编辑</li>
+      <li>更新 TRD 文档</li>
+    </ul>
+  </li>
+  <li><strong>明确 Agent SOP 实现方案</strong>
+    <ul>
+      <li>与 Agent 开发团队确认 success_criteria 的传递方式</li>
+      <li>设计自检命令的执行和结果解析机制</li>
+      <li>更新 TRD 文档或在 PRD 中补充技术说明</li>
+    </ul>
+  </li>
+  <li><strong>统一状态机定义</strong>
+    <ul>
+      <li>修改 model/task.go 删除冗余状态</li>
+      <li>更新 TRD §7.2</li>
+      <li>检查所有引用状态的地方是否一致</li>
+    </ul>
+  </li>
+</ol>
+
+<h3>短期行动（1 周内）</h3>
+
+<ol>
+  <li><strong>确认 Runtime 支持策略</strong>
+    <ul>
+      <li>与基础设施团队确认阶段一是否必须支持 K8s</li>
+      <li>如果否，在 TRD 中标注"Docker only for Phase 1"</li>
+      <li>如果是，补充统一的 Runtime 接口设计</li>
+    </ul>
+  </li>
+  <li><strong>召开开发启动会</strong>
+    <ul>
+      <li>向开发团队传达评审结论和补充的设计细节</li>
+      <li>明确 P1 任务的优先级</li>
+      <li>确定开发里程碑和验收标准</li>
+    </ul>
+  </li>
+</ol>
+
+<!-- ============================================================ -->
+<hr>
+
+<h3>📝 评审总结</h3>
+
+<p>经过补充信息的修订，TRD-v2.html 的技术方案<strong>整体可行、方向正确</strong>。原评审中的大部分"重大问题"实际上是<strong>合理的 MVP 简化策略</strong>，符合"快速验证核心闭环"的阶段一目标。</p>
+
+<p><strong>核心优势：</strong></p>
+<ul>
+  <li>✅ 技术选型务实，复用现有代码</li>
+  <li>✅ 模块职责清晰，符合 Deep Module 原则</li>
+  <li>✅ 安全方案满足内部环境需求</li>
+  <li>✅ 架构预留扩展点，支持渐进式演进</li>
+</ul>
+
+<p><strong>需要补充的关键细节：</strong></p>
+<ul>
+  <li>⚠️ Issue → Task 字段映射规则</li>
+  <li>⚠️ Agent SOP 的技术实现机制</li>
+  <li>⚠️ 状态机定义的统一</li>
+</ul>
+
+<p><strong>建议：</strong>在补充上述 3 项 P1 设计细节后，即可进入开发阶段。其他优化项可以在开发过程中并行完善。</p>
+
+<hr>
+
+<p style="text-align:center;color:var(--muted);font-size:.85rem;margin-top:2rem;">
+  — 评审结束 · TRD-v2.html Review v2.0（修订版）· 2026-05-14 —
+</p>
+
+</body>
+</html>
