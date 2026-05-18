@@ -16,18 +16,19 @@ type DBChecker interface {
 }
 
 // Setup initializes the gin router with all routes.
-func Setup(tenantSvc service.TenantService, templateSvc service.TemplateService, taskSvc service.TaskService, providerSvc service.ProviderService, capabilitySvc service.CapabilityService, monitorSvc service.MonitoringService, hub *monitoring.Hub, interventionSvc service.InterventionService, db DBChecker) *gin.Engine {
+func Setup(tenantSvc service.TenantService, templateSvc service.TemplateService, taskSvc service.TaskService, providerSvc service.ProviderService, capabilitySvc service.CapabilityService, monitorSvc service.MonitoringService, hub *monitoring.Hub, interventionSvc service.InterventionService, apiKeySvc service.APIKeyService, userSvc service.UserService, db DBChecker) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(middleware.Logger())
 
-	// Health check endpoints
+	// Health check endpoints (no auth required)
 	r.GET("/health", handler.HealthCheck)
 	readyHandler := handler.NewReadyCheckHandler(db)
 	r.GET("/ready", readyHandler.ReadyCheck)
 
-	// API v1 routes
+	// API v1 routes (all protected with API Key auth)
 	v1 := r.Group("/api/v1")
+	v1.Use(middleware.APIKeyAuth(apiKeySvc, userSvc))
 
 	// Create handlers that are shared between route groups
 	interventionHandler := handler.NewInterventionHandler(interventionSvc)
@@ -73,9 +74,16 @@ func Setup(tenantSvc service.TenantService, templateSvc service.TemplateService,
 		tasks.POST("/:id/inject", interventionHandler.Inject)
 		tasks.GET("/:id/interventions", interventionHandler.ListInterventions)
 
+		// API Key routes
+		apiKeyHandler := handler.NewAPIKeyHandler(apiKeySvc)
+		apiKeys := v1.Group("/api-keys")
+		{
+			apiKeys.POST("", apiKeyHandler.Create)
+			apiKeys.GET("", apiKeyHandler.List)
+			apiKeys.DELETE("/:id", apiKeyHandler.Revoke)
+		}
+
 		// Provider routes
-		// TODO: Add auth middleware when available. SetDefault requires user_id from context.
-		// GetAvailable benefits from tenant_id/user_id context for personalized results.
 		providerHandler := handler.NewProviderHandler(providerSvc)
 		providers := v1.Group("/providers")
 		{
