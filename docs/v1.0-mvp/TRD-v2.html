@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agentic Coding Platform — 技术需求文档 v3.0（阶段一）</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a2e;--muted:#6b7280;--accent:#3b82f6;--accent-light:#eff6ff;--border:#e5e7eb;--code-bg:#f8f9fa;--card-bg:#f9fafb;--green:#059669;--green-light:#ecfdf5;--amber:#d97706;--amber-light:#fffbeb;--red:#dc2626;--red-light:#fef2f2;--purple:#7c3aed;--purple-light:#faf5ff}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:var(--fg);background:var(--bg);line-height:1.7;padding:2rem 1rem;max-width:960px;margin:0 auto}
+h1{font-size:1.8rem;font-weight:700;margin-bottom:.25rem}
+h1 .subtitle{display:block;font-size:.9rem;color:var(--muted);font-weight:400;margin-top:.25rem;margin-bottom:1rem}
+.meta{display:flex;gap:1.5rem;flex-wrap:wrap;font-size:.85rem;color:var(--muted);margin-bottom:2rem;padding:.8rem 1rem;background:var(--card-bg);border:1px solid var(--border);border-radius:8px}
+.meta strong{color:var(--fg)}
+h2{font-size:1.35rem;font-weight:700;margin-top:2.5rem;margin-bottom:1rem;padding-left:.75rem;border-left:4px solid var(--accent)}
+h3{font-size:1.1rem;font-weight:600;margin-top:1.8rem;margin-bottom:.75rem}
+h4{font-size:1rem;font-weight:600;margin-top:1.3rem;margin-bottom:.5rem}
+h5{font-size:.95rem;font-weight:600;margin-top:1rem;margin-bottom:.4rem}
+p{font-size:.95rem;margin-bottom:.75rem}
+ul,ol{margin-left:1.5rem;margin-bottom:.75rem}li{margin-bottom:.3rem;font-size:.95rem}
+strong{font-weight:600}
+table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:.9rem}
+th,td{border:1px solid var(--border);padding:.55rem .8rem;text-align:left;vertical-align:top}
+th{background:var(--accent-light);font-weight:600;white-space:nowrap}
+tr:nth-child(even) td{background:var(--card-bg)}
+blockquote{border-left:4px solid var(--accent);background:var(--accent-light);padding:.75rem 1rem;margin:1rem 0;border-radius:0 6px 6px 0}
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:6px;padding:1rem;margin:1rem 0;overflow-x:auto;font-size:.85rem;line-height:1.5}
+code{background:var(--code-bg);padding:.15em .3em;border-radius:3px;font-size:.88rem}
+pre code{background:none;padding:0}
+.card{border:1px solid var(--border);border-radius:8px;padding:1.25rem;margin:1rem 0;background:var(--card-bg)}
+.card h4{margin-top:0}.card p:last-child{margin-bottom:0}
+.tag{display:inline-block;border-radius:4px;padding:.1em .5em;font-size:.8rem;font-weight:500;margin-right:.3rem}
+.tag-blue{background:var(--accent-light);color:#2563eb}
+.tag-green{background:var(--green-light);color:var(--green)}
+.tag-amber{background:var(--amber-light);color:var(--amber)}
+.tag-red{background:var(--red-light);color:var(--red)}
+.tag-purple{background:var(--purple-light);color:var(--purple)}
+.flow-box{display:flex;flex-direction:column;align-items:center;gap:0;margin:1.5rem 0}
+.flow-row{display:flex;align-items:center;gap:.4rem;justify-content:center;flex-wrap:wrap}
+.flow-node{border:2px solid var(--border);border-radius:8px;padding:.5rem 1.1rem;font-weight:500;font-size:.9rem;background:var(--card-bg);text-align:center}
+.flow-node.accent{border-color:var(--accent);background:var(--accent-light);color:#1d4ed8;font-weight:600}
+.flow-node.green{border-color:var(--green);background:var(--green-light);color:var(--green);font-weight:600}
+.flow-node.amber{border-color:var(--amber);background:var(--amber-light);color:#92400e;font-weight:600}
+.flow-arrow{color:var(--muted);font-size:1.1rem;margin:0 .1rem}
+.flow-arrow-down{color:var(--muted);font-size:1rem;text-align:center;margin:.2rem 0}
+hr{border:none;border-top:2px solid var(--border);margin:3rem 0}
+.toc{background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1.25rem 1.5rem;margin:1.5rem 0}
+.toc h3{margin-top:0;margin-bottom:.75rem;font-size:1rem}
+.toc ol,.toc ul{margin-left:1.25rem}.toc li{margin-bottom:.2rem;font-size:.9rem}
+.toc a{color:var(--accent);text-decoration:none}.toc a:hover{text-decoration:underline}
+.file{font-family:monospace;font-size:.88rem;background:var(--code-bg);padding:.15em .4em;border-radius:3px}
+.status{display:inline-block;width:.7rem;height:.7rem;border-radius:50%;margin-right:.3rem;vertical-align:middle}
+.status-done{background:var(--green)}
+.status-partial{background:var(--amber)}
+.status-missing{background:var(--red)}
+@media(max-width:640px){body{padding:1rem .75rem}h1{font-size:1.4rem}.flow-row{flex-direction:column}}
+</style>
+</head>
+<body>
+
+<h1>Agentic Coding Platform<br><span class="subtitle">技术需求文档 · v3.1（阶段一）· 2026-05-14</span></h1>
+
+<div class="meta">
+  <span><strong>版本</strong> v3.1</span>
+  <span><strong>日期</strong> 2026-05-14</span>
+  <span><strong>范围</strong> 阶段一（单 Agent 编码闭环）</span>
+  <span><strong>关联</strong> <a href="BRD-v2.html">BRD v1.0</a> · <a href="prd-v2.html">PRD v2.0</a></span>
+  <span><strong>替代</strong> TRD v2.5（2026-03-28）</span>
+</div>
+
+<nav class="toc">
+<h3>目录</h3>
+<ol>
+  <li><a href="#s1">概述</a></li>
+  <li><a href="#s2">代码现状评估</a></li>
+  <li><a href="#s3">系统架构</a></li>
+  <li><a href="#s4">新增模块设计</a>
+    <ul>
+      <li><a href="#s4-1">4.1 Auth Middleware</a></li>
+      <li><a href="#s4-2">4.2 Scheduler Dispatcher</a></li>
+      <li><a href="#s4-3">4.3 DevOps Integration Service</a></li>
+      <li><a href="#s4-4">4.4 Credential Manager</a></li>
+    </ul>
+  </li>
+  <li><a href="#s5">DevOps Integration Design</a>
+    <ul>
+      <li><a href="#s5-1">5.1 数据层级与字段映射</a></li>
+      <li><a href="#s5-2">5.2 任务创建交互流</a></li>
+      <li><a href="#s5-3">5.3 MCP Server 沙箱集成</a></li>
+      <li><a href="#s5-4">5.4 MVP 范围说明</a></li>
+    </ul>
+  </li>
+  <li><a href="#s6">修改模块设计</a>
+    <ul>
+      <li><a href="#s6-1">6.1 Template Preset + Task Resolution</a></li>
+      <li><a href="#s6-2">6.2 Metrics Implementation</a></li>
+      <li><a href="#s6-3">6.3 WebSocket Auth</a></li>
+    </ul>
+  </li>
+  <li><a href="#s7">API 设计</a></li>
+  <li><a href="#s8">数据模型变更</a></li>
+  <li><a href="#s9">部署架构</a></li>
+  <li><a href="#s10">安全设计</a></li>
+  <li><a href="#s11">测试策略</a></li>
+</ol>
+</nav>
+
+<!-- ████████████████████████████████████████████████████████████ -->
+<h2 id="s1">1 · 概述</h2>
+
+<h3>1.1 文档目的</h3>
+<p>本文档定义 Agentic Coding Platform 阶段一的技术实现方案，基于 <a href="prd-v2.html">PRD v2.0</a> 和当前代码现状，聚焦于<strong>新增模块</strong>的技术设计和<strong>现有模块</strong>的变更方案。</p>
+
+<h3>1.2 技术栈</h3>
+
+<table>
+  <tr><th>层</th><th>技术</th><th>说明</th></tr>
+  <tr><td>后端</td><td>Go 1.21 + Gin 1.9 + GORM 1.25</td><td>现有实现，不变</td></tr>
+  <tr><td>前端</td><td>React 18 + TypeScript 5 + Ant Design 5 + Vite 5</td><td>现有骨架，后补</td></tr>
+  <tr><td>沙箱 Wrapper</td><td>Python 3 + FastAPI + Claude Agent SDK</td><td>现有实现，不变</td></tr>
+  <tr><td>数据库</td><td>MySQL 兼容（生产）/ SQLite（本地）</td><td>现有实现，不变</td></tr>
+  <tr><td>缓存/队列</td><td>Redis（生产）/ miniredis（本地）</td><td>现有实现，不变</td></tr>
+  <tr><td>容器运行时</td><td>Docker Compose（本地）+ K8s Job（远程）</td><td>现有实现，K8s 需 wire up</td></tr>
+  <tr><td>Agent 运行时</td><td>Claude Code CLI</td><td>单 Provider，不变</td></tr>
+</table>
+
+<h3>1.3 设计原则</h3>
+
+<table>
+  <tr><th>原则</th><th>说明</th></tr>
+  <tr><td>复用已有代码</td><td>CRUD 层、Service 层、Executor、Wrapper 已实现，不重写，只补关键缺口</td></tr>
+  <tr><td>Deep Module</td><td>新增模块封装复杂度、暴露简洁接口、可独立测试</td></tr>
+  <tr><td>API 先行</td><td>先完善后端 API 和认证，前端 UI 后补</td></tr>
+  <tr><td>渐进增强</td><td>Agent SOP 由 skill/CLAUDE.md 定义；平台负责注入基础设施（MCP Server 地址、凭证）；外层 MCP Server 就绪后自动可用</td></tr>
+</table>
+
+<!-- ████████████████████████████████████████████████████████████ -->
+<h2 id="s2">2 · 代码现状评估</h2>
+
+<h3>2.1 模块完成度</h3>
+
+<table>
+  <tr><th>模块</th><th>完成度</th><th>状态</th></tr>
+  <tr><td>Config（配置管理）</td><td>100%</td><td><span class="status status-done"></span>SQLite/MySQL + miniredis/Redis 双模式</td></tr>
+  <tr><td>Model（数据模型）</td><td>100%</td><td><span class="status status-done"></span>10 个 GORM model</td></tr>
+  <tr><td>Repository（数据访问）</td><td>100%</td><td><span class="status status-done"></span>7 个 repository 全部实现</td></tr>
+  <tr><td>Service（业务逻辑）</td><td>95%</td><td><span class="status status-done"></span>7 个 service 全部实现</td></tr>
+  <tr><td>API Handler（HTTP 接口）</td><td>75%</td><td><span class="status status-partial"></span>CRUD 完整，Metrics 返回 stub</td></tr>
+  <tr><td>Auth Middleware（认证）</td><td>5%</td><td><span class="status status-missing"></span>只有 internal_auth（wrapper 回调），用户侧裸奔</td></tr>
+  <tr><td>Scheduler（调度）</td><td>70%</td><td><span class="status status-partial"></span>队列 + 限流 + 抢占已实现，<strong>消费循环缺失</strong></td></tr>
+  <tr><td>Executor（执行）</td><td>85%</td><td><span class="status status-partial"></span>Docker runtime 可用，K8s 未 wire up</td></tr>
+  <tr><td>Wrapper（沙箱侧）</td><td>85%</td><td><span class="status status-partial"></span>FastAPI + Agent SDK 可用</td></tr>
+  <tr><td>Monitoring（监控）</td><td>60%</td><td><span class="status status-partial"></span>WS Hub 可用，Metrics 是 stub</td></tr>
+  <tr><td>Migration/Seed</td><td>100%</td><td><span class="status status-done"></span>AutoMigrate + 种子数据</td></tr>
+  <tr><td>Frontend（前端）</td><td>10%</td><td><span class="status status-missing"></span>只有空骨架</td></tr>
+  <tr><td>DevOps 集成</td><td>0%</td><td><span class="status status-missing"></span>待新建</td></tr>
+  <tr><td>Credential Manager</td><td>0%</td><td><span class="status status-missing"></span>待新建</td></tr>
+</table>
+
+<h3>2.2 关键缺口</h3>
+
+<table>
+  <tr><th>优先级</th><th>缺口</th><th>影响</th><th>方案</th></tr>
+  <tr><td><span class="tag tag-red">P0</span></td><td>无用户认证</td><td>所有 API 裸奔</td><td>新建 Auth Middleware（§4.1）</td></tr>
+  <tr><td><span class="tag tag-red">P0</span></td><td>Scheduler 无消费循环</td><td>任务入队后不执行</td><td>修改 Scheduler（§4.2）</td></tr>
+  <tr><td><span class="tag tag-amber">P1</span></td><td>无 DevOps 集成</td><td>无法拉取任务/创建 MR</td><td>新建 DevOps Service（§4.3）</td></tr>
+  <tr><td><span class="tag tag-amber">P1</span></td><td>无凭证管理</td><td>无法安全注入用户 token</td><td>新建 Credential Manager（§4.4）</td></tr>
+  <tr><td><span class="tag tag-amber">P1</span></td><td>K8s Runtime 未接入</td><td>部分团队成员无法用 Docker</td><td>Wire up K8s（§8）</td></tr>
+  <tr><td><span class="tag tag-blue">P2</span></td><td>Metrics 是 stub</td><td>监控不可用</td><td>实现 DB 查询（§5.2）</td></tr>
+  <tr><td><span class="tag tag-blue">P2</span></td><td>WS 无认证</td><td>任何人可订阅事件</td><td>修改 WS Handler（§5.3）</td></tr>
+  <tr><td><span class="tag tag-blue">P2</span></td><td>前端空壳</td><td>无 UI</td><td>后补（PRD §5）</td></tr>
+</table>
+
+<h2 id="s3">3 · 系统架构</h2>
+
+<h3>3.1 整体架构</h3>
+
+<p>三层架构，应用层为核心。展现层轻量，基础设施层按需切换本地/远程。</p>
+
+<div style="margin:1.5rem 0">
+
+  <!-- 展现层：轻量标签条 -->
+  <div style="display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;padding:.5rem 1rem;background:var(--accent-light);border:1.5px solid var(--accent);border-radius:8px;margin-bottom:.3rem">
+    <strong style="color:#1d4ed8;font-size:.88rem">展现层</strong>
+    <span style="font-size:.78rem;color:var(--muted)">React SPA</span>
+    <span style="background:#fff;border:1px solid #bfdbfe;border-radius:4px;padding:.15rem .5rem;font-size:.78rem">工作台</span>
+    <span style="background:#fff;border:1px solid #bfdbfe;border-radius:4px;padding:.15rem .5rem;font-size:.78rem">Issue 列表</span>
+    <span style="background:#fff;border:1px solid #bfdbfe;border-radius:4px;padding:.15rem .5rem;font-size:.78rem">任务列表</span>
+    <span style="background:#fff;border:1px solid #bfdbfe;border-radius:4px;padding:.15rem .5rem;font-size:.78rem">任务详情</span>
+    <span style="background:#fff;border:1px solid #bfdbfe;border-radius:4px;padding:.15rem .5rem;font-size:.78rem">设置</span>
+  </div>
+
+  <div style="text-align:center;font-size:.75rem;color:var(--muted);margin:.15rem 0">HTTPS</div>
+
+  <!-- 应用层：核心大框 -->
+  <div style="border:2px solid var(--border);background:var(--card-bg);border-radius:12px;padding:1.2rem 1.5rem;margin-bottom:.3rem">
+    <div style="display:flex;align-items:baseline;gap:.5rem;margin-bottom:1rem">
+      <strong style="font-size:1.05rem">应用层</strong>
+      <span style="font-size:.8rem;color:var(--muted)">Go + Gin · 模块化单体</span>
+    </div>
+
+    <div style="display:flex;gap:1rem;flex-wrap:wrap">
+      <!-- 左栏：请求链路 -->
+      <div style="flex:0 0 auto;min-width:200px">
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.5rem;font-weight:500">请求链路</div>
+        <div style="display:flex;flex-direction:column;gap:.4rem;align-items:flex-start">
+          <div style="border:1.5px solid var(--purple);background:var(--purple-light);border-radius:6px;padding:.35rem .7rem;font-size:.82rem;font-weight:500;color:var(--purple);width:100%">Auth Middleware</div>
+          <div style="margin-left:1rem;color:var(--muted);font-size:.7rem">↓</div>
+          <div style="border:1.5px solid var(--amber);background:var(--amber-light);border-radius:6px;padding:.35rem .7rem;font-size:.82rem;font-weight:500;color:#92400e;width:100%">Handler</div>
+          <div style="margin-left:1rem;color:var(--muted);font-size:.7rem">↓</div>
+          <div style="border:1.5px solid var(--green);background:var(--green-light);border-radius:6px;padding:.35rem .7rem;font-size:.82rem;font-weight:500;color:var(--green);width:100%">Service 层</div>
+        </div>
+      </div>
+
+      <!-- 右栏：核心模块 -->
+      <div style="flex:1;min-width:300px">
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.5rem;font-weight:500">核心模块</div>
+        <div style="display:flex;flex-direction:column;gap:.5rem">
+          <div style="border:1.5px solid var(--accent);background:var(--accent-light);border-radius:8px;padding:.45rem .8rem">
+            <div style="font-weight:600;color:#1d4ed8;font-size:.85rem">Core Engine</div>
+            <div style="font-size:.78rem;color:var(--muted);margin-top:.1rem">Scheduler（队列 · 限流 · 消费循环）· Executor（Docker · K8s）</div>
+          </div>
+          <div style="border:1.5px solid var(--red);background:var(--red-light);border-radius:8px;padding:.45rem .8rem">
+            <div style="font-weight:600;color:var(--red);font-size:.85rem">DevOps Integration</div>
+            <div style="font-size:.78rem;color:var(--muted);margin-top:.1rem">任务列表拉取 · MR 创建 · CI/CD 状态查询</div>
+          </div>
+          <div style="border:1.5px solid var(--amber);background:var(--amber-light);border-radius:8px;padding:.45rem .8rem">
+            <div style="font-weight:600;color:#92400e;font-size:.85rem">Credential Manager</div>
+            <div style="font-size:.78rem;color:var(--muted);margin-top:.1rem">AES-256-GCM 加密存储 · 沙箱环境变量注入</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center;font-size:.75rem;color:var(--muted);margin:.15rem 0">GORM · Redis · Docker/K8s</div>
+
+  <!-- 基础设施层：三列简洁 -->
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+    <div style="flex:1;min-width:180px;border:1.5px solid var(--border);background:var(--card-bg);border-radius:8px;padding:.5rem .8rem;text-align:center">
+      <div style="font-weight:600;font-size:.82rem">数据层</div>
+      <div style="font-size:.75rem;color:var(--muted)">MySQL / SQLite</div>
+    </div>
+    <div style="flex:1;min-width:180px;border:1.5px solid var(--border);background:var(--card-bg);border-radius:8px;padding:.5rem .8rem;text-align:center">
+      <div style="font-weight:600;font-size:.82rem">缓存 / 队列</div>
+      <div style="font-size:.75rem;color:var(--muted)">Redis / miniredis</div>
+    </div>
+    <div style="flex:1;min-width:180px;border:1.5px solid var(--border);background:var(--card-bg);border-radius:8px;padding:.5rem .8rem;text-align:center">
+      <div style="font-weight:600;font-size:.82rem">执行层</div>
+      <div style="font-size:.75rem;color:var(--muted)">Docker / K8s Job</div>
+    </div>
+  </div>
+
+</div>
+
+<h3>3.2 核心数据流</h3>
+
+<h4>3.2.1 任务创建</h4>
+
+<div class="flow-box">
+  <div class="flow-row">
+    <div class="flow-node">浏览需求</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node">选择子任务</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node">选模板 + 编辑</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node accent">POST /tasks</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node green">TaskService.Create()</div>
+  </div>
+</div>
+<div class="card" style="margin-top:.3rem">
+  <p style="font-size:.82rem;color:var(--muted);margin-bottom:.4rem"><strong>Create() 内部四步：</strong></p>
+  <div style="display:flex;gap:1.5rem;flex-wrap:wrap;font-size:.85rem">
+    <span><span class="tag tag-blue">Prefill</span> 通过 devops_subtask_id 获取子任务+需求信息，预填字段</span>
+    <span><span class="tag tag-green">Resolve</span> TemplateService — 填充内容到模板</span>
+    <span><span class="tag tag-amber">Credential</span> CredentialManager — 构建沙箱环境变量</span>
+    <span><span class="tag tag-purple">Schedule</span> Scheduler — 任务入队等待调度</span>
+  </div>
+</div>
+
+<h4>3.2.2 调度与执行</h4>
+
+<p>三阶段流水线：调度出队 → 沙箱启动 → Agent 闭环执行。</p>
+
+<div class="flow-box">
+
+  <!-- 阶段 1: 调度 -->
+  <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;padding:.5rem 1rem;background:var(--accent-light);border:1.5px solid #bfdbfe;border-radius:8px">
+    <span style="color:#1d4ed8;font-size:.78rem;font-weight:700;min-width:70px">① 调度</span>
+    <div class="flow-node" style="font-size:.82rem">Dequeue</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node" style="font-size:.82rem">RateLimit</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node accent" style="font-size:.82rem">Executor</div>
+  </div>
+  <div class="flow-arrow-down">↓</div>
+
+  <!-- 阶段 2: 沙箱 -->
+  <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;padding:.5rem 1rem;background:var(--card-bg);border:1.5px solid var(--border);border-radius:8px">
+    <span style="font-size:.78rem;font-weight:700;color:var(--fg);min-width:70px">② 沙箱</span>
+    <div class="flow-node" style="font-size:.82rem">创建容器</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node" style="font-size:.82rem">注入凭证</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node" style="font-size:.82rem">Clone</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node green" style="font-size:.82rem">启动 Wrapper</div>
+  </div>
+  <div class="flow-arrow-down">↓</div>
+
+  <!-- 阶段 3: Agent 闭环（主线） -->
+  <div style="padding:.5rem 1rem;background:var(--green-light);border:1.5px solid #a7f3d0;border-radius:8px">
+    <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+      <span style="color:var(--green);font-size:.78rem;font-weight:700;min-width:70px">③ Agent</span>
+      <div class="flow-node" style="font-size:.82rem">编码</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-node amber" style="font-size:.82rem">自检</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-node" style="font-size:.82rem">Push</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-node amber" style="font-size:.82rem">CI/CD</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-node accent" style="font-size:.82rem">创建 MR</div>
+    </div>
+    <!-- 循环分支：另起一行 -->
+    <div style="display:flex;gap:2rem;margin-top:.4rem;padding-top:.4rem;border-top:1px dashed #a7f3d0;flex-wrap:wrap">
+      <span style="font-size:.78rem;color:#92400e">自检失败 → 修复 → 回到编码 ⟲</span>
+      <span style="font-size:.78rem;color:#92400e">CI/CD 失败 → 修复 → 回到编码 ⟲</span>
+      <span style="font-size:.78rem;color:var(--muted)">完成 → POST /callback → WS 推送</span>
+    </div>
+  </div>
+
+</div>
+
+<h4>3.2.3 身份传递</h4>
+
+<div class="flow-box">
+  <div class="flow-row">
+    <div class="flow-node accent">用户 API Key</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node">Auth Middleware</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node">ctx(user_id)</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node green">CredentialMgr</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node amber">AES 解密</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node accent">沙箱环境变量</div>
+  </div>
+  <div style="text-align:center;margin-top:.4rem;font-size:.82rem;color:var(--muted)">
+    最终注入 <span class="tag tag-green">GIT_TOKEN</span>（push / MR）+ <span class="tag tag-blue">DEVOPS_TOKEN</span>（MCP Server 调用），所有外部操作代表用户身份
+  </div>
+</div>
+<h2 id="s4">4 · 新增模块设计</h2>
+
+<h3 id="s4-1">4.1 Auth Middleware</h3>
+
+<h4>职责</h4>
+<p>校验请求中的 API Key，查询对应的 User 和 Tenant，注入到 Gin Context。</p>
+
+<h4>接口</h4>
+<pre>
+// internal/api/middleware/auth.go
+
+func APIKeyAuth(apiKeyRepo repository.APIKeyRepository) gin.HandlerFunc {
+    // 从 Header 提取: X-API-Key 或 Authorization: Bearer xxx
+    // 查询数据库: WHERE key_hash = SHA256(prefix + key)
+    // 校验: 过期时间
+    // 注入: ctx.Set("user_id", ...), ctx.Set("tenant_id", ...)
+    // 更新: last_used_at
+}
+</pre>
+
+<h4>路由应用</h4>
+<pre>
+public := r.Group("/")
+public.GET("/health", handler.HealthCheck)
+
+api := r.Group("/api/v1")
+api.Use(middleware.APIKeyAuth(apiKeyRepo))  // 新增
+{
+    api.GET("/tasks", handler.ListTasks)
+    // ...所有现有路由
+}
+
+internal := r.Group("/internal")
+internal.Use(middleware.InternalAuth())     // 已有，不变
+</pre>
+
+<h4>SSO 扩展点</h4>
+<pre>
+type Authenticator interface {
+    Authenticate(c *gin.Context) (*UserContext, error)
+}
+// 一阶段: APIKeyAuthenticator
+// 后续:  OAuthAuthenticator（替换实现即可）
+</pre>
+
+<h4>API Key 安全</h4>
+<ul>
+  <li>存储：前缀明文 + SHA256(prefix + secret) 双部分</li>
+  <li>展示：创建时返回完整 key，之后只显示前缀</li>
+  <li>校验：SHA256(prefix + input) 与存储 hash 比对</li>
+</ul>
+
+<h3 id="s4-2">4.2 Scheduler Dispatcher</h3>
+
+<h4>问题</h4>
+<p>现有 <code>scheduler.Start()</code> 只设 <code>running = true</code>，无后台消费循环。</p>
+
+<h4>设计</h4>
+<pre>
+func (s *TaskScheduler) Start() error {
+    s.running = true
+    go s.dispatchLoop()  // 新增
+    return nil
+}
+
+func (s *TaskScheduler) dispatchLoop() {
+    ticker := time.NewTicker(1 * time.Second)
+    defer ticker.Stop()
+    for {
+        select {
+        case &lt;-ticker.C:
+            s.dispatchOnce()
+        case &lt;-s.stopCh:
+            return
+        }
+    }
+}
+
+func (s *TaskScheduler) dispatchOnce() {
+    task, err := s.Dequeue(ctx)
+    if err != nil || task == nil { return }
+    err = s.executor.Execute(ctx, task)
+    if err != nil { s.HandleDispatchError(ctx, task, err) }
+}
+</pre>
+
+<h4>错误处理</h4>
+<table>
+  <tr><th>错误</th><th>处理</th></tr>
+  <tr><td>限流（并发已满）</td><td>留在队列，下次重试</td></tr>
+  <tr><td>沙箱创建失败</td><td>标记 Failed，记录错误</td></tr>
+  <tr><td>Context 取消</td><td>优雅退出</td></tr>
+</table>
+
+<h3 id="s4-3">4.3 DevOps Integration Service</h3>
+
+<h4>职责</h4>
+<p>封装 DevOps 平台 API：需求列表、子任务管理、MR 创建、仓库信息。所有 DevOps 交互基于 <code>DevOpsProvider</code> 接口抽象，可替换不同平台实现。</p>
+
+<h4>DevOpsProvider 接口（平台抽象层）</h4>
+<pre>
+type DevOpsProvider interface {
+    // 需求级操作
+    ListRequirements(ctx context.Context, opts ListOptions) ([]Requirement, error)
+    GetRequirement(ctx context.Context, id string) (*Requirement, error)
+
+    // 子任务级操作
+    ListSubtasks(ctx context.Context, requirementID string) ([]Subtask, error)
+    GetSubtask(ctx context.Context, id string) (*Subtask, error)
+
+    // 仓库信息
+    GetRepoInfo(ctx context.Context, repoURL string) (*RepoInfo, error)
+
+    // MR 操作（控制面调用）
+    CreateMergeRequest(ctx context.Context, req CreateMRRequest) (*MergeRequest, error)
+}
+// 一阶段: JDXingyunProvider（京东行云）
+// 新增平台只需实现此接口
+</pre>
+
+<h4>数据层级</h4>
+<p>DevOps 数据采用两级结构：<strong>需求（Requirement）</strong> 包含 <strong>子任务（Subtask）</strong>，平台 Task 对应子任务级别。</p>
+<pre>
+type Requirement struct {
+    ID          string
+    Title       string
+    Description string   // 含验收标准
+    Priority    string   // P1/P2/P3
+    RepoURL     string   // 仓库地址（子任务继承）
+    Type        string   // requirement/bug/improvement
+    Stage       string   // brd/prd/trd/dev/test/deploy
+    ExternalURL string
+    Artifacts   []Artifact
+    Subtasks    []Subtask
+}
+
+type Subtask struct {
+    ID          string
+    Title       string
+    Description string
+    Type        string   // frontend/backend/testing/docs/other
+    Assignee    string
+    Status      string
+}
+
+type CreateMRRequest struct {
+    RepoURL, SourceBranch, TargetBranch, Title, Description string
+}
+</pre>
+
+<h4>Service 层封装</h4>
+<pre>
+type DevOpsService struct {
+    provider DevOpsProvider
+    credMgr  *CredentialManager
+}
+
+func (s *DevOpsService) ListRequirements(ctx, userID) ([]Requirement, error)
+func (s *DevOpsService) GetRequirement(ctx, userID, id) (*Requirement, error)
+func (s *DevOpsService) ListSubtasks(ctx, userID, reqID) ([]Subtask, error)
+func (s *DevOpsService) GetSubtask(ctx, userID, id) (*Subtask, error)
+func (s *DevOpsService) CreateMR(ctx, userID, req) (*MergeRequest, error)
+func (s *DevOpsService) GetRepoInfo(ctx, userID, url) (*RepoInfo, error)
+</pre>
+
+<h3 id="s4-4">4.4 Credential Manager</h3>
+
+<h4>职责</h4>
+<p>用户凭证（Git token、DevOps token）加密存储 + 沙箱注入。</p>
+
+<h4>接口</h4>
+<pre>
+type CredentialManager struct {
+    repo      repository.CredentialRepository
+    encryptor Encryptor  // AES-256-GCM
+}
+
+func (m *CredentialManager) Store(ctx, userID, credType, value) error
+func (m *CredentialManager) Get(ctx, userID, credType) (string, error)
+func (m *CredentialManager) Delete(ctx, userID, credType) error
+func (m *CredentialManager) BuildSandboxEnv(ctx, userID) (map[string]string, error)
+</pre>
+
+<h4>数据模型</h4>
+<pre>
+type Credential struct {
+    ID        string    `gorm:"primaryKey"`
+    UserID    string    `gorm:"index;not null"`
+    Type      string    `gorm:"not null"`           // git_token, devops_token
+    Encrypted string    `gorm:"type:text;not null"` // AES-256-GCM
+    CreatedAt time.Time; UpdatedAt time.Time
+    DeletedAt gorm.DeletedAt `gorm:"index"`
+}
+// 加密: base64(nonce + ciphertext + tag)
+// 密钥: 配置文件 ENCRYPTION_KEY（32字节）
+</pre>
+
+<h4>沙箱注入</h4>
+<p>Executor 创建沙箱时调用 <code>BuildSandboxEnv()</code>，将 GIT_TOKEN 和 DEVOPS_TOKEN 注入环境变量。</p>
+
+<!-- ████████████████████████████████████████████████████████████ -->
+<h2 id="s5">5 · DevOps Integration Design</h2>
+
+<h3 id="s5-1">5.1 数据层级与字段映射</h3>
+
+<h4>DevOps 数据层级</h4>
+<p>DevOps 平台采用<strong>需求→子任务</strong>两级结构。平台 Task 对应子任务级别，repo_url 等字段从父级需求继承。</p>
+
+<table>
+  <tr><th>来源层级</th><th>DevOps 逻辑字段</th><th>Task 模型字段</th><th>映射方式</th><th>可编辑</th></tr>
+  <tr><td rowspan="2"><strong>需求</strong><br>Requirement</td><td><code>repo_url</code></td><td><code>repo_url</code></td><td>需求级关联，预填</td><td>✅</td></tr>
+  <tr><td><code>priority</code></td><td><code>priority</code></td><td>需求级，预填</td><td>✅</td></tr>
+  <tr><td rowspan="3"><strong>子任务</strong><br>Subtask</td><td><code>title</code></td><td><code>name</code></td><td>直接映射，预填</td><td>✅</td></tr>
+  <tr><td><code>description</code></td><td><code>description</code></td><td>含验收标准，预填</td><td>✅</td></tr>
+  <tr><td><code>id</code></td><td><code>devops_subtask_id</code></td><td>唯一关联标识</td><td>❌</td></tr>
+  <tr><td rowspan="4"><strong>用户填写</strong></td><td>—</td><td><code>branch</code></td><td>手动填写或选择</td><td>✅ 必填</td></tr>
+  <tr><td>—</td><td><code>template_id</code></td><td>选择预置模板</td><td>✅ 必填</td></tr>
+  <tr><td>—</td><td><code>capabilities[]</code></td><td>选择能力集</td><td>✅ 可选</td></tr>
+  <tr><td>—</td><td><code>extra</code></td><td>附加指令</td><td>✅ 可选</td></tr>
+  <tr><td><strong>系统</strong></td><td>—</td><td><code>creator_id</code></td><td>当前登录用户</td><td>自动</td></tr>
+</table>
+
+<blockquote>
+<strong>优先级：</strong>用户显式编辑 &gt; DevOps 预填 &gt; Template 默认值。所有从 DevOps 预填的字段均允许用户编辑覆盖，覆盖值直接存入 Task 模型。
+</blockquote>
+
+<h3 id="s5-2">5.2 任务创建交互流</h3>
+
+<table>
+  <tr><th>步骤</th><th>用户操作</th><th>后端行为</th></tr>
+  <tr><td><span class="tag tag-blue">Step 1</span></td><td>浏览需求列表</td><td><code>GET /devops/requirements</code> → DevOps API → 展示需求卡片</td></tr>
+  <tr><td><span class="tag tag-blue">Step 2</span></td><td>展开并选择子任务</td><td><code>GET /devops/requirements/:id/subtasks</code> → 展示子任务详情</td></tr>
+  <tr><td><span class="tag tag-amber">Step 3</span></td><td>选模板 + 编辑参数</td><td>选预置模板（可基于子任务 type 推荐）→ 所有预填字段可编辑 → 填写 branch</td></tr>
+  <tr><td><span class="tag tag-green">Step 4</span></td><td>确认创建</td><td>发送所有字段到后端 → 创建 Task → 入队调度</td></tr>
+</table>
+
+<h4>POST /tasks 请求体</h4>
+<pre>
+{
+  "devops_subtask_id": "ST-001",      // 必填
+  "template_id": "coding-task",        // 必填
+  "branch": "main",                    // 必填
+  "name": "可选，覆盖预填标题",
+  "description": "可选，覆盖预填描述",
+  "repo_url": "可选，覆盖预填仓库地址",
+  "priority": "可选，覆盖预填优先级",
+  "provider_id": "可选，指定 Provider",
+  "capabilities": ["可选，能力 ID 列表"],
+  "extra": "可选，附加指令"
+}
+</pre>
+<p>后端处理：通过 <code>devops_subtask_id</code> 调用 DevOps API 获取子任务详情 + 父级需求信息 → 预填字段 → 用户传递值覆盖 → Template Resolve → Credential Inject → Schedule</p>
+
+<h3 id="s5-3">5.3 MCP Server 沙箱集成</h3>
+
+<h4>环境变量注入</h4>
+<p>通过 CredentialManager.BuildSandboxEnv() 注入：</p>
+<table>
+  <tr><th>环境变量</th><th>来源</th><th>说明</th></tr>
+  <tr><td><code>MCP_SERVER_URL</code></td><td>配置文件</td><td>MCP Server 服务地址</td></tr>
+  <tr><td><code>DEVOPS_TOKEN</code></td><td>Credential Manager</td><td>用户 DevOps 凭证（AES-256-GCM 解密后注入）</td></tr>
+  <tr><td><code>GIT_TOKEN</code></td><td>Credential Manager</td><td>用户 Git 凭证</td></tr>
+  <tr><td><code>TASK_ID</code></td><td>控制面</td><td>当前 Task ID，用于回调</td></tr>
+</table>
+
+<h4>Skill / CLAUDE.md 配置</h4>
+<ul>
+  <li>Template 的 <code>spec.yaml</code> 可引用 skill 文件列表</li>
+  <li>用户附加指令（extra 字段）追加到 Agent 初始 prompt</li>
+  <li>Agent SOP（编码→自检→Push→CI/CD→MR）由 skill 或 CLAUDE.md 定义，<strong>不是平台设计范畴</strong></li>
+</ul>
+
+<h3 id="s5-4">5.4 MVP 范围说明</h3>
+<ul>
+  <li>阶段一只对接<strong>一个</strong> DevOps 平台，DevOpsProvider 接口可替换</li>
+  <li>MCP Server 作为外部独立服务部署</li>
+  <li>Agent 行为完全由 skill/CLAUDE.md 驱动，平台只注入基础设施</li>
+</ul>
+
+<!-- ████████████████████████████████████████████████████████████ -->
+<h2 id="s6">6 · 修改模块设计</h2>
+
+<h3 id="s6-1">6.1 Template Preset + Task Resolution</h3>
+
+<h4>预置模板（Seed 数据）</h4>
+<table>
+  <tr><th>模板 ID</th><th>名称</th><th>成功标准</th></tr>
+  <tr><td><code>coding-task</code></td><td>编码任务</td><td>lint 通过 + 测试通过率 &gt; 80%</td></tr>
+  <tr><td><code>bug-fix</code></td><td>Bug 修复</td><td>lint 通过 + 测试通过 + 复现场景验证</td></tr>
+  <tr><td><code>refactor</code></td><td>代码重构</td><td>lint 通过 + 测试通过 + 行为不变</td></tr>
+</table>
+
+<h4>Task Resolution 流程</h4>
+<pre>
+1. 加载 Template spec（YAML 解析）
+2. DevOps 子任务 + 需求内容填充:
+   - spec.goal = subtask.Title
+   - spec.description = subtask.Description（含验收标准）
+   - spec.repo_url = requirement.RepoURL（从父级需求继承）
+   - spec.priority = requirement.Priority
+3. 用户覆盖（name, description, repo_url, branch, timeout, success_criteria）
+4. 渲染 → resolved_config (JSON)
+</pre>
+
+<h4>Template Spec YAML 结构</h4>
+<pre>
+metadata:
+  name: coding-task
+  description: 通用编码任务模板
+  scene_type: coding
+spec:
+  goal: ""
+  description: ""
+  success_criteria: [lint_pass, "test_rate > 80%"]
+execution:
+  tools: ["all"]
+  max_timeout: 30
+  max_token_budget: 0
+  max_retries: 5
+outputs:
+  create_mr: true
+  branch_prefix: "task"
+</pre>
+
+<h3 id="s6-2">6.2 Metrics Implementation</h3>
+
+<p>替换 <code>metrics.go</code> 中的所有 TODO 为实际 DB 查询：</p>
+<table>
+  <tr><th>Endpoint</th><th>查询</th></tr>
+  <tr><td>GET /metrics/dashboard</td><td>按 status 分组 count，当前用户范围</td></tr>
+  <tr><td>GET /metrics/tasks</td><td>最近 7 天任务统计（按天分组）</td></tr>
+  <tr><td>GET /metrics/resources</td><td>当前用户运行中任务 Token 消耗汇总</td></tr>
+</table>
+
+<h3 id="s6-3">6.3 WebSocket Auth</h3>
+
+<p>修改 <code>ws_handler.go</code>，连接时校验 token，按 user_id 分房间（替代 tenant_id placeholder）。</p>
+
+<!-- ████████████████████████████████████████████████████████████ -->
+<h2 id="s7">7 · API 设计</h2>
+
+<h3>7.1 新增 API</h3>
+<table>
+  <tr><th>方法</th><th>路径</th><th>说明</th></tr>
+  <tr><td>GET</td><td><code>/api/v1/devops/requirements</code></td><td>拉取 DevOps 需求列表（含 repo_url、priority、stage）</td></tr>
+  <tr><td>GET</td><td><code>/api/v1/devops/requirements/:id</code></td><td>获取需求详情（含 artifacts、subtasks）</td></tr>
+  <tr><td>GET</td><td><code>/api/v1/devops/requirements/:id/subtasks</code></td><td>获取需求下的子任务列表</td></tr>
+  <tr><td>GET</td><td><code>/api/v1/devops/repo?url=xxx</code></td><td>获取仓库信息</td></tr>
+  <tr><td>POST</td><td><code>/api/v1/credentials</code></td><td>存储用户凭证</td></tr>
+  <tr><td>GET</td><td><code>/api/v1/credentials</code></td><td>列出已有凭证类型</td></tr>
+  <tr><td>DELETE</td><td><code>/api/v1/credentials/:type</code></td><td>删除凭证</td></tr>
+  <tr><td>POST</td><td><code>/api/v1/api-keys</code></td><td>创建 API Key</td></tr>
+  <tr><td>GET</td><td><code>/api/v1/api-keys</code></td><td>列出 API Key（只显示前缀）</td></tr>
+  <tr><td>DELETE</td><td><code>/api/v1/api-keys/:id</code></td><td>撤销 API Key</td></tr>
+  <tr><td>GET</td><td><code>/api/v1/config</code></td><td>获取用户配置</td></tr>
+  <tr><td>PUT</td><td><code>/api/v1/config</code></td><td>更新用户配置</td></tr>
+</table>
+
+<h3>7.2 修改的 API</h3>
+<table>
+  <tr><th>方法</th><th>路径</th><th>变更</th></tr>
+  <tr><td>POST</td><td><code>/api/v1/tasks</code></td><td>改为接收 <code>devops_subtask_id</code> + <code>template_id</code> + <code>branch</code>（必填），其余可选覆盖；后端从 DevOps API 自动补全</td></tr>
+  <tr><td>GET</td><td><code>/api/v1/tasks/:id</code></td><td>增加 <code>mr_url</code>、<code>mr_status</code>、<code>sandbox_status</code>、<code>description</code></td></tr>
+  <tr><td>POST</td><td><code>/api/v1/tasks/:id/cancel</code></td><td>增加沙箱清理逻辑</td></tr>
+</table>
+
+<h3>7.3 任务创建 API</h3>
+<pre>
+POST /api/v1/tasks  Header: X-API-Key: xxx
+
+Request（最小必填）:
+{
+    "devops_subtask_id": "ST-001",
+    "template_id": "coding-task",
+    "branch": "main"
+}
+
+Request（可选覆盖）:
+{
+    "devops_subtask_id": "ST-001",
+    "template_id": "coding-task",
+    "branch": "feature/fix-login",
+    "name": "自定义任务名",
+    "description": "覆盖的描述内容",
+    "repo_url": "https://git.example.com/other-repo",
+    "priority": "P1",
+    "capabilities": ["mcp-devops", "skill-testing"],
+    "extra": "附加指令"
+}
+
+Response:
+{
+    "id": "task-uuid-xxx",
+    "status": "pending",
+    "devops_subtask_id": "ST-001",
+    "name": "Fix login timeout issue",
+    "description": "登录页面偶发白屏...",
+    "repo_url": "https://git.example.com/repo",
+    "template_id": "coding-task",
+    "resolved_config": { ... },
+    "created_at": "2026-05-14T10:00:00Z"
+}
+</pre>
+
+<h2 id="s8">8 · 数据模型变更</h2>
+
+<h3>8.1 新增模型</h3>
+<p><strong>Credential</strong> — 用户第三方凭证（见 §4.4 数据模型）</p>
+
+<h3>8.2 Task 模型增加字段</h3>
+<pre>
+DevOpsSubtaskID string  `gorm:"column:devops_subtask_id;index"` // 子任务 ID（替代原 devops_task_id）
+Description     string  `gorm:"column:description;type:longtext"` // 含验收标准，从 DevOps 预填
+Branch          string  `gorm:"column:branch"`                   // 目标分支，用户填写
+Extra           string  `gorm:"column:extra;type:text"`          // 附加指令
+MRURL           string  `gorm:"column:mr_url"`
+MRStatus        string  `gorm:"column:mr_status"`
+SandboxStatus   string  `gorm:"column:sandbox_status"`
+TemplateID      string  `gorm:"column:template_id;index"`
+</pre>
+
+<h3>8.3 状态机废弃</h3>
+<blockquote>
+<strong>阶段一废弃以下状态：</strong><code>waiting_approval</code> 和 <code>retrying</code>。BRD/PRD/TRD/code 四者统一为 7 个状态：pending → queued → running → completed / failed / cancelled / timed_out。<br>
+代码层面加 <code>// Deprecated: Phase 1 does not use this status</code> 标记，TaskService 的 <code>validStatusTransitions</code> map 中移除这两个状态的转换规则。
+</blockquote>
+
+<h2 id="s9">9 · 部署架构</h2>
+
+<h3>9.1 双 Runtime</h3>
+<table>
+  <tr><th>Runtime</th><th>场景</th><th>状态</th></tr>
+  <tr><td>Docker Compose</td><td>本地开发</td><td>已实现</td></tr>
+  <tr><td>K8s Job</td><td>远程/团队共享</td><td>代码已有，需 wire up main.go</td></tr>
+</table>
+
+<h3>9.2 K8s Wire Up</h3>
+<pre>
+// main.go：根据配置选择 runtime
+if cfg.Runtime.Type == "docker" {
+    runtime = executor.NewDockerRuntime(cfg.Docker)
+} else if cfg.Runtime.Type == "k8s" {
+    k8sClient, _ := kubernetes.NewForConfig(k8sConfig)
+    runtime = executor.NewK8sRuntime(k8sClient, cfg.K8s)
+}
+</pre>
+
+<h3>9.3 配置扩展</h3>
+<pre>
+runtime:
+  type: docker          # docker 或 k8s
+k8s:
+  namespace: agent-sandbox
+  image: registry.example.com/agent-infra/sandbox:latest
+</pre>
+
+<h2 id="s10">10 · 安全设计</h2>
+
+<table>
+  <tr><th>维度</th><th>方案</th></tr>
+  <tr><td>用户认证</td><td>API Key（SHA256 hash 存储），一阶段所有用户平等</td></tr>
+  <tr><td>内部通信</td><td>X-Internal-Token 共享密钥（已有）</td></tr>
+  <tr><td>WebSocket</td><td>ws://?token=api_key，按 user scope 推送</td></tr>
+  <tr><td>凭证存储</td><td>AES-256-GCM 加密，密钥来自配置文件</td></tr>
+  <tr><td>凭证注入</td><td>环境变量注入沙箱，不落盘</td></tr>
+  <tr><td>日志脱敏</td><td>Wrapper 和控制面不输出 token 值</td></tr>
+  <tr><td>沙箱隔离</td><td>Docker/K8s 容器隔离，禁止跨任务访问</td></tr>
+  <tr><td>资源限制</td><td>CPU/内存/执行时长/Token 预算</td></tr>
+  <tr><td>自动清理</td><td>TTL 1 小时自动销毁容器</td></tr>
+  <tr><td>SSO 预留</td><td>Authenticator 接口抽象</td></tr>
+</table>
+
+<h2 id="s11">11 · 测试策略</h2>
+
+<h3>10.1 必写测试</h3>
+<table>
+  <tr><th>模块</th><th>测试类型</th><th>覆盖重点</th></tr>
+  <tr><td>Auth Middleware</td><td>单元测试</td><td>Key 校验、过期、用户注入</td></tr>
+  <tr><td>Scheduler Dispatcher</td><td>单元 + 集成</td><td>消费循环、限流、错误恢复</td></tr>
+  <tr><td>DevOps Integration</td><td>单元（Mock）</td><td>列表解析、MR 创建、认证传递</td></tr>
+  <tr><td>Credential Manager</td><td>单元测试</td><td>加密/解密、沙箱环境变量</td></tr>
+</table>
+
+<h3>10.2 覆盖率目标</h3>
+<table>
+  <tr><th>模块</th><th>目标</th></tr>
+  <tr><td>新增模块</td><td>&gt; 80%</td></tr>
+  <tr><td>Scheduler Dispatcher</td><td>&gt; 80%</td></tr>
+  <tr><td>现有 Service 层</td><td>维持现有</td></tr>
+</table>
+
+<hr>
+
+<table>
+  <tr><th>版本</th><th>日期</th><th>修订内容</th></tr>
+  <tr><td>v2.5</td><td>2026-03-28</td><td>旧版：模板 Schema、Provider 三层作用域、Spec 解析管线</td></tr>
+  <tr><td>v3.0</td><td>2026-05-13</td><td>阶段一重写：4 个新增模块 + 3 个修改模块；DevOps 集成；Credential Manager；Scheduler 消费循环；API Key 认证；双 Runtime 部署</td></tr>
+  <tr><td>v3.1</td><td>2026-05-14</td><td>评审修订：新增 §5 DevOps Integration Design（需求→子任务字段映射、任务创建交互流、MCP Server 沙箱集成）；重构 DevOpsClient → DevOpsProvider 接口抽象；更新 API 路径（requirements/subtasks）；Task 模型新增 description/branch/extra/devops_subtask_id；状态机废弃 waiting_approval/retrying</td></tr>
+</table>
+
+</body>
+</html>

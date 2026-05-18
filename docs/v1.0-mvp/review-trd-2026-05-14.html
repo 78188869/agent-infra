@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TRD v3.0 技术方案评审</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a2e;--muted:#6b7280;--accent:#3b82f6;--accent-light:#eff6ff;--border:#e5e7eb;--card-bg:#f9fafb;--green:#059669;--green-light:#ecfdf5;--amber:#d97706;--amber-light:#fffbeb;--red:#dc2626;--red-light:#fef2f2;--purple:#7c3aed;--purple-light:#faf5ff}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:var(--fg);background:var(--bg);line-height:1.7;padding:2rem 1rem;max-width:960px;margin:0 auto}
+h1{font-size:1.8rem;font-weight:700;margin-bottom:.25rem}
+h1 .subtitle{display:block;font-size:.9rem;color:var(--muted);font-weight:400;margin-top:.25rem;margin-bottom:1rem}
+.meta{display:flex;gap:1.5rem;flex-wrap:wrap;font-size:.85rem;color:var(--muted);margin-bottom:2rem;padding:.8rem 1rem;background:var(--card-bg);border:1px solid var(--border);border-radius:8px}
+.meta strong{color:var(--fg)}
+h2{font-size:1.35rem;font-weight:700;margin-top:2.5rem;margin-bottom:1rem;padding-left:.75rem;border-left:4px solid var(--accent)}
+h3{font-size:1.1rem;font-weight:600;margin-top:1.8rem;margin-bottom:.75rem}
+h4{font-size:1rem;font-weight:600;margin-top:1.3rem;margin-bottom:.5rem}
+p{font-size:.95rem;margin-bottom:.75rem}
+ul,ol{margin-left:1.5rem;margin-bottom:.75rem}li{margin-bottom:.3rem;font-size:.95rem}
+strong{font-weight:600}
+table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:.9rem}
+th,td{border:1px solid var(--border);padding:.55rem .8rem;text-align:left;vertical-align:top}
+th{background:var(--accent-light);font-weight:600;white-space:nowrap}
+tr:nth-child(even) td{background:var(--card-bg)}
+blockquote{border-left:4px solid var(--accent);background:var(--accent-light);padding:.75rem 1rem;margin:1rem 0;border-radius:0 6px 6px 0}
+.tag{display:inline-block;border-radius:4px;padding:.1em .5em;font-size:.8rem;font-weight:500;margin-right:.3rem}
+.tag-p0{background:var(--red-light);color:var(--red)}
+.tag-p1{background:var(--amber-light);color:var(--amber)}
+.tag-p2{background:var(--accent-light);color:#2563eb}
+.tag-p3{background:var(--green-light);color:var(--green)}
+.issue-card{border:1px solid var(--border);border-radius:10px;padding:1.2rem;margin:1.2rem 0;background:var(--card-bg)}
+.issue-card h4{margin-top:0;margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem}
+.issue-card .meta-line{font-size:.82rem;color:var(--muted);margin-bottom:.6rem}
+.issue-card p:last-child{margin-bottom:0}
+.evidence{background:var(--code-bg);border:1px solid var(--border);border-radius:6px;padding:.6rem .8rem;font-size:.85rem;margin:.5rem 0;font-family:monospace;white-space:pre-wrap;word-break:break-all}
+.section-sep{border:none;border-top:3px solid var(--border);margin:3rem 0}
+</style>
+</head>
+<body>
+
+<h1>TRD v3.0 技术方案评审<br><span class="subtitle">聚焦技术方案（非实现）· 对照 BRD v1.0 + PRD v2.0 + 代码现状 · 2026-05-14</span></h1>
+
+<div class="meta">
+  <span><strong>评审对象</strong> TRD v3.0（阶段一）</span>
+  <span><strong>对照</strong> BRD v1.0 · PRD v2.0 · design-book.html</span>
+  <span><strong>范围</strong> 技术方案合理性，非代码实现细节</span>
+</div>
+
+<h2>评审结论</h2>
+
+<blockquote>TRD 整体方向正确，但存在 <strong>2 个方案级问题</strong>（P1）和 <strong>5 个改进建议</strong>（P2/P3）。P3-1（内层自检）已移除——自检是 Agent 的 SOP，不需要 TRD 额外设计。</blockquote>
+
+<table>
+  <tr><th>级别</th><th>数量</th><th>说明</th></tr>
+  <tr><td><span class="tag tag-p1">P1</span></td><td>2</td><td>方案缺失或不够细化，影响一阶段交付</td></tr>
+  <tr><td><span class="tag tag-p2">P2</span></td><td>3</td><td>方案不完整或存在隐患</td></tr>
+  <tr><td><span class="tag tag-p3">P3</span></td><td>3</td><td>改进建议（MVP 可简化）</td></tr>
+</table>
+
+<hr class="section-sep">
+
+<!-- ████████████ P0 ████████████ -->
+<h2><span class="tag tag-green">✓ 已对齐</span> 原判定为 P0，现已通过 BRD v1.1 更新解决</h2>
+
+<div class="issue-card" style="border-color:var(--green)">
+  <h4>原 P0-1 多租户 + 原 P0-2 模板系统 — 已解决</h4>
+  <p><strong>原问题</strong>：TRD 保留了多租户体系和模板系统，与旧版 BRD "无多租户""无模板系统"矛盾。</p>
+  <p><strong>解决</strong>：brainstorming 决策确认了 TRD 的设计意图——模板和多租户是"保留但简化"，不是"砍掉"。BRD v1.1 已更新：</p>
+  <ul>
+    <li>§3.8 "无模板系统" → "预置模板：3 个预置模板，不支持自定义"</li>
+    <li>§3.8 "无多租户" → "单租户运行，数据模型预留多租户字段"</li>
+    <li>§3.1 补充"创建时选择预置模板，模板定义成功标准"</li>
+    <li>PRD §2.4 补充"预置模板"约束</li>
+  </ul>
+  <p><strong>残留建议</strong>：TRD 应补充一句说明 tenant 在一阶段的处理（后端自动填默认值，前端不暴露），避免开发者困惑。</p>
+</div>
+
+<hr class="section-sep">
+
+<!-- ████████████ P1 ████████████ -->
+<h2><span class="tag tag-p1">P1</span> 方案缺失或过度设计</h2>
+
+<div class="issue-card">
+  <h4><span class="tag tag-p1">P1-1</span> DevOps MCP Server 集成方案过于粗略</h4>
+  <div class="meta-line">对照 BRD §3.2 "CI/CD 反馈闭环" + PRD §3.2 "双层反馈闭环"</div>
+  <p><strong>问题</strong>：TRD §4.3 DevOps Integration Service 只定义了四个接口（ListTasks / GetTaskDetail / CreateMR / GetRepoInfo），但 BRD 和 PRD 的核心卖点之一是"双层反馈闭环"（内层自检 + 外层 CI/CD via MCP Server）。TRD 没有回答：</p>
+  <ul>
+    <li>MCP Server 如何集成到沙箱内？是 Wrapper 启动时注入 MCP Server 地址？还是 Agent CLI 自带？</li>
+    <li>CI/CD 结果如何传递给 Agent？MCP Server 是被 Agent 主动调用，还是推送通知？</li>
+    <li>修复循环上限（默认 5 次）放在哪里执行——Agent 内部、Wrapper、还是控制面？</li>
+    <li>TRD 的 DevOpsService 只设计了控制面侧的 API（拉取 Issue、创建 MR），但沙箱内 Agent 如何通过 MCP 获取 CI/CD 结果完全没有设计</li>
+  </ul>
+  <p><strong>影响</strong>：这是"外层闭环"能否跑通的关键。如果 TRD 不定义 MCP Server 的集成方式，开发时只能靠猜测。</p>
+  <p><strong>建议</strong>：TRD 应增加一节描述沙箱内 MCP Server 的集成方案——至少包括：MCP Server 的部署位置、Agent 如何发现和调用、CI/CD 结果的数据结构、修复循环的控制点。</p>
+</div>
+
+<div class="issue-card">
+  <h4><span class="tag tag-p1">P1-2</span> 任务创建 API 缺少从"浏览任务列表"到"创建"的完整交互路径</h4>
+  <div class="meta-line">对照 BRD §3.1 "平台对接 DevOps 平台的任务管理" + brainstorming "平台直接调 DevOps API"</div>
+  <p><strong>问题</strong>：TRD §6.1 API 定义了 <code>GET /devops/tasks</code>（拉取列表）和 <code>POST /tasks</code>（创建任务），但缺少两者之间的交互设计：</p>
+  <ul>
+    <li>用户在 UI 上看到 DevOps 任务列表后，点击某个任务，前端调什么 API？只传 <code>devops_task_id</code>？还是需要前端补填 repo_url / branch？</li>
+    <li><code>POST /tasks</code> 的请求体仍有 <code>repo_url</code>、<code>branch</code>、<code>overrides</code> 等字段——如果这些可以从 DevOps 任务详情自动获取，前端不需要传</li>
+    <li>缺少"选择模板"的交互——brainstorming 决策和 PRD 都要求创建时选模板，但 API 没有体现模板选择的流程</li>
+  </ul>
+  <p><strong>建议</strong>：TRD 应补充一条完整的 API 调用序列：<code>GET /devops/tasks</code> → 用户选择 → <code>GET /devops/tasks/:id</code>（获取详情含 repo/branch）→ 用户选模板 → <code>POST /tasks</code>（只传 <code>devops_task_id</code> + <code>template_id</code>，其余由后端补全）。</p>
+</div>
+
+<hr class="section-sep">
+
+<!-- ████████████ P2 ████████████ -->
+<h2><span class="tag tag-p2">P2</span> 方案不完整或存在隐患</h2>
+
+<div class="issue-card">
+  <h4><span class="tag tag-p2">P2-1</span> 状态机方案与 BRD 不一致</h4>
+  <div class="meta-line">对照 BRD §3.3（7 状态）+ 代码 model/task.go（9 状态）</div>
+  <p><strong>问题</strong>：BRD 明确去掉 WaitingApproval 和 Retrying，简化为 7 个状态。但代码中仍然保留了这 9 个状态常量，TRD 没有说明如何处理：</p>
+  <ul>
+    <li>TRD §3.2.2 状态机图确实只画了 7 个状态——但 §7 数据模型变更没有提到删除或废弃 <code>waiting_approval</code> 和 <code>retrying</code></li>
+    <li>TaskService 的 <code>validStatusTransitions</code> map 仍然包含 WaitingApproval 和 Retrying 的转换规则</li>
+    <li>Executor 的 <code>canExecute</code> 方法仍然允许 Retrying 状态的任务执行</li>
+  </ul>
+  <p><strong>影响</strong>：方案和代码不同步，后续维护会混乱。如果代码保留了这些状态，迟早会有人使用它们。</p>
+  <p><strong>建议</strong>：TRD §7 应明确标注一阶段废弃的状态，并给出代码层面的处理方式（注释掉、返回 unsupported、或加 // deprecated 标记）。</p>
+</div>
+
+<div class="issue-card">
+  <h4><span class="tag tag-p2">P2-2</span> 缺少 DevOps 任务 → Task 的字段映射设计</h4>
+  <div class="meta-line">对照 BRD §3.1 + brainstorming "任务来源：DevOps 平台的任务管理"</div>
+  <p><strong>问题</strong>：用户在 UI 上选择一个 DevOps 任务后，系统需要把任务信息预填到 Task 创建表单中。但 TRD 没有定义哪些字段自动预填、哪些需要用户手动补充。</p>
+  <p><strong>建议</strong>：TRD 增加一张字段映射表，定义 DevOps 任务字段到 Task 字段的预填关系（标题→Name、正文→Description、仓库/分支自动填充等），并标注哪些字段允许用户编辑覆盖。保持简单——就是预填 + 可编辑，不需要复杂的 Resolve 流程。</p>
+</div>
+
+<div class="issue-card">
+  <h4><span class="tag tag-p2">P2-3</span> Scheduler Dispatcher 方案的健壮性不足</h4>
+  <div class="meta-line">对照 TRD §4.2 + 代码 scheduler.go</div>
+  <p><strong>问题</strong>：TRD §4.2 设计了一个每秒轮询的 dispatchLoop，但有几个健壮性隐患：</p>
+  <ul>
+    <li><strong>无退避策略</strong>：Dequeue 返回空（队列空）时，1 秒后立即重试。生产环境下持续空轮询会浪费 Redis 连接。应加指数退避或 BLPOP。</li>
+    <li><strong>无并发控制</strong>：dispatchLoop 是单 goroutine，但 Dequeue → RateLimiter → Execute 之间没有事务保证。如果 Execute 失败，任务已出队但未执行，会丢失。</li>
+    <li><strong>Executor 执行是同步的</strong>：<code>s.executor.Execute(ctx, task)</code> 在 dispatchLoop 内同步调用。如果 Execute 阻塞（比如 Docker 创建慢），整个调度循环会被卡住。</li>
+  </ul>
+  <p><strong>建议</strong>：Execute 应该在独立 goroutine 中执行（或至少带超时），调度循环不应被单个任务的执行阻塞。空队列时应加退避（比如连续 N 次空队列后 sleep 5s）。</p>
+</div>
+
+<hr class="section-sep">
+
+<!-- ████████████ P3 ████████████ -->
+<h2><span class="tag tag-p3">P3</span> 改进建议</h2>
+
+<div class="issue-card">
+  <h4><span class="tag tag-p3">P3-1</span> "内层自检"不需要 TRD 单独设计方案——它是 Agent 的 SOP</h4>
+  <div class="meta-line">原标注：PRD §3.2.1 · 用户反馈：不存在"内外层"，自检就是 Agent 的标准操作流程</div>
+  <p><strong>调整</strong>：原评审认为"TRD 缺少内层自检方案"。实际上 Agent 的编码→测试→lint→修复循环就是 Agent 自身的工作流程（SOP），不需要 TRD 额外设计方案。TRD 只需要关注 Template 的 <code>success_criteria</code> 字段如何传递给 Agent 作为自检标准即可——这已经在 TRD §5.1 Template Spec 中定义了。</p>
+  <p><strong>结论</strong>：从评审列表中移除，不构成问题。</p>
+</div>
+
+<div class="issue-card">
+  <h4><span class="tag tag-p3">P3-2</span> Credential Manager 缺少轮转和过期策略（MVP 阶段可简化）</h4>
+  <p>TRD §4.4 描述了凭证的存储和注入，但没有提到凭证过期怎么办、用户更新 Token 后如何刷新。MVP 阶段可以简化为：每次创建沙箱时重新获取最新凭证（即读即用、不缓存）。建议 TRD 加一句说明 MVP 策略即可。</p>
+</div>
+
+<div class="issue-card">
+  <h4><span class="tag tag-p3">P3-3</span> Wrapper 与 Agent SDK 的集成方案引用 ADR-002 但未纳入正文</h4>
+  <p>TRD 多处提到"基于 ADR-002 Agent SDK 集成决策"，但 ADR-002 在 design-book.html 的附录里，不在 TRD 正文中。读者需要跳转两个文档才能理解完整方案。建议至少在 TRD 中概述 ADR-002 的核心决策（单进程双循环、协作式暂停）。</p>
+</div>
+
+<div class="issue-card">
+  <h4><span class="tag tag-p3">P3-4</span> 缺少"开发者"到"user"的身份模型设计</h4>
+  <p>BRD 说一阶段只有"开发者"，但 TRD 的 Auth Middleware 设计是 API Key → User → Tenant。一阶段需要几个 User？每个开发者一个？还是共享一个？User 和 Task 的关系（CreatorID）在一阶段如何初始化？这些应该明确。</p>
+</div>
+
+<hr class="section-sep">
+
+<h2>总结矩阵</h2>
+
+<table>
+  <tr><th>ID</th><th>级别</th><th>问题</th><th>BRD/PRD 引用</th><th>建议动作</th></tr>
+  <tr><td>P1-1</td><td><span class="tag tag-p1">P1</span></td><td>MCP Server 集成方案过于粗略（缺执行面设计）</td><td>BRD §3.2, PRD §3.2</td><td>增加沙箱内 MCP 集成设计</td></tr>
+  <tr><td>P1-2</td><td><span class="tag tag-p1">P1</span></td><td>任务创建 API 缺少从 Issue 列表到创建的完整路径</td><td>BRD §3.1</td><td>补充交互设计</td></tr>
+  <tr><td>P2-1</td><td><span class="tag tag-p2">P2</span></td><td>状态机 9 状态 vs BRD 7 状态，未标注废弃</td><td>BRD §3.3</td><td>§7 标注废弃状态</td></tr>
+  <tr><td>P2-2</td><td><span class="tag tag-p2">P2</span></td><td>缺少 DevOps 任务 → Task 字段映射</td><td>BRD §3.1</td><td>增加映射表</td></tr>
+  <tr><td>P2-3</td><td><span class="tag tag-p2">P2</span></td><td>Scheduler Dispatcher 健壮性不足（无退避、同步执行）</td><td>TRD §4.2</td><td>加退避 + Execute 异步化</td></tr>
+  <tr><td>P3-1</td><td><span class="tag tag-p3">撤销</span></td><td>"内层自检"是 Agent SOP，不需要 TRD 额外设计</td><td>PRD §3.2.1</td><td>已移除</td></tr>
+  <tr><td>P3-2</td><td><span class="tag tag-p3">P3</span></td><td>凭证轮转策略缺失</td><td>TRD §4.4</td><td>说明凭证刷新策略</td></tr>
+  <tr><td>P3-3</td><td><span class="tag tag-p3">P3</span></td><td>ADR-002 核心决策未纳入 TRD 正文</td><td>TRD 多处引用</td><td>概述核心决策</td></tr>
+  <tr><td>P3-4</td><td><span class="tag tag-p3">P3</span></td><td>开发者→User 身份模型未设计</td><td>BRD §1.2</td><td>明确一阶段 User 初始化</td></tr>
+</table>
+
+</body>
+</html>
