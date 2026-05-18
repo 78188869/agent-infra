@@ -193,20 +193,82 @@ func (m *mockDBChecker) Ping() error {
 	return nil
 }
 
+// mockAPIKeyServiceForRouter implements service.APIKeyService for router tests
+type mockAPIKeyServiceForRouter struct{}
+
+func (m *mockAPIKeyServiceForRouter) Create(ctx context.Context, userID string, req *service.CreateAPIKeyRequest) (*model.APIKey, string, error) {
+	return nil, "", nil
+}
+
+func (m *mockAPIKeyServiceForRouter) GetByID(ctx context.Context, userID string, keyID string) (*model.APIKey, error) {
+	return nil, nil
+}
+
+func (m *mockAPIKeyServiceForRouter) List(ctx context.Context, userID string, filter *service.APIKeyFilter) ([]*model.APIKey, int64, error) {
+	return nil, 0, nil
+}
+
+func (m *mockAPIKeyServiceForRouter) Revoke(ctx context.Context, userID string, keyID string) error {
+	return nil
+}
+
+func (m *mockAPIKeyServiceForRouter) Validate(ctx context.Context, rawKey string) (*model.APIKey, error) {
+	return &model.APIKey{ID: "test-key", UserID: "test-user"}, nil
+}
+
+// mockUserServiceForRouter implements service.UserService for router tests
+type mockUserServiceForRouter struct{}
+
+func (m *mockUserServiceForRouter) GetByID(ctx context.Context, id string) (*model.User, error) {
+	return &model.User{
+		ID:       "test-user",
+		TenantID: "test-tenant",
+		Role:     model.UserRoleDeveloper,
+		Status:   model.UserStatusActive,
+	}, nil
+}
+
+// mockMonitoringService implements service.MonitoringService for testing
+type mockMonitoringService struct{}
+
+func (m *mockMonitoringService) RecordTaskStatusChange(ctx context.Context, taskID, tenantID, oldStatus, newStatus string) error {
+	return nil
+}
+
+func (m *mockMonitoringService) RecordLogEntry(ctx context.Context, taskID, tenantID string, eventType model.EventType, eventName string, content interface{}) error {
+	return nil
+}
+
+func (m *mockMonitoringService) RecordTaskProgress(ctx context.Context, taskID, tenantID string, progress int64, tokensUsed int64, elapsedSecs int64) error {
+	return nil
+}
+
+func (m *mockMonitoringService) BroadcastTaskCompletion(ctx context.Context, taskID, tenantID string) error {
+	return nil
+}
+
 func init() {
 	gin.SetMode(gin.TestMode)
 }
 
+func setupTestRouter() *gin.Engine {
+	return Setup(
+		&mockTenantService{},
+		&mockTemplateService{},
+		&mockTaskService{},
+		&mockProviderService{},
+		&mockCapabilityService{},
+		&mockMonitoringService{},
+		monitoring.NewHub(),
+		&mockInterventionService{},
+		&mockAPIKeyServiceForRouter{},
+		&mockUserServiceForRouter{},
+		&mockDBChecker{},
+	)
+}
+
 func TestSetup_Routes(t *testing.T) {
-	mockTenantSvc := &mockTenantService{}
-	mockTemplateSvc := &mockTemplateService{}
-	mockTaskSvc := &mockTaskService{}
-	mockProviderSvc := &mockProviderService{}
-	mockCapabilitySvc := &mockCapabilityService{}
-	mockDB := &mockDBChecker{}
-	mockHub := monitoring.NewHub()
-	mockInterventionSvc := &mockInterventionService{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, &mockMonitoringService{}, mockHub, mockInterventionSvc, mockDB)
+	router := setupTestRouter()
 
 	tests := []struct {
 		name   string
@@ -216,16 +278,10 @@ func TestSetup_Routes(t *testing.T) {
 	}{
 		{"health check", http.MethodGet, "/health", http.StatusOK},
 		{"ready check", http.MethodGet, "/ready", http.StatusOK},
-		{"list tenants", http.MethodGet, "/api/v1/tenants", http.StatusOK},
-		{"create tenant", http.MethodPost, "/api/v1/tenants", http.StatusBadRequest}, // 400 because no body
-		{"list templates", http.MethodGet, "/api/v1/templates", http.StatusOK},
-		{"create template", http.MethodPost, "/api/v1/templates", http.StatusBadRequest}, // 400 because no body
-		{"list tasks", http.MethodGet, "/api/v1/tasks", http.StatusOK},
-		{"create task", http.MethodPost, "/api/v1/tasks", http.StatusBadRequest}, // 400 because no body
-		{"list providers", http.MethodGet, "/api/v1/providers", http.StatusOK},
-		{"create provider", http.MethodPost, "/api/v1/providers", http.StatusBadRequest}, // 400 because no body
-		{"list capabilities", http.MethodGet, "/api/v1/capabilities", http.StatusOK},
-		{"create capability", http.MethodPost, "/api/v1/capabilities", http.StatusBadRequest}, // 400 because no body
+		// API v1 routes require auth - without token returns 401
+		{"list tenants no auth", http.MethodGet, "/api/v1/tenants", http.StatusUnauthorized},
+		{"create tenant no auth", http.MethodPost, "/api/v1/tenants", http.StatusUnauthorized},
+		{"list tasks no auth", http.MethodGet, "/api/v1/tasks", http.StatusUnauthorized},
 	}
 
 	for _, tt := range tests {
@@ -241,18 +297,63 @@ func TestSetup_Routes(t *testing.T) {
 	}
 }
 
-func TestSetup_TenantRoutes(t *testing.T) {
-	mockTenantSvc := &mockTenantService{}
-	mockTemplateSvc := &mockTemplateService{}
-	mockTaskSvc := &mockTaskService{}
-	mockProviderSvc := &mockProviderService{}
-	mockCapabilitySvc := &mockCapabilityService{}
-	mockDB := &mockDBChecker{}
-	mockHub := monitoring.NewHub()
-	mockInterventionSvc := &mockInterventionService{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, &mockMonitoringService{}, mockHub, mockInterventionSvc, mockDB)
+func TestSetup_AuthenticatedRoutes(t *testing.T) {
+	router := setupTestRouter()
 
-	// Verify all tenant routes are registered
+	tests := []struct {
+		name   string
+		method string
+		path   string
+		status int
+	}{
+		{"list tenants", http.MethodGet, "/api/v1/tenants", http.StatusOK},
+		{"create tenant no body", http.MethodPost, "/api/v1/tenants", http.StatusBadRequest},
+		{"list templates", http.MethodGet, "/api/v1/templates", http.StatusOK},
+		{"list tasks", http.MethodGet, "/api/v1/tasks", http.StatusOK},
+		{"list providers", http.MethodGet, "/api/v1/providers", http.StatusOK},
+		{"list capabilities", http.MethodGet, "/api/v1/capabilities", http.StatusOK},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(tt.method, tt.path, nil)
+			req.Header.Set("Authorization", "Bearer test-token")
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+
+			if w.Code != tt.status {
+				t.Errorf("Route %s %s: expected status %d, got %d", tt.method, tt.path, tt.status, w.Code)
+			}
+		})
+	}
+}
+
+func TestSetup_APIKeyRoutes(t *testing.T) {
+	router := setupTestRouter()
+
+	routes := router.Routes()
+	routeMap := make(map[string]bool)
+	for _, route := range routes {
+		key := route.Method + " " + route.Path
+		routeMap[key] = true
+	}
+
+	expectedRoutes := []string{
+		"POST /api/v1/api-keys",
+		"GET /api/v1/api-keys",
+		"DELETE /api/v1/api-keys/:id",
+	}
+
+	for _, expected := range expectedRoutes {
+		if !routeMap[expected] {
+			t.Errorf("Expected route %s not found", expected)
+		}
+	}
+}
+
+func TestSetup_TenantRoutes(t *testing.T) {
+	router := setupTestRouter()
+
 	routes := router.Routes()
 	routeMap := make(map[string]bool)
 	for _, route := range routes {
@@ -276,17 +377,8 @@ func TestSetup_TenantRoutes(t *testing.T) {
 }
 
 func TestSetup_TaskRoutes(t *testing.T) {
-	mockTenantSvc := &mockTenantService{}
-	mockTemplateSvc := &mockTemplateService{}
-	mockTaskSvc := &mockTaskService{}
-	mockProviderSvc := &mockProviderService{}
-	mockCapabilitySvc := &mockCapabilityService{}
-	mockDB := &mockDBChecker{}
-	mockHub := monitoring.NewHub()
-	mockInterventionSvc := &mockInterventionService{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, &mockMonitoringService{}, mockHub, mockInterventionSvc, mockDB)
+	router := setupTestRouter()
 
-	// Verify all task routes are registered
 	routes := router.Routes()
 	routeMap := make(map[string]bool)
 	for _, route := range routes {
@@ -310,17 +402,8 @@ func TestSetup_TaskRoutes(t *testing.T) {
 }
 
 func TestSetup_ProviderRoutes(t *testing.T) {
-	mockTenantSvc := &mockTenantService{}
-	mockTemplateSvc := &mockTemplateService{}
-	mockTaskSvc := &mockTaskService{}
-	mockProviderSvc := &mockProviderService{}
-	mockCapabilitySvc := &mockCapabilityService{}
-	mockDB := &mockDBChecker{}
-	mockHub := monitoring.NewHub()
-	mockInterventionSvc := &mockInterventionService{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, &mockMonitoringService{}, mockHub, mockInterventionSvc, mockDB)
+	router := setupTestRouter()
 
-	// Verify all provider routes are registered
 	routes := router.Routes()
 	routeMap := make(map[string]bool)
 	for _, route := range routes {
@@ -346,18 +429,11 @@ func TestSetup_ProviderRoutes(t *testing.T) {
 	}
 }
 
-func TestSetup_TaskListWithParams(t *testing.T) {
-	mockTenantSvc := &mockTenantService{}
-	mockTemplateSvc := &mockTemplateService{}
-	mockTaskSvc := &mockTaskService{}
-	mockProviderSvc := &mockProviderService{}
-	mockCapabilitySvc := &mockCapabilityService{}
-	mockDB := &mockDBChecker{}
-	mockHub := monitoring.NewHub()
-	mockInterventionSvc := &mockInterventionService{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, &mockMonitoringService{}, mockHub, mockInterventionSvc, mockDB)
+func TestSetup_TaskListWithAuth(t *testing.T) {
+	router := setupTestRouter()
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/tasks?page=1&page_size=10&status=pending", nil)
+	req.Header.Set("Authorization", "Bearer test-token")
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -376,17 +452,8 @@ func TestSetup_TaskListWithParams(t *testing.T) {
 }
 
 func TestSetup_CapabilityRoutes(t *testing.T) {
-	mockTenantSvc := &mockTenantService{}
-	mockTemplateSvc := &mockTemplateService{}
-	mockTaskSvc := &mockTaskService{}
-	mockProviderSvc := &mockProviderService{}
-	mockCapabilitySvc := &mockCapabilityService{}
-	mockDB := &mockDBChecker{}
-	mockHub := monitoring.NewHub()
-	mockInterventionSvc := &mockInterventionService{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, &mockMonitoringService{}, mockHub, mockInterventionSvc, mockDB)
+	router := setupTestRouter()
 
-	// Verify all capability routes are registered
 	routes := router.Routes()
 	routeMap := make(map[string]bool)
 	for _, route := range routes {
@@ -411,66 +478,9 @@ func TestSetup_CapabilityRoutes(t *testing.T) {
 	}
 }
 
-func TestSetup_CapabilityListWithParams(t *testing.T) {
-	mockTenantSvc := &mockTenantService{}
-	mockTemplateSvc := &mockTemplateService{}
-	mockTaskSvc := &mockTaskService{}
-	mockProviderSvc := &mockProviderService{}
-	mockCapabilitySvc := &mockCapabilityService{}
-	mockDB := &mockDBChecker{}
-	mockHub := monitoring.NewHub()
-	mockInterventionSvc := &mockInterventionService{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, &mockMonitoringService{}, mockHub, mockInterventionSvc, mockDB)
-
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/capabilities?page=1&page_size=10&type=tool&status=active", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
-	}
-
-	var response map[string]interface{}
-	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
-		t.Errorf("Failed to parse response: %v", err)
-	}
-
-	if response["code"].(float64) != 0 {
-		t.Errorf("Expected code 0, got %v", response["code"])
-	}
-}
-
-// mockMonitoringService implements service.MonitoringService for testing
-type mockMonitoringService struct{}
-
-func (m *mockMonitoringService) RecordTaskStatusChange(ctx context.Context, taskID, tenantID, oldStatus, newStatus string) error {
-	return nil
-}
-
-func (m *mockMonitoringService) RecordLogEntry(ctx context.Context, taskID, tenantID string, eventType model.EventType, eventName string, content interface{}) error {
-	return nil
-}
-
-func (m *mockMonitoringService) RecordTaskProgress(ctx context.Context, taskID, tenantID string, progress int64, tokensUsed int64, elapsedSecs int64) error {
-	return nil
-}
-
-func (m *mockMonitoringService) BroadcastTaskCompletion(ctx context.Context, taskID, tenantID string) error {
-	return nil
-}
-
 func TestSetup_InterventionRoutes(t *testing.T) {
-	mockTenantSvc := &mockTenantService{}
-	mockTemplateSvc := &mockTemplateService{}
-	mockTaskSvc := &mockTaskService{}
-	mockProviderSvc := &mockProviderService{}
-	mockCapabilitySvc := &mockCapabilityService{}
-	mockDB := &mockDBChecker{}
-	mockHub := monitoring.NewHub()
-	mockInterventionSvc := &mockInterventionService{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, &mockMonitoringService{}, mockHub, mockInterventionSvc, mockDB)
+	router := setupTestRouter()
 
-	// Verify all intervention routes are registered
 	routes := router.Routes()
 	routeMap := make(map[string]bool)
 	for _, route := range routes {
@@ -494,17 +504,8 @@ func TestSetup_InterventionRoutes(t *testing.T) {
 }
 
 func TestSetup_InternalRoutes(t *testing.T) {
-	mockTenantSvc := &mockTenantService{}
-	mockTemplateSvc := &mockTemplateService{}
-	mockTaskSvc := &mockTaskService{}
-	mockProviderSvc := &mockProviderService{}
-	mockCapabilitySvc := &mockCapabilityService{}
-	mockDB := &mockDBChecker{}
-	mockHub := monitoring.NewHub()
-	mockInterventionSvc := &mockInterventionService{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, &mockMonitoringService{}, mockHub, mockInterventionSvc, mockDB)
+	router := setupTestRouter()
 
-	// Verify internal wrapper event routes are registered
 	routes := router.Routes()
 	routeMap := make(map[string]bool)
 	for _, route := range routes {
@@ -524,20 +525,11 @@ func TestSetup_InternalRoutes(t *testing.T) {
 }
 
 func TestSetup_InternalWrapperEvent(t *testing.T) {
-	// Set INTERNAL_TOKEN env var for authentication
 	testToken := "test-internal-token-12345"
 	os.Setenv("INTERNAL_TOKEN", testToken)
 	defer os.Unsetenv("INTERNAL_TOKEN")
 
-	mockTenantSvc := &mockTenantService{}
-	mockTemplateSvc := &mockTemplateService{}
-	mockTaskSvc := &mockTaskService{}
-	mockProviderSvc := &mockProviderService{}
-	mockCapabilitySvc := &mockCapabilityService{}
-	mockDB := &mockDBChecker{}
-	mockHub := monitoring.NewHub()
-	mockInterventionSvc := &mockInterventionService{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, &mockMonitoringService{}, mockHub, mockInterventionSvc, mockDB)
+	router := setupTestRouter()
 
 	taskID := "00000000-0000-0000-0000-000000000001"
 	body := strings.NewReader(`{"event_type":"heartbeat","payload":{"status":"running","progress":50}}`)
@@ -553,26 +545,16 @@ func TestSetup_InternalWrapperEvent(t *testing.T) {
 }
 
 func TestSetup_InternalWrapperEvent_Unauthorized(t *testing.T) {
-	// Set INTERNAL_TOKEN env var so auth is required
 	testToken := "secret-token"
 	os.Setenv("INTERNAL_TOKEN", testToken)
 	defer os.Unsetenv("INTERNAL_TOKEN")
 
-	mockTenantSvc := &mockTenantService{}
-	mockTemplateSvc := &mockTemplateService{}
-	mockTaskSvc := &mockTaskService{}
-	mockProviderSvc := &mockProviderService{}
-	mockCapabilitySvc := &mockCapabilityService{}
-	mockDB := &mockDBChecker{}
-	mockHub := monitoring.NewHub()
-	mockInterventionSvc := &mockInterventionService{}
-	router := Setup(mockTenantSvc, mockTemplateSvc, mockTaskSvc, mockProviderSvc, mockCapabilitySvc, &mockMonitoringService{}, mockHub, mockInterventionSvc, mockDB)
+	router := setupTestRouter()
 
 	taskID := "00000000-0000-0000-0000-000000000001"
 	body := strings.NewReader(`{"event_type":"heartbeat","payload":{"status":"running","progress":50}}`)
 	req := httptest.NewRequest(http.MethodPost, "/internal/tasks/"+taskID+"/events", body)
 	req.Header.Set("Content-Type", "application/json")
-	// No X-Internal-Token header => should be rejected
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 

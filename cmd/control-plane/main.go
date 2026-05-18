@@ -106,6 +106,8 @@ func main() {
 	providerRepo := repository.NewProviderRepository(db.DB)
 	capabilityRepo := repository.NewCapabilityRepository(db.DB)
 	interventionRepo := repository.NewInterventionRepository(db.DB)
+	apiKeyRepo := repository.NewAPIKeyRepository(db.DB)
+	userRepo := repository.NewUserRepository(db.DB)
 
 	// 7. Services (handler -> service -> repository -> model)
 	tenantSvc := service.NewTenantService(tenantRepo)
@@ -114,6 +116,8 @@ func main() {
 	providerSvc := service.NewProviderService(providerRepo)
 	capabilitySvc := service.NewCapabilityService(capabilityRepo)
 	interventionSvc := service.NewInterventionService(taskRepo, interventionRepo)
+	apiKeySvc := service.NewAPIKeyService(apiKeyRepo)
+	userSvc := service.NewUserService(userRepo)
 
 	// 8. Monitoring
 	monitoringHub := monitoring.NewHub()
@@ -194,7 +198,7 @@ func main() {
 	}
 
 	// 12. Router
-	r := router.Setup(tenantSvc, templateSvc, taskSvc, providerSvc, capabilitySvc, monitoringSvc, monitoringHub, interventionSvc, db)
+	r := router.Setup(tenantSvc, templateSvc, taskSvc, providerSvc, capabilitySvc, monitoringSvc, monitoringHub, interventionSvc, apiKeySvc, userSvc, db)
 
 	// 13. HTTP server with graceful shutdown
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
