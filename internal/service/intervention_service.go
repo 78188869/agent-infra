@@ -119,15 +119,13 @@ func canCancel(status string) bool {
 		model.TaskStatusScheduled:       true,
 		model.TaskStatusRunning:         true,
 		model.TaskStatusPaused:          true,
-		model.TaskStatusWaitingApproval: true,
-		model.TaskStatusRetrying:        true,
 	}
 	return validStates[status]
 }
 
 // canInject checks if a task can receive an injection based on its current status.
 func canInject(status string) bool {
-	return status == model.TaskStatusRunning || status == model.TaskStatusWaitingApproval
+	return status == model.TaskStatusRunning
 }
 
 // Pause pauses a running task.

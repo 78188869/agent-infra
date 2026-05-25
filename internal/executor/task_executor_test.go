@@ -113,7 +113,7 @@ func TestTaskExecutor_canExecute(t *testing.T) {
 	}{
 		{model.TaskStatusPending, true},
 		{model.TaskStatusScheduled, true},
-		{model.TaskStatusRetrying, true},
+		{model.TaskStatusRetrying, false},
 		{model.TaskStatusRunning, false},
 		{model.TaskStatusPaused, false},
 		{model.TaskStatusSucceeded, false},

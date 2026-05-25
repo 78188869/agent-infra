@@ -27,6 +27,12 @@ func TestTask_Fields(t *testing.T) {
 	_ = task.Description
 	_ = task.ErrorMessage
 	_ = task.Result
+	_ = task.DevopsSubtaskID
+	_ = task.Branch
+	_ = task.Extra
+	_ = task.MRUrl
+	_ = task.MRStatus
+	_ = task.SandboxStatus
 }
 
 func TestTask_EmbedsBaseModel(t *testing.T) {

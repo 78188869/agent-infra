@@ -510,7 +510,7 @@ func TestInterventionService_Cancel(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:       "successful cancel with waiting_approval task",
+			name:       "cannot cancel with deprecated waiting_approval status",
 			taskID:     taskID.String(),
 			operatorID: operatorID.String(),
 			reason:     "Approval rejected",
@@ -532,10 +532,10 @@ func TestInterventionService_Cancel(t *testing.T) {
 					return nil
 				}
 			},
-			wantErr: false,
+			wantErr: true,
 		},
 		{
-			name:       "successful cancel with retrying task",
+			name:       "cannot cancel with deprecated retrying status",
 			taskID:     taskID.String(),
 			operatorID: operatorID.String(),
 			reason:     "Stop retrying",
@@ -557,7 +557,7 @@ func TestInterventionService_Cancel(t *testing.T) {
 					return nil
 				}
 			},
-			wantErr: false,
+			wantErr: true,
 		},
 		{
 			name:        "invalid task ID format",
@@ -697,7 +697,7 @@ func TestInterventionService_Inject(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "successful inject with waiting_approval task",
+			name: "cannot inject with deprecated waiting_approval status",
 			req: &InjectInterventionRequest{
 				TaskID:      taskID.String(),
 				OperatorID:  operatorID.String(),
@@ -719,7 +719,7 @@ func TestInterventionService_Inject(t *testing.T) {
 					return nil
 				}
 			},
-			wantErr: false,
+			wantErr: true,
 		},
 		{
 			name: "invalid task ID format",
