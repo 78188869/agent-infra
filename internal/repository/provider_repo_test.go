@@ -8,7 +8,7 @@ import (
 	"github.com/example/agent-infra/internal/model"
 	"github.com/example/agent-infra/pkg/errors"
 	"github.com/google/uuid"
-	"gorm.io/driver/sqlite"
+	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )
 

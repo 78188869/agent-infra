@@ -190,10 +190,10 @@ func TestComposeManager_GenerateConfig_AppliesDefaults(t *testing.T) {
 }
 
 func TestComposeManager_TaskDir(t *testing.T) {
-	cfg := &DockerConfig{ComposeDir: "/tmp/test"}
+	cfg := &DockerConfig{ComposeDir: filepath.FromSlash("/tmp/test")}
 	cm, _ := NewComposeManager(cfg)
 
-	expected := "/tmp/test/task-abc-123"
+	expected := filepath.Join("/tmp/test", "task-abc-123")
 	got := cm.TaskDir("abc-123")
 	if got != expected {
 		t.Errorf("TaskDir() = %q, want %q", got, expected)

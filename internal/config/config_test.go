@@ -44,8 +44,8 @@ func TestExpandEnv(t *testing.T) {
 			expected: "host=remote port=3306",
 		},
 		{
-			name:     "empty default",
-			input:    "${KUBECONFIG:}",
+			name:     "empty default with unset var",
+			input:    "${_TEST_UNSET_VAR:}",
 			envVars:  map[string]string{},
 			expected: "",
 		},
