@@ -41,12 +41,10 @@ type TaskFilter struct {
 
 // validStatusTransitions defines the allowed status transitions.
 var validStatusTransitions = map[string][]string{
-	model.TaskStatusPending:         {model.TaskStatusScheduled, model.TaskStatusCancelled},
-	model.TaskStatusScheduled:       {model.TaskStatusRunning, model.TaskStatusCancelled},
-	model.TaskStatusRunning:         {model.TaskStatusPaused, model.TaskStatusSucceeded, model.TaskStatusFailed, model.TaskStatusCancelled},
-	model.TaskStatusPaused:          {model.TaskStatusRunning, model.TaskStatusCancelled},
-	model.TaskStatusWaitingApproval: {model.TaskStatusRunning, model.TaskStatusCancelled},
-	model.TaskStatusRetrying:        {model.TaskStatusRunning, model.TaskStatusFailed, model.TaskStatusCancelled},
+	model.TaskStatusPending:   {model.TaskStatusScheduled, model.TaskStatusCancelled},
+	model.TaskStatusScheduled: {model.TaskStatusRunning, model.TaskStatusCancelled},
+	model.TaskStatusRunning:   {model.TaskStatusPaused, model.TaskStatusSucceeded, model.TaskStatusFailed, model.TaskStatusCancelled},
+	model.TaskStatusPaused:    {model.TaskStatusRunning, model.TaskStatusCancelled},
 	// Terminal states - no transitions allowed
 	model.TaskStatusSucceeded: {},
 	model.TaskStatusFailed:    {},

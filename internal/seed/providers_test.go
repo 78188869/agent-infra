@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/example/agent-infra/internal/model"
-	"gorm.io/driver/sqlite"
+	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )
 

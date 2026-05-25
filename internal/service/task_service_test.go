@@ -712,11 +712,11 @@ func TestIsValidStatusTransition(t *testing.T) {
 		{model.TaskStatusRunning, model.TaskStatusCancelled, true},
 		{model.TaskStatusPaused, model.TaskStatusRunning, true},
 		{model.TaskStatusPaused, model.TaskStatusCancelled, true},
-		{model.TaskStatusWaitingApproval, model.TaskStatusRunning, true},
-		{model.TaskStatusWaitingApproval, model.TaskStatusCancelled, true},
-		{model.TaskStatusRetrying, model.TaskStatusRunning, true},
-		{model.TaskStatusRetrying, model.TaskStatusFailed, true},
-		{model.TaskStatusRetrying, model.TaskStatusCancelled, true},
+		{model.TaskStatusWaitingApproval, model.TaskStatusRunning, false},
+		{model.TaskStatusWaitingApproval, model.TaskStatusCancelled, false},
+		{model.TaskStatusRetrying, model.TaskStatusRunning, false},
+		{model.TaskStatusRetrying, model.TaskStatusFailed, false},
+		{model.TaskStatusRetrying, model.TaskStatusCancelled, false},
 
 		// Invalid transitions
 		{model.TaskStatusPending, model.TaskStatusRunning, false},

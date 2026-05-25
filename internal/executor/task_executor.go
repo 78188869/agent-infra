@@ -508,8 +508,7 @@ func (e *TaskExecutor) IsRunning() bool {
 // canExecute checks if a task can be executed.
 func (e *TaskExecutor) canExecute(task *model.Task) bool {
 	return task.Status == model.TaskStatusScheduled ||
-		task.Status == model.TaskStatusPending ||
-		task.Status == model.TaskStatusRetrying
+		task.Status == model.TaskStatusPending
 }
 
 // validateTaskID validates that a taskID is a valid non-empty UUID.
@@ -569,8 +568,6 @@ func (e *TaskExecutor) HandleTaskEvent(ctx context.Context, taskID string, event
 			model.TaskStatusScheduled:       true,
 			model.TaskStatusRunning:         true,
 			model.TaskStatusPaused:          true,
-			model.TaskStatusWaitingApproval: true,
-			model.TaskStatusRetrying:        true,
 			model.TaskStatusSucceeded:       true,
 			model.TaskStatusFailed:          true,
 			model.TaskStatusCancelled:       true,
