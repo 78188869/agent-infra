@@ -1,8 +1,8 @@
 # Core API Knowledge
 
-> **Last Updated**: 2026-03-26
+> **Last Updated**: 2026-05-26
 > **PRD Version**: v0.7-draft
-> **TRD Version**: v2.4
+> **TRD Version**: v3.0
 
 ## 1. Overview
 
@@ -741,7 +741,102 @@ Content-Type: application/json
 - tenant_id 为 NULL 表示全局 Capability
 - 新创建的 Capability 默认为 active 状态，可通过 /deactivate 端点停用
 
-#### 3.4.6 健康检查 (无需认证)
+#### 3.4.6 凭证管理 `/api/v1/credentials`
+
+> **实现状态**: ✅ 已实现（Issue #54, PR #66）
+
+| 方法 | 路径 | 说明 | 角色 | 状态 |
+|------|------|------|------|------|
+| POST | /credentials | 存储凭证 | developer | ✅ |
+| GET | /credentials | 列出凭证类型 | developer | ✅ |
+| DELETE | /credentials/:type | 删除凭证 | developer | ✅ |
+
+**Credential 模型**：
+
+```go
+type Credential struct {
+    BaseModel
+    UserID    string `gorm:"type:char(36);not null;uniqueIndex:idx_user_type" json:"user_id"`
+    Type      string `gorm:"type:varchar(32);not null;uniqueIndex:idx_user_type" json:"type"`
+    Encrypted string `gorm:"type:text;not null" json:"-"` // AES-256-GCM, 永不序列化
+}
+```
+
+**存储凭证请求**：
+
+```http
+POST /api/v1/credentials
+Content-Type: application/json
+Authorization: Bearer <api_key>
+
+{
+    "type": "git_token",
+    "value": "ghp_xxxxxxxxxxxx"
+}
+```
+
+**成功响应**：
+
+```json
+{
+    "code": 0,
+    "message": "success",
+    "data": {
+        "id": "cred-uuid",
+        "type": "git_token"
+    }
+}
+```
+
+**列出凭证响应**（不返回密文）：
+
+```json
+{
+    "code": 0,
+    "message": "success",
+    "data": [
+        {"id": "cred-uuid-1", "type": "git_token"},
+        {"id": "cred-uuid-2", "type": "devops_token"}
+    ]
+}
+```
+
+**删除凭证请求**：
+
+```http
+DELETE /api/v1/credentials/git_token
+Authorization: Bearer <api_key>
+```
+
+**业务规则**：
+- 所有凭证端点需要 API Key 认证
+- type 只允许 `git_token` / `devops_token`
+- 同一用户同类型凭证覆盖更新（upsert）
+- 凭证值使用 AES-256-GCM 加密存储
+- 删除为软删除
+
+**Service 接口**：
+
+```go
+type CredentialService interface {
+    Store(ctx context.Context, userID string, req *StoreCredentialRequest) (*CredentialInfo, error)
+    Get(ctx context.Context, userID, credType string) (string, error)
+    Delete(ctx context.Context, userID, credType string) error
+    List(ctx context.Context, userID string) ([]*CredentialInfo, error)
+    BuildSandboxEnv(ctx context.Context, userID string) (map[string]string, error)
+}
+```
+
+**沙箱环境变量注入**：
+
+`BuildSandboxEnv()` 在 Executor 创建沙箱时调用，将用户凭证解密后注入为环境变量：
+
+| 凭证类型 | 环境变量 | 说明 |
+|----------|---------|------|
+| git_token | GIT_TOKEN | 用户 Git 凭证 |
+| devops_token | DEVOPS_TOKEN | 用户 DevOps 凭证 |
+
+#### 3.4.7 健康检查 (无需认证)
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
@@ -894,3 +989,4 @@ type CapabilityService interface {
 |------|---------|-------|---------|---------|---------|
 | 2026-03-23 | v1.0 | - | §3.2, §4.1, §4.2 | §4.1, §7.1, §7.2 | 初始定义：任务/模板管理 API |
 | 2026-03-26 | v2.0 | #8, #9, #10, #11, #12 | §3.2, §4.1, §4.2 | §4.1, §7.1, §7.2 | 新增：租户/Provider/Capability/健康检查 API；完善所有 API 的请求/响应示例和业务规则 |
+| 2026-05-26 | v2.1 | #54 | §4.4 | §4.4, §5.3, §7.1 | 新增 §3.4.6 凭证管理 API（POST/GET/DELETE /credentials）；BuildSandboxEnv 沙箱注入 |
