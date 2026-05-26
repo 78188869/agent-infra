@@ -16,7 +16,7 @@ type DBChecker interface {
 }
 
 // Setup initializes the gin router with all routes.
-func Setup(tenantSvc service.TenantService, templateSvc service.TemplateService, taskSvc service.TaskService, providerSvc service.ProviderService, capabilitySvc service.CapabilityService, monitorSvc service.MonitoringService, hub *monitoring.Hub, interventionSvc service.InterventionService, apiKeySvc service.APIKeyService, userSvc service.UserService, db DBChecker) *gin.Engine {
+func Setup(tenantSvc service.TenantService, templateSvc service.TemplateService, taskSvc service.TaskService, providerSvc service.ProviderService, capabilitySvc service.CapabilityService, monitorSvc service.MonitoringService, hub *monitoring.Hub, interventionSvc service.InterventionService, apiKeySvc service.APIKeyService, userSvc service.UserService, credentialSvc service.CredentialService, db DBChecker) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(middleware.Logger())
@@ -96,6 +96,14 @@ func Setup(tenantSvc service.TenantService, templateSvc service.TemplateService,
 			providers.POST("/:id/test", providerHandler.TestConnection)
 			providers.PUT("/:id/set-default", providerHandler.SetDefault)
 		}
+			// Credential routes
+			credentialHandler := handler.NewCredentialHandler(credentialSvc)
+			credentials := v1.Group("/credentials")
+			{
+				credentials.POST("", credentialHandler.Store)
+				credentials.GET("", credentialHandler.List)
+				credentials.DELETE("/:type", credentialHandler.Delete)
+			}
 
 		// Capability routes
 		capabilityHandler := handler.NewCapabilityHandler(capabilitySvc)

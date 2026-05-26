@@ -1,8 +1,8 @@
 # Executor Knowledge
 
-> **Last Updated**: 2026-03-28
+> **Last Updated**: 2026-05-26
 > **PRD Version**: v0.7-draft
-> **TRD Version**: v2.4
+> **TRD Version**: v3.0
 
 ## 1. Overview
 
@@ -13,6 +13,7 @@ Executor 模块负责沙箱 Job 的生命周期管理和状态同步。
 - Job 生命周期管理（创建、监控、销毁）
 - 心跳检测与超时处理
 - 状态上报与同步
+- 用户凭证注入（通过 CredentialManager.BuildSandboxEnv）
 
 **核心概念**：
 - **ContainerRuntime**: 容器运行时抽象接口，支持 K8s 和 Docker 两种实现
@@ -242,6 +243,7 @@ internal/executor/
 2. **状态同步**: 通过 HTTP 回调从 wrapper 接收状态更新
 3. **心跳检测**: 每 5 秒检测一次，超时 30 秒标记异常
 4. **资源清理**: 使用 TTL 机制自动清理完成的 Job
+5. **凭证注入**: Executor 创建沙箱时调用 `CredentialService.BuildSandboxEnv(ctx, userID)` 获取解密后的用户凭证，注入为环境变量（GIT_TOKEN、DEVOPS_TOKEN）。详见 Issue #54, TRD §4.4
 
 ### 4.2 Wrapper HTTP API
 
@@ -288,3 +290,4 @@ Wrapper 暴露的 HTTP 接口：
 |------|---------|-------|---------|---------|---------|
 | 2026-03-28 | v1.1 | #35 | §4.2 | §5.1, §5.2, §5.3 | 新增 §3.4 容器运行时抽象（Docker Compose 方案） |
 | 2026-03-23 | v1.0 | - | §4.2 | §5.1, §5.2, §5.3 | 初始定义：执行引擎设计 |
+| 2026-05-26 | v1.2 | #54 | §4.4 | §4.4, §5.3 | 新增 §4.1.5 凭证注入集成点（BuildSandboxEnv） |

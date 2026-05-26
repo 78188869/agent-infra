@@ -228,6 +228,29 @@ func (m *mockUserServiceForRouter) GetByID(ctx context.Context, id string) (*mod
 	}, nil
 }
 
+	// mockCredentialServiceForRouter implements service.CredentialService for router tests
+	type mockCredentialServiceForRouter struct{}
+
+	func (m *mockCredentialServiceForRouter) Store(ctx context.Context, userID string, req *service.StoreCredentialRequest) (*service.CredentialInfo, error) {
+		return &service.CredentialInfo{ID: "test-cred", Type: req.Type}, nil
+	}
+
+	func (m *mockCredentialServiceForRouter) Get(ctx context.Context, userID, credType string) (string, error) {
+		return "", nil
+	}
+
+	func (m *mockCredentialServiceForRouter) Delete(ctx context.Context, userID, credType string) error {
+		return nil
+	}
+
+	func (m *mockCredentialServiceForRouter) List(ctx context.Context, userID string) ([]*service.CredentialInfo, error) {
+		return nil, nil
+	}
+
+	func (m *mockCredentialServiceForRouter) BuildSandboxEnv(ctx context.Context, userID string) (map[string]string, error) {
+		return nil, nil
+	}
+
 // mockMonitoringService implements service.MonitoringService for testing
 type mockMonitoringService struct{}
 
@@ -263,6 +286,7 @@ func setupTestRouter() *gin.Engine {
 		&mockInterventionService{},
 		&mockAPIKeyServiceForRouter{},
 		&mockUserServiceForRouter{},
+			&mockCredentialServiceForRouter{},
 		&mockDBChecker{},
 	)
 }

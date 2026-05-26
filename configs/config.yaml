@@ -37,3 +37,4 @@ log:
     max_size_mb: ${LOG_MAX_SIZE:100}
     max_backups: ${LOG_MAX_BACKUPS:7}
     max_age_days: ${LOG_MAX_AGE:30}
+encryption_key: ${ENCRYPTION_KEY:}

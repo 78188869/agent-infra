@@ -108,6 +108,7 @@ func main() {
 	interventionRepo := repository.NewInterventionRepository(db.DB)
 	apiKeyRepo := repository.NewAPIKeyRepository(db.DB)
 	userRepo := repository.NewUserRepository(db.DB)
+	credentialRepo := repository.NewCredentialRepository(db.DB)
 
 	// 7. Services (handler -> service -> repository -> model)
 	tenantSvc := service.NewTenantService(tenantRepo)
@@ -118,6 +119,18 @@ func main() {
 	interventionSvc := service.NewInterventionService(taskRepo, interventionRepo)
 	apiKeySvc := service.NewAPIKeyService(apiKeyRepo)
 	userSvc := service.NewUserService(userRepo)
+	// Encryptor for credential management
+	var encryptor config.Encryptor
+	if cfg.EncryptionKey == "" {
+		slog.Error("ENCRYPTION_KEY is required for credential management")
+		os.Exit(1)
+	}
+	encryptor, err = config.NewAESEncryptor(cfg.EncryptionKey)
+	if err != nil {
+		slog.Error("failed to create encryptor", "error", err)
+		os.Exit(1)
+	}
+	credentialSvc := service.NewCredentialService(credentialRepo, encryptor)
 
 	// 8. Monitoring
 	monitoringHub := monitoring.NewHub()
@@ -198,7 +211,7 @@ func main() {
 	}
 
 	// 12. Router
-	r := router.Setup(tenantSvc, templateSvc, taskSvc, providerSvc, capabilitySvc, monitoringSvc, monitoringHub, interventionSvc, apiKeySvc, userSvc, db)
+	r := router.Setup(tenantSvc, templateSvc, taskSvc, providerSvc, capabilitySvc, monitoringSvc, monitoringHub, interventionSvc, apiKeySvc, userSvc, credentialSvc, db)
 
 	// 13. HTTP server with graceful shutdown
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)

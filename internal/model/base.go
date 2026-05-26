@@ -42,5 +42,6 @@ func AllModels() []interface{} {
 		&Capability{},
 		&Provider{},
 		&UserProviderDefault{},
+		&Credential{},
 	}
 }
