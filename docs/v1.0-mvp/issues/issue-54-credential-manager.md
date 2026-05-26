@@ -1,9 +1,9 @@
 # Issue #54: Credential Manager 加密存储与沙箱注入
 
-> **Status**: in_progress
+> **Status**: closed
 > **Created**: 2026-05-26
-> **Closed**: -
-> **PR**: -
+> **Closed**: 2026-05-26
+> **PR**: #66
 
 ## Summary
 
@@ -24,6 +24,7 @@
 
 - `knowledge/database.md` - 数据模型、GORM 配置
 - `knowledge/executor.md` - 沙箱生命周期管理、环境变量注入
+- `knowledge/core-api.md` - 凭证管理 API
 
 ## Key Decisions
 
