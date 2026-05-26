@@ -20,7 +20,7 @@ func TestGenerateUUID(t *testing.T) {
 func TestAllModels(t *testing.T) {
 	models := AllModels()
 
-	expectedModels := 10
+	expectedModels := 11
 	if len(models) != expectedModels {
 		t.Errorf("AllModels() returned %d models, expected %d", len(models), expectedModels)
 	}
