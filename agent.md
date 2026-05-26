@@ -132,7 +132,7 @@ docs/
 
 ## 7. Issue Development Workflow
 
-完整流程从拉取代码到清理环境共 15 步：
+完整流程从拉取代码到清理环境共 16 步：
 
 | Step | 操作 | 要点 |
 |------|------|------|
@@ -140,11 +140,12 @@ docs/
 | 1 | 创建 Worktree | `git worktree add -b feature/issue-{N} .claude/worktrees/issue-{N} main` |
 | 2 | 创建 Issue Summary | `docs/current/issues/issue-{N}-{title}.md`，模板见 `issues/README.md` |
 | 3 | 获取背景知识 | 读 TRD.md → decisions/ → knowledge/{modules}.md，按下方模块选择表确定范围 |
-| 3.5 | 设计与文档回流 | **（条件）** brainstorming 后将决策写入 ADR → 更新 TRD/knowledge 文档 → commit |
+| 3.5 | 设计决策回流 | **（条件）** brainstorming 后将架构决策写入 ADR → 更新 TRD 文档 → commit。仅在涉及重大设计选择时执行 |
 | 4 | 创建执行计划 | `docs/current/plans/{YYYY-MM-DD}-{title}.md`，模板见 `plans/README.md` |
 | 5 | 开发实现 (TDD) | 按 Plan 逐步实现，编写测试用例，覆盖率 > 80% |
 | 6 | 测试验证 | `make test && make lint && go test -cover ./internal/...` |
 | 7 | 代码审查 | 验证所有测试通过，修复发现的问题 |
+| 7.5 | 知识回流 | **（必选）** 将实现结果回流到 knowledge 文档：新增/修改的模型 → database.md；新增/修改的 API → core-api.md；涉及沙箱/调度/执行 → executor.md 等。更新 Change History → 独立 commit |
 | 8 | 提交推送 | 更新 Issue Summary（勾选 scope/acceptance checkbox）→ commit & push |
 | 9 | 创建 PR | `gh pr create --base main --title "feat: description"` |
 | 10 | 等待合并（人工） | 等待人工审核并合并 PR |
@@ -152,7 +153,7 @@ docs/
 | 12 | 关闭 Issue | `gh issue close {N}` → 补 Issue Summary 元数据（status=closed, closed=日期, PR=#N）→ commit & push |
 | 13 | 清理环境 | `git worktree remove .claude/worktrees/issue-{N}` |
 
-> **计划结构要求**：Step 4 的执行计划必须覆盖 Step 5-9（实现、测试、审查、推送、PR），每个 Step 对应一个 Task；Step 0-4 和 Step 10-13 在开发前创建完整的 15 步 TaskCreate 列表跟踪进度。
+> **计划结构要求**：Step 4 的执行计划必须覆盖 Step 5-9（实现、测试、审查、回流、推送、PR），每个 Step 对应一个 Task；Step 0-4 和 Step 10-13 在开发前创建完整的 16 步 TaskCreate 列表跟踪进度。
 
 ### 模块知识选择
 

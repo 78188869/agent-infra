@@ -109,6 +109,7 @@ type AppConfig struct {
 	Log      LogConfig      `yaml:"log"`
 	K8s      K8sConfig      `yaml:"k8s"`
 	SLS      SLSConfig      `yaml:"sls"`
+	EncryptionKey string         `yaml:"encryption_key"`
 }
 
 // GetEnvironment returns the application environment.

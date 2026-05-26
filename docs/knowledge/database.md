@@ -1,8 +1,8 @@
 # Database Knowledge
 
-> **Last Updated**: 2026-03-23
+> **Last Updated**: 2026-05-26
 > **PRD Version**: v0.7-draft
-> **TRD Version**: v2.4
+> **TRD Version**: v3.0
 
 ## 1. Overview
 
@@ -20,6 +20,7 @@ Database 模块负责数据模型定义、数据库连接管理和数据迁移�
 - **Task**: 任务，一次 Agent 执行的抽象单元
 - **Template**: 模板，可复用的任务配置
 - **Provider**: Agent 运行时配置
+- **Credential**: 用户第三方凭证（Git Token、DevOps Token），AES-256-GCM 加密存储
 
 ## 2. Product Requirements (from PRD)
 
@@ -34,7 +35,9 @@ Tenant（租户）
     │       │                 ├── Output（输出产物）
     │       │                 └── Intervention（干预记录）
     │       │
-    │       └── Template（模板）
+    │       ├── Template（模板）
+    │       │
+    │       └── Credential（凭证）
     │
     ├── Capability（能力）
     │
@@ -176,6 +179,26 @@ database:
 | result | JSON | 执行结果 |
 | status | ENUM | pending/applied/failed |
 
+#### 3.2.8 credentials（凭证表）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | VARCHAR(36) | 凭证 ID (UUID) |
+| user_id | VARCHAR(36) | 用户 ID (FK) |
+| type | VARCHAR(32) | 凭证类型：git_token / devops_token |
+| encrypted | TEXT | AES-256-GCM 加密后的密文，base64(nonce+ciphertext+tag) |
+| created_at | TIMESTAMP | 创建时间 |
+| updated_at | TIMESTAMP | 更新时间 |
+| deleted_at | TIMESTAMP | 软删除时间 |
+
+**唯一索引**: `idx_user_type` (user_id, type) — 同一用户同类型凭证 upsert 更新
+
+**加密规格**:
+- 算法：AES-256-GCM
+- 密钥来源：配置文件 `encryption_key`（32 字节，通过 `ENCRYPTION_KEY` 环境变量注入）
+- 加密格式：`base64(nonce[12B] + ciphertext + tag[16B])`
+- 安全约束：`Encrypted` 字段 `json:"-"` 禁止序列化，凭证不出现在任何日志中
+
 ### 3.3 GORM 模型定义
 
 ```go
@@ -264,3 +287,4 @@ database:
 | Date | Version | Issue | PRD Ref | TRD Ref | Changes |
 |------|---------|-------|---------|---------|---------|
 | 2026-03-23 | v1.0 | - | §5.1 | §6.1, §6.2, §6.3 | 初始定义：数据模型与表结构 |
+| 2026-05-26 | v1.1 | #54 | §4.4 | §4.4 | 新增 §3.2.8 credentials 表（AES-256-GCM 加密存储）；更新实体关系图添加 Credential |
